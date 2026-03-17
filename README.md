@@ -1,10 +1,47 @@
 # funcml
 
-`funcml` is a formula-first machine learning package for fitting, evaluating,
-tuning, and interpreting models with a compact S3 interface.
+`funcml` is a formula-first functional machine learning package for building
+end-to-end modeling workflows with a compact S3 interface.
 
-It also includes native ensemble learner IDs through `fit(..., model = "stacking")`
-and `fit(..., model = "superlearner")`.
+The package is centered on the core machine learning workflow:
+
+- model fitting through `fit()`
+- prediction through `predict()`
+- learner discovery through `learners()`
+- resampling through `cv()`
+- model evaluation through `evaluate()`
+- hyperparameter tuning through `tune()`
+- effect estimation through `estimate()`
+- native ensemble learners through `fit(..., model = "stacking")` and
+  `fit(..., model = "superlearner")`
+
+Interpretability is included as one part of the package, not the main purpose.
+
+## Core workflow
+
+The main workflow is:
+
+`fit() -> predict() -> evaluate() -> tune() -> estimate() -> interpret()`
+
+```r
+fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
+
+pred <- predict(fit_obj, mtcars[1:5, , drop = FALSE])
+resampling <- cv(v = 5, seed = 1)
+eval_obj <- evaluate(mtcars, mpg ~ wt + hp, model = "glm", resampling = resampling)
+
+grid <- data.frame(degree = c(1, 2))
+tune_obj <- tune(mtcars, mpg ~ wt + hp, model = "earth", grid = grid, resampling = resampling)
+
+est_obj <- estimate(
+  transform(mtcars, trt = as.integer(wt > median(wt))),
+  mpg ~ trt + hp + qsec,
+  model = "glm",
+  estimand = "ATE"
+)
+
+int_obj <- interpret(fit_obj, mtcars, method = "pdp", features = "wt")
+```
 
 ## Native interpretability methods
 
@@ -25,3 +62,15 @@ and `fit(..., model = "superlearner")`.
 
 These methods are implemented natively in the package without vendoring source
 code from upstream interpretability libraries.
+
+## Package focus
+
+`funcml` is primarily designed as a unified functional ML interface over
+multiple learners and workflows. The package combines:
+
+- formula-first model specification
+- a shared `fit()` / `predict()` API across learners
+- native stacking and super learner ensembles
+- evaluation and tuning utilities
+- estimand-oriented analysis
+- built-in interpretability methods
