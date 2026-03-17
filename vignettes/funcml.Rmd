@@ -1,0 +1,44 @@
+---
+title: "funcml"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{funcml}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(funcml)
+```
+
+`funcml` provides a formula-first workflow for fitting and evaluating models.
+The package also includes native interpretability helpers for permutation
+importance, partial dependence, ICE, ALE, local surrogate explanations, SHAP,
+interaction strength, greedy breakdown profiles, and global surrogate models.
+It also exposes native ensemble learners through `model = "stacking"` and
+`model = "superlearner"`.
+
+```{r}
+fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
+
+permute_obj <- interpret(fit_obj, mtcars, method = "permute", nsim = 5)
+pdp_obj <- interpret(fit_obj, mtcars, method = "pdp", features = "wt")
+ale_obj <- interpret(fit_obj, mtcars, method = "ale", features = "wt")
+local_obj <- interpret(fit_obj, mtcars, method = "local_model", newdata = mtcars[1, , drop = FALSE], k = 2)
+shap_obj <- interpret(fit_obj, mtcars, method = "shap", newdata = mtcars[1, , drop = FALSE], nsim = 20)
+interaction_obj <- interpret(fit_obj, mtcars, method = "interaction")
+breakdown_obj <- interpret(fit_obj, mtcars, method = "breakdown", newdata = mtcars[1, , drop = FALSE])
+surrogate_obj <- interpret(fit_obj, mtcars, method = "surrogate")
+```
+
+```{r}
+plot(permute_obj)
+plot(pdp_obj)
+plot(ale_obj)
+plot(local_obj)
+plot(shap_obj, kind = "waterfall")
+plot(interaction_obj)
+plot(breakdown_obj)
+plot(surrogate_obj)
+```
