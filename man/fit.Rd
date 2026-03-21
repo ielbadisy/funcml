@@ -33,5 +33,13 @@ fit(
 An object of class \code{funcml_fit}.
 }
 \description{
-Fit a model using a formula-first functional interface.
+Supported learner ids currently include:
+regression and classification: \code{glm}, \code{rpart}, \code{glmnet}, \code{ranger}, \code{nnet},
+\code{e1071_svm}, \code{randomForest}, \code{gbm}, \code{kknn}, \code{ctree}, \code{cforest},
+\code{lightgbm}, \code{catboost}, \code{xgboost}, \code{stacking}, \code{superlearner};
+regression plus binary classification: \code{gam}, \code{bart};
+classification only: \code{C50}, \code{naivebayes}, \code{fda}, \code{lda}, \code{qda};
+binary classification only: \code{adaboost};
+regression plus binary classification: \code{earth};
+regression only: \code{pls}.
 }

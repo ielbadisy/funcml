@@ -74,3 +74,24 @@ multiple learners and workflows. The package combines:
 - evaluation and tuning utilities
 - estimand-oriented analysis
 - built-in interpretability methods
+
+## Learners
+
+Current learner ids exposed through `learners()` include:
+
+| Task support | Learners |
+| --- | --- |
+| Regression + classification | `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner` |
+| Regression + binary classification | `earth`, `gam`, `bart` |
+| Classification only | `C50`, `naivebayes`, `fda`, `lda`, `qda` |
+| Binary classification only | `adaboost` |
+| Regression only | `pls` |
+
+Example:
+
+```r
+learners()
+
+fit(Species ~ ., data = iris, model = "ctree")
+fit(mpg ~ wt + hp, data = mtcars, model = "gam")
+```

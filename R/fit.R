@@ -1,5 +1,15 @@
 #' Fit a model using a formula-first functional interface.
 #'
+#' Supported learner ids currently include:
+#' regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`,
+#' `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
+#' `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner`;
+#' regression plus binary classification: `gam`, `bart`;
+#' classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`;
+#' binary classification only: `adaboost`;
+#' regression plus binary classification: `earth`;
+#' regression only: `pls`.
+#'
 #' @param formula Model formula.
 #' @param data Data frame.
 #' @param model Learner id (see `learners()`).
@@ -61,6 +71,15 @@ create_predict <- function(obj, adapter, state) {
 }
 
 #' Available learners.
+#'
+#' `learners()` returns the registry keys accepted by [fit()]. Task support is:
+#' regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`,
+#' `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
+#' `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner`;
+#' regression plus binary classification: `gam`, `bart`, `earth`;
+#' classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`;
+#' binary classification only: `adaboost`;
+#' regression only: `pls`.
 #' @return Character vector of learner ids.
 #' @export
 learners <- function() {

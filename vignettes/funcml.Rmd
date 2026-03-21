@@ -19,6 +19,14 @@ interaction strength, greedy breakdown profiles, and global surrogate models.
 It also exposes native ensemble learners through `model = "stacking"` and
 `model = "superlearner"`.
 
+Learner coverage currently includes:
+
+- regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner`
+- regression and binary classification: `earth`, `gam`, `bart`
+- classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`
+- binary classification only: `adaboost`
+- regression only: `pls`
+
 ```{r}
 fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
 
@@ -27,9 +35,17 @@ pdp_obj <- interpret(fit_obj, mtcars, method = "pdp", features = "wt")
 ale_obj <- interpret(fit_obj, mtcars, method = "ale", features = "wt")
 local_obj <- interpret(fit_obj, mtcars, method = "local_model", newdata = mtcars[1, , drop = FALSE], k = 2)
 shap_obj <- interpret(fit_obj, mtcars, method = "shap", newdata = mtcars[1, , drop = FALSE], nsim = 20)
-interaction_obj <- interpret(fit_obj, mtcars, method = "interaction")
 breakdown_obj <- interpret(fit_obj, mtcars, method = "breakdown", newdata = mtcars[1, , drop = FALSE])
 surrogate_obj <- interpret(fit_obj, mtcars, method = "surrogate")
+```
+
+```{r, eval = FALSE}
+interaction_obj <- interpret(fit_obj, mtcars, method = "interaction")
+plot(interaction_obj)
+```
+
+```{r}
+learners()[1:10]
 ```
 
 ```{r}
@@ -38,7 +54,6 @@ plot(pdp_obj)
 plot(ale_obj)
 plot(local_obj)
 plot(shap_obj, kind = "waterfall")
-plot(interaction_obj)
 plot(breakdown_obj)
 plot(surrogate_obj)
 ```
