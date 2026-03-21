@@ -173,6 +173,29 @@
   oof
 }
 
+.smooth_formula <- function(X) {
+  vars <- setdiff(colnames(X), "(Intercept)")
+  if (!length(vars)) {
+    return(stats::as.formula("y ~ 1"))
+  }
+  rhs <- paste(sprintf("s(`%s`)", vars), collapse = " + ")
+  stats::as.formula(paste("y ~", rhs))
+}
+
+.dbarts_predict_mean <- function(object, Xnew) {
+  pred <- stats::predict(object, Xnew, type = "response")
+  if (is.null(dim(pred))) {
+    return(as.numeric(pred))
+  }
+  if (ncol(pred) == nrow(Xnew)) {
+    return(colMeans(pred))
+  }
+  if (nrow(pred) == nrow(Xnew)) {
+    return(rowMeans(pred))
+  }
+  as.numeric(pred)
+}
+
 build_registry <- function() {
   list(
     glm = list(
@@ -578,6 +601,200 @@ build_registry <- function() {
         data.frame(feature = rownames(imp), importance = as.numeric(vals), row.names = NULL)
       }
     ),
+    gam = list(
+      package = "mgcv",
+      tasks = c("regression", "classification"),
+      defaults = list(family = NULL, method = "REML"),
+      supports = list(prob = TRUE, multiclass = FALSE, importance = FALSE),
+      fit_xy = function(X, y, spec, task, ...) {
+        assert_package("mgcv", "gam")
+        if (task == "classification" && length(unique(y)) > 2) {
+          stop("gam supports only binary classification.", call. = FALSE)
+        }
+        family <- spec$family
+        if (is.null(family)) {
+          family <- if (task == "regression") stats::gaussian() else stats::binomial()
+        }
+        df <- data.frame(y = y, X, check.names = FALSE)
+        fit <- mgcv::gam(.smooth_formula(X), data = df, family = family, method = spec$method)
+        list(state = fit, task = task)
+      },
+      predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        pred_type <- if (is.null(levels)) "response" else if (type == "prob") "response" else "link"
+        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE), type = pred_type)
+        if (is.null(levels)) return(as.numeric(pred))
+        prob <- pmin(pmax(as.numeric(pred), 1e-6), 1 - 1e-6)
+        if (type == "class") {
+          cls <- ifelse(prob >= 0.5, levels[2], levels[1])
+          return(factor(cls, levels = levels))
+        }
+        out <- cbind(1 - prob, prob)
+        colnames(out) <- levels
+        out
+      }
+    ),
+    naivebayes = list(
+      package = "naivebayes",
+      tasks = c("classification"),
+      defaults = list(laplace = 0, usekernel = FALSE, usepoisson = FALSE),
+      supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
+      fit_xy = function(X, y, spec, task, ...) {
+        assert_package("naivebayes", "naivebayes")
+        df <- data.frame(y = y, X, check.names = FALSE)
+        fit <- naivebayes::naive_bayes(
+          y ~ .,
+          data = df,
+          laplace = spec$laplace,
+          usekernel = spec$usekernel,
+          usepoisson = spec$usepoisson
+        )
+        list(state = fit)
+      },
+      predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        ptype <- if (type == "prob") "prob" else "class"
+        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE), type = ptype)
+        if (ptype == "prob") {
+          prob <- as.matrix(pred)[, levels, drop = FALSE]
+          return(prob)
+        }
+        factor(pred, levels = levels)
+      }
+    ),
+    fda = list(
+      package = "mda",
+      tasks = c("classification"),
+      defaults = list(),
+      supports = list(prob = FALSE, multiclass = TRUE, importance = FALSE),
+      fit_xy = function(X, y, spec, task, ...) {
+        assert_package("mda", "fda")
+        df <- data.frame(y = y, X, check.names = FALSE)
+        fit <- mda::fda(y ~ ., data = df)
+        list(state = fit)
+      },
+      predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        if (type == "prob") {
+          prob <- tryCatch(
+            stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE), type = "posterior"),
+            error = function(e) NULL
+          )
+          if (is.null(prob)) {
+            stop("fda does not provide probability predictions in this build.", call. = FALSE)
+          }
+          prob <- as.matrix(prob)[, levels, drop = FALSE]
+          return(prob)
+        }
+        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE))
+        factor(pred, levels = levels)
+      }
+    ),
+    adaboost = list(
+      package = "ada",
+      tasks = c("classification"),
+      defaults = list(iter = 50, nu = 0.1, loss = "exponential", type = "discrete"),
+      supports = list(prob = TRUE, multiclass = FALSE, importance = FALSE),
+      fit_xy = function(X, y, spec, task, ...) {
+        assert_package("ada", "adaboost")
+        if (length(unique(y)) > 2) {
+          stop("adaboost supports only binary classification.", call. = FALSE)
+        }
+        df <- data.frame(y = y, X, check.names = FALSE)
+        fit <- ada::ada(
+          y ~ ., data = df,
+          iter = spec$iter,
+          nu = spec$nu,
+          loss = spec$loss,
+          type = spec$type
+        )
+        list(state = fit)
+      },
+      predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        new_df <- data.frame(Xnew, check.names = FALSE)
+        if (type == "prob") {
+          prob <- stats::predict(state$state, newdata = new_df, type = "probs")
+          prob <- as.matrix(prob)
+          if (ncol(prob) == 1L) {
+            prob <- cbind(1 - prob[, 1], prob[, 1])
+          }
+          colnames(prob) <- levels
+          return(prob[, levels, drop = FALSE])
+        }
+        pred <- stats::predict(state$state, newdata = new_df, type = "vector")
+        factor(pred, levels = levels)
+      }
+    ),
+    pls = list(
+      package = "pls",
+      tasks = c("regression"),
+      defaults = list(ncomp = NULL, method = "simpls"),
+      supports = list(prob = FALSE, multiclass = FALSE, importance = FALSE),
+      fit_xy = function(X, y, spec, task, ...) {
+        assert_package("pls", "pls")
+        ncomp <- spec$ncomp %||% min(2L, ncol(X))
+        ncomp <- max(1L, min(as.integer(ncomp), ncol(X), nrow(X) - 1L))
+        df <- data.frame(y = y, X, check.names = FALSE)
+        fit <- pls::plsr(y ~ ., data = df, ncomp = ncomp, method = spec$method, validation = "none")
+        list(state = fit, ncomp = ncomp)
+      },
+      predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE), ncomp = state$ncomp, type = "response")
+        as.numeric(pred[, 1, 1])
+      }
+    ),
+    ctree = list(
+      package = "partykit",
+      tasks = c("regression", "classification"),
+      defaults = list(mincriterion = 0.95),
+      supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
+      fit_xy = function(X, y, spec, task, ...) {
+        assert_package("partykit", "ctree")
+        df <- data.frame(y = y, X, check.names = FALSE)
+        ctrl <- partykit::ctree_control(mincriterion = spec$mincriterion)
+        fit <- partykit::ctree(y ~ ., data = df, control = ctrl)
+        list(state = fit)
+      },
+      predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        new_df <- data.frame(Xnew, check.names = FALSE)
+        if (is.null(levels)) {
+          pred <- stats::predict(state$state, newdata = new_df, type = "response")
+          return(as.numeric(pred))
+        }
+        ptype <- if (type == "prob") "prob" else "response"
+        pred <- stats::predict(state$state, newdata = new_df, type = ptype)
+        if (ptype == "prob") {
+          prob <- as.matrix(pred)[, levels, drop = FALSE]
+          return(prob)
+        }
+        factor(pred, levels = levels)
+      }
+    ),
+    cforest = list(
+      package = "partykit",
+      tasks = c("regression", "classification"),
+      defaults = list(ntree = 500, mtry = NULL, mincriterion = 0),
+      supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
+      fit_xy = function(X, y, spec, task, ...) {
+        assert_package("partykit", "cforest")
+        mtry <- spec$mtry %||% max(1L, floor(sqrt(ncol(X))))
+        df <- data.frame(y = y, X, check.names = FALSE)
+        ctrl <- partykit::ctree_control(mincriterion = spec$mincriterion, saveinfo = FALSE)
+        fit <- partykit::cforest(y ~ ., data = df, control = ctrl, ntree = spec$ntree, mtry = mtry)
+        list(state = fit)
+      },
+      predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        new_df <- data.frame(Xnew, check.names = FALSE)
+        if (is.null(levels)) {
+          pred <- stats::predict(state$state, newdata = new_df, type = "response")
+          return(as.numeric(pred))
+        }
+        ptype <- if (type == "prob") "prob" else "response"
+        pred <- stats::predict(state$state, newdata = new_df, type = ptype)
+        if (ptype == "prob") {
+          prob <- as.matrix(pred)[, levels, drop = FALSE]
+          return(prob)
+        }
+        factor(pred, levels = levels)
+      }
+    ),
     lda = list(
       package = "MASS",
       tasks = c("classification"),
@@ -742,6 +959,40 @@ build_registry <- function() {
         imp <- tryCatch(catboost::catboost.get_feature_importance(state$state, pool = pool, type = "FeatureImportance"), error = function(e) NULL)
         if (is.null(imp)) return(data.frame(feature = feature_names, importance = NA_real_))
         data.frame(feature = feature_names, importance = as.numeric(imp), row.names = NULL)
+      }
+    ),
+    bart = list(
+      package = "dbarts",
+      tasks = c("regression", "classification"),
+      defaults = list(ntree = 200, ndpost = 1000, nskip = 100, keeptrees = TRUE, verbose = FALSE),
+      supports = list(prob = TRUE, multiclass = FALSE, importance = FALSE),
+      fit_xy = function(X, y, spec, task, ...) {
+        assert_package("dbarts", "bart")
+        if (task == "classification" && length(unique(y)) > 2) {
+          stop("bart supports only binary classification.", call. = FALSE)
+        }
+        fit <- dbarts::bart(
+          x.train = X,
+          y.train = y,
+          ntree = spec$ntree,
+          ndpost = spec$ndpost,
+          nskip = spec$nskip,
+          keeptrees = spec$keeptrees,
+          verbose = spec$verbose
+        )
+        list(state = fit, task = task)
+      },
+      predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        pred <- .dbarts_predict_mean(state$state, Xnew)
+        if (is.null(levels)) return(as.numeric(pred))
+        prob <- pmin(pmax(as.numeric(pred), 1e-6), 1 - 1e-6)
+        if (type == "class") {
+          cls <- ifelse(prob >= 0.5, levels[2], levels[1])
+          return(factor(cls, levels = levels))
+        }
+        out <- cbind(1 - prob, prob)
+        colnames(out) <- levels
+        out
       }
     ),
     xgboost = list(

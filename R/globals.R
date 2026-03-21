@@ -3,5 +3,6 @@ utils::globalVariables(c(
   "importance", "shap", "config", "yhat", "contribution", "yval",
   "plot_value", "direction", "start", "end", "x", "y", "observation",
   "Variable", "Importance", "Var2", "color", "from", "to", "label",
-  "i", "S", ".target", "feature.value", "interaction", "surrogate"
+  "i", "S", ".target", ".weights", "feature.value", "interaction",
+  "surrogate", "index"
 ))
