@@ -62,6 +62,119 @@ test_that("learners include stacking and superlearner", {
   expect_true(all(c("stacking", "superlearner") %in% ids))
 })
 
+test_that("learners include newly added backends", {
+  ids <- learners()
+  expect_true(all(c("fda", "adaboost", "pls", "ctree", "cforest", "gam", "naivebayes", "bart") %in% ids))
+})
+
+test_that("new learner task support is registered correctly", {
+  expect_equal(sort(funcml:::funcml_registry("gam")$tasks), c("classification", "regression"))
+  expect_equal(sort(funcml:::funcml_registry("bart")$tasks), c("classification", "regression"))
+  expect_equal(sort(funcml:::funcml_registry("ctree")$tasks), c("classification", "regression"))
+  expect_equal(sort(funcml:::funcml_registry("cforest")$tasks), c("classification", "regression"))
+  expect_equal(funcml:::funcml_registry("pls")$tasks, "regression")
+  expect_equal(funcml:::funcml_registry("naivebayes")$tasks, "classification")
+  expect_equal(funcml:::funcml_registry("fda")$tasks, "classification")
+  expect_equal(funcml:::funcml_registry("adaboost")$tasks, "classification")
+})
+
+test_that("gam fit and predict works for regression", {
+  skip_if_not_installed("mgcv")
+  f <- fit(mpg ~ wt + hp, data = mtcars, model = "gam")
+  preds <- predict(f, mtcars[1:5, , drop = FALSE])
+  expect_true(is.numeric(preds))
+  expect_length(preds, 5)
+})
+
+test_that("gam supports binary classification probabilities and rejects multiclass", {
+  skip_if_not_installed("mgcv")
+
+  iris_bin <- subset(iris, Species != "setosa")
+  iris_bin$Species <- droplevels(iris_bin$Species)
+  gam_fit <- fit(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width, data = iris_bin, model = "gam")
+  gam_prob <- predict(gam_fit, iris_bin[1:4, , drop = FALSE], type = "prob")
+  expect_equal(dim(gam_prob), c(4, 2))
+
+  expect_error(
+    fit(Species ~ ., data = iris, model = "gam"),
+    "supports only binary classification"
+  )
+})
+
+test_that("ctree and cforest support classification probabilities", {
+  skip_if_not_installed("partykit")
+
+  ctree_fit <- fit(Species ~ ., data = iris, model = "ctree")
+  cforest_fit <- fit(Species ~ ., data = iris, model = "cforest", spec = list(ntree = 50))
+
+  ctree_prob <- predict(ctree_fit, iris[1:4, , drop = FALSE], type = "prob")
+  cforest_prob <- predict(cforest_fit, iris[1:4, , drop = FALSE], type = "prob")
+
+  expect_equal(dim(ctree_prob), c(4, 3))
+  expect_equal(dim(cforest_prob), c(4, 3))
+})
+
+test_that("ctree and cforest support regression predictions", {
+  skip_if_not_installed("partykit")
+
+  ctree_fit <- fit(mpg ~ wt + hp, data = mtcars, model = "ctree")
+  cforest_fit <- fit(mpg ~ wt + hp, data = mtcars, model = "cforest", spec = list(ntree = 50))
+
+  ctree_pred <- predict(ctree_fit, mtcars[1:4, , drop = FALSE])
+  cforest_pred <- predict(cforest_fit, mtcars[1:4, , drop = FALSE])
+
+  expect_true(is.numeric(ctree_pred))
+  expect_true(is.numeric(cforest_pred))
+  expect_length(ctree_pred, 4)
+  expect_length(cforest_pred, 4)
+})
+
+test_that("bart supports regression and binary classification probabilities", {
+  skip_if_not_installed("dbarts")
+
+  set.seed(41)
+  reg_dat <- data.frame(x1 = rnorm(60), x2 = rnorm(60))
+  reg_dat$y <- reg_dat$x1 - 0.5 * reg_dat$x2 + rnorm(60, sd = 0.2)
+  reg_fit <- fit(y ~ x1 + x2, data = reg_dat, model = "bart", spec = list(ndpost = 20, nskip = 5))
+  reg_pred <- predict(reg_fit, reg_dat[1:5, , drop = FALSE])
+  expect_true(is.numeric(reg_pred))
+  expect_length(reg_pred, 5)
+
+  cls_dat <- data.frame(x1 = rnorm(70), x2 = rnorm(70))
+  eta <- cls_dat$x1 - 0.8 * cls_dat$x2
+  cls_dat$y <- factor(ifelse(runif(70) < stats::plogis(eta), "yes", "no"), levels = c("no", "yes"))
+  cls_fit <- fit(y ~ x1 + x2, data = cls_dat, model = "bart", spec = list(ndpost = 20, nskip = 5))
+  cls_prob <- predict(cls_fit, cls_dat[1:6, , drop = FALSE], type = "prob")
+  expect_equal(dim(cls_prob), c(6, 2))
+})
+
+test_that("bart rejects multiclass classification", {
+  skip_if_not_installed("dbarts")
+  expect_error(
+    fit(Species ~ ., data = iris, model = "bart", spec = list(ndpost = 20, nskip = 5)),
+    "supports only binary classification"
+  )
+})
+
+test_that("regression-only and classification-only learners reject unsupported tasks", {
+  expect_error(
+    fit(Species ~ ., data = iris, model = "pls"),
+    "does not support classification"
+  )
+  expect_error(
+    fit(mpg ~ wt + hp, data = mtcars, model = "naivebayes"),
+    "does not support regression"
+  )
+  expect_error(
+    fit(mpg ~ wt + hp, data = mtcars, model = "fda"),
+    "does not support regression"
+  )
+  expect_error(
+    fit(mpg ~ wt + hp, data = mtcars, model = "adaboost"),
+    "does not support regression"
+  )
+})
+
 test_that("stacking and superlearner support regression", {
   skip_if_not_installed("rpart")
   set.seed(31)
