@@ -8,9 +8,14 @@ Authors@R: c(
 Author: Imad El Badisy [aut, cre]
 Maintainer: Imad El Badisy <elbadisyimad@gmail.com>
 Description: Functional machine learning toolkit with a formula-first interface.
-    Provides thin S3 wrappers around base learners and popular engines using
-    functional composition via the functionals package. Includes evaluation,
-    tuning, and interpretability utilities with ggplot2 visualizations.
+    Provides a compact, explicit, formula-first modeling workflow built around
+    thin S3 wrappers for base learners and popular engines using functional
+    composition via the functionals package. Includes evaluation, tuning,
+    interpretability, learner comparison, and plug-in g-computation utilities
+    with ggplot2 visualizations. The package is intentionally opinionated:
+    preprocessing is expected to happen outside the modeling step, and the
+    framework focuses on a compact cross-validation-centered workflow rather
+    than competing feature for feature with larger machine learning ecosystems.
 License: GPL-3 | file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

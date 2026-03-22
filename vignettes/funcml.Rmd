@@ -19,6 +19,24 @@ interaction strength, greedy breakdown profiles, and global surrogate models.
 It also exposes native ensemble learners through `model = "stacking"` and
 `model = "superlearner"`.
 
+The package is intentionally opinionated. It is not designed to compete
+feature for feature with broader frameworks such as `tidymodels`, `mlr3`, or
+`caret`. Instead, `funcml` focuses on a compact, explicit, formula-first
+workflow for users who want to fit, compare, tune, interpret, and estimate
+models through one coherent interface.
+
+This design comes with a deliberate tradeoff:
+
+- preprocessing is expected to happen outside `funcml`, so the data passed to
+  `fit()` is the exact data being modeled
+- the package favors functional composition and explicit inputs over hidden
+  preprocessing state inside training workflows
+- cross-validation is the primary resampling strategy, reflecting the common
+  supervised learning case that the package is targeting
+
+Users who need broader preprocessing orchestration or specialized resampling
+designs should use a more complete framework.
+
 Learner coverage currently includes:
 
 - regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner`
