@@ -1014,9 +1014,11 @@ build_registry <- function() {
           eta = spec$eta,
           subsample = spec$subsample,
           colsample_bytree = spec$colsample_bytree,
-          objective = if (task == "regression") "reg:squarederror" else if (length(levels(y)) > 2) "multi:softprob" else "binary:logistic",
-          num_class = if (task == "classification") length(levels(y)) else NULL
+          objective = if (task == "regression") "reg:squarederror" else if (length(levels(y)) > 2) "multi:softprob" else "binary:logistic"
         )
+        if (task == "classification" && length(levels(y)) > 2) {
+          params$num_class <- length(levels(y))
+        }
         fit <- xgboost::xgb.train(
           params = params,
           data = dtrain,

@@ -113,15 +113,16 @@
 
 .coerce_feature_value <- function(template, value, n) {
   if (is.factor(template)) {
-    return(factor(rep(as.character(value), n), levels = levels(template), ordered = is.ordered(template)))
+    vals <- rep_len(as.character(value), n)
+    return(factor(vals, levels = levels(template), ordered = is.ordered(template)))
   }
   if (is.character(template)) {
-    return(rep(as.character(value), n))
+    return(rep_len(as.character(value), n))
   }
   if (is.logical(template)) {
-    return(rep(as.logical(value), n))
+    return(rep_len(as.logical(value), n))
   }
-  rep(as.numeric(value), n)
+  rep_len(as.numeric(value), n)
 }
 
 .predict_numeric_target <- function(fit, newdata, type, class_level, pos_level) {

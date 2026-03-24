@@ -56,3 +56,19 @@ test_that("classification interpretability supports subsetted features", {
   expect_gt(nrow(loc$result$results), 0)
   expect_equal(sort(sh$result$feature), c("x1", "x2"))
 })
+
+test_that("ICE handles vectorized feature grids for numeric predictors", {
+  fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
+
+  ice <- interpret(
+    fit_obj,
+    mtcars,
+    method = "ice",
+    features = "wt",
+    nsamples = 10
+  )
+
+  expect_s3_class(ice, "funcml_ice")
+  expect_gt(nrow(ice$result$curves), 0)
+  expect_true(all(c("id", "feature", "value", "yhat") %in% names(ice$result$curves)))
+})
