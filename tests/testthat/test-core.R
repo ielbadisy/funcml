@@ -239,3 +239,75 @@ test_that("stacking and superlearner support binary classification probabilities
   expect_s3_class(stack_cls, "factor")
   expect_s3_class(sl_cls, "factor")
 })
+
+test_that("xgboost supports regression and classification", {
+  skip_if_not_installed("xgboost")
+
+  reg_fit <- fit(
+    mpg ~ wt + hp + qsec,
+    data = mtcars,
+    model = "xgboost",
+    spec = list(nrounds = 20, max_depth = 3, eta = 0.1)
+  )
+  reg_pred <- predict(reg_fit, mtcars[1:5, , drop = FALSE])
+  expect_true(is.numeric(reg_pred))
+  expect_length(reg_pred, 5)
+
+  iris_bin <- subset(iris, Species != "setosa")
+  iris_bin$Species <- droplevels(iris_bin$Species)
+  cls_fit <- fit(
+    Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width,
+    data = iris_bin,
+    model = "xgboost",
+    spec = list(nrounds = 20, max_depth = 3, eta = 0.1)
+  )
+  cls_prob <- predict(cls_fit, iris_bin[1:4, , drop = FALSE], type = "prob")
+  cls_pred <- predict(cls_fit, iris_bin[1:4, , drop = FALSE], type = "class")
+  expect_equal(dim(cls_prob), c(4, 2))
+  expect_s3_class(cls_pred, "factor")
+})
+
+test_that("compare_learners compares multiple models across metrics", {
+  skip_if_not_installed("rpart")
+
+  cmp <- compare_learners(
+    mtcars,
+    mpg ~ wt + hp + qsec,
+    models = c("glm", "rpart"),
+    metrics = c("rmse", "mae"),
+    resampling = cv(v = 4, seed = 1)
+  )
+
+  expect_s3_class(cmp, "funcml_compare")
+  expect_equal(sort(unique(cmp$results$model)), c("glm", "rpart"))
+  expect_equal(sort(unique(cmp$results$metric)), c("mae", "rmse"))
+  expect_true(all(c("model", "metric", "mean", "sd", "tuned", "rank") %in% names(cmp$results)))
+  expect_s3_class(plot(cmp), "ggplot")
+})
+
+test_that("compare_learners supports tuned comparisons with multiple reported metrics", {
+  skip_if_not_installed("rpart")
+  skip_if_not_installed("xgboost")
+
+  cmp <- compare_learners(
+    mtcars,
+    mpg ~ wt + hp + qsec,
+    models = c("rpart", "xgboost"),
+    tune = TRUE,
+    metric = "rmse",
+    metrics = c("rmse", "mae"),
+    grids = list(
+      rpart = expand.grid(cp = c(0.001, 0.01), minsplit = c(5, 10)),
+      xgboost = expand.grid(max_depth = c(2, 3), eta = c(0.05, 0.1), nrounds = c(10, 20))
+    ),
+    resampling = cv(v = 3, seed = 2),
+    subsample = 1,
+    colsample_bytree = 1
+  )
+
+  expect_s3_class(cmp, "funcml_compare")
+  expect_true(all(cmp$results$tuned))
+  expect_equal(sort(unique(cmp$results$model)), c("rpart", "xgboost"))
+  expect_equal(sort(unique(cmp$results$metric)), c("mae", "rmse"))
+  expect_true(all(c("best_spec", "opt_metric") %in% names(cmp$results)))
+})

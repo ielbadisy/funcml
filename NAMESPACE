@@ -2,6 +2,7 @@
 
 export(fit)
 export(learners)
+export(compare_learners)
 export(cv)
 export(evaluate)
 export(tune)
@@ -24,6 +25,10 @@ S3method(coef,funcml_fit)
 S3method(print,funcml_eval)
 S3method(summary,funcml_eval)
 S3method(plot,funcml_eval)
+
+S3method(print,funcml_compare)
+S3method(summary,funcml_compare)
+S3method(plot,funcml_compare)
 
 S3method(print,funcml_tune)
 S3method(summary,funcml_tune)
