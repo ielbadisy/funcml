@@ -7,7 +7,7 @@ interpret(
   data,
   formula = fit$formula,
   method = c("vip", "permute", "pdp", "ice", "ale", "local", "lime",
-    "shap", "local_model", "interaction", "breakdown", "surrogate",
+    "shap", "local_model", "interaction", "surrogate",
     "profile", "ceteris_paribus"),
   features = NULL,
   type = NULL,
@@ -36,8 +36,8 @@ interpret(
 
 \item{method}{One of \code{"vip"}, \code{"permute"}, \code{"pdp"}, \code{"ice"},
 \code{"ale"}, \code{"local"}, \code{"lime"}, \code{"shap"},
-\code{"local_model"}, \code{"interaction"}, \code{"breakdown"},
-\code{"surrogate"}, \code{"profile"}, or \code{"ceteris_paribus"}.}
+\code{"local_model"}, \code{"interaction"}, \code{"surrogate"},
+\code{"profile"}, or \code{"ceteris_paribus"}.}
 
 \item{features}{Optional subset of features; defaults to all predictors.}
 
@@ -59,9 +59,9 @@ interpret(
 
 \item{pos_level}{Alias for binary positive class.}
 
-\item{newdata}{Single-row data frame for local/shap/breakdown explanations; defaults to first row of \code{data}.}
+\item{newdata}{Single-row data frame for local/SHAP explanations; defaults to first row of \code{data}.}
 
-\item{nsim}{Number of Monte Carlo simulations (importance/shap/breakdown) or repetitions.}
+\item{nsim}{Number of Monte Carlo simulations (importance/SHAP) or repetitions.}
 
 \item{nsamples}{Row subsample for speed (reference/background set).}
 
@@ -73,6 +73,6 @@ interpret(
 }
 \description{
 Implements native permutation VI, PDP/ICE/ALE, SHAP approximations, local
-surrogate explanations, interaction strength, breakdown profiles, and global
-surrogate models without vendoring external package source code.
+surrogate explanations, interaction strength, and global surrogate models
+without vendoring external package source code.
 }
