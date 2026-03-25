@@ -210,7 +210,7 @@
   out
 }
 
-.as_shapviz_object <- function(df) {
+.as_shapviz_object <- function(df, S_inter = NULL) {
   if (!requireNamespace("shapviz", quietly = TRUE)) {
     return(NULL)
   }
@@ -239,7 +239,22 @@
   }
   baseline <- df[df$feature == features[1], c("observation", "baseline"), drop = FALSE]
   baseline <- baseline[match(obs_ids, baseline$observation), "baseline"]
-  shapviz::shapviz(shap_mat, X = X, baseline = mean(as.numeric(baseline)))
+  shapviz::shapviz(
+    shap_mat,
+    X = X,
+    baseline = mean(as.numeric(baseline)),
+    S_inter = S_inter
+  )
+}
+
+.funcml_shapviz_style <- function(plot_obj) {
+  if (inherits(plot_obj, "ggplot")) {
+    return(plot_obj + .publication_theme())
+  }
+  if ("patchwork" %in% class(plot_obj)) {
+    return(patchwork::`&`(plot_obj, .publication_theme()))
+  }
+  plot_obj
 }
 
 .format_tune_config <- function(df, exclude = c("mean", "sd")) {
@@ -446,6 +461,13 @@ interpret <- function(fit, data, formula = fit$formula,
     diagnostics = parsed$diagnostics,
     seed = seed
   )
+  if (method == "shap") {
+    out$fit_ref <- fit
+    out$data_ref <- data
+    out$newdata_ref <- newdata %||% data[1, , drop = FALSE]
+    out$nsim_ref <- nsim
+    out$nsamples_ref <- nsamples
+  }
   class(out) <- if (method == "vip") {
     c("funcml_vip", "funcml_permute")
   } else if (method == "permute") {
@@ -863,6 +885,94 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
   )
 }
 
+.funcml_shap_interaction_array <- function(x, nsim = NULL, seed = NULL) {
+  if (is.null(x$fit_ref) || is.null(x$data_ref) || is.null(x$newdata_ref)) {
+    stop("SHAP interaction plots require the original fit, data, and explained rows.", call. = FALSE)
+  }
+  features <- x$features
+  if (length(features) < 2L) {
+    stop("SHAP interaction plots require at least two interpreted features.", call. = FALSE)
+  }
+  .approximate_shap_interactions(
+    fit = x$fit_ref,
+    data = x$data_ref,
+    newdata = x$newdata_ref,
+    features = features,
+    type = x$type,
+    class_level = x$class_level,
+    pos_level = x$class_level,
+    nsim = nsim %||% x$nsim_ref %||% 30L,
+    nsamples = x$nsamples_ref,
+    seed = seed,
+    shap_df = x$result
+  )
+}
+
+.approximate_shap_interactions <- function(fit, data, newdata, features, type, class_level,
+                                           pos_level, nsim, nsamples, seed = NULL, shap_df = NULL) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+  if (!is.numeric(nsim) || length(nsim) != 1L || nsim < 1L) {
+    stop("`nsim` must be a positive integer for SHAP interaction plots.", call. = FALSE)
+  }
+  background <- if (!is.null(nsamples) && nrow(data) > nsamples) {
+    data[sample(seq_len(nrow(data)), nsamples), , drop = FALSE]
+  } else {
+    data
+  }
+  pred_one <- function(df) {
+    .predict_numeric_target(fit, df, type = type, class_level = class_level, pos_level = pos_level)[1]
+  }
+
+  p <- length(features)
+  obs_n <- nrow(newdata)
+  out <- array(0, dim = c(obs_n, p, p), dimnames = list(seq_len(obs_n), features, features))
+
+  for (obs_id in seq_len(obs_n)) {
+    x_interest <- newdata[obs_id, , drop = FALSE]
+    pair_acc <- matrix(0, nrow = p, ncol = p, dimnames = list(features, features))
+    for (m in seq_len(nsim)) {
+      ref_row <- background[sample(seq_len(nrow(background)), 1L), , drop = FALSE]
+      perm <- sample(features)
+      pos <- stats::setNames(match(features, perm), features)
+      for (i in seq_len(p - 1L)) {
+        for (j in seq.int(i + 1L, p)) {
+          feat_i <- features[i]
+          feat_j <- features[j]
+          before <- perm[seq_len(min(pos[[feat_i]], pos[[feat_j]]) - 1L)]
+          state_s <- ref_row
+          if (length(before)) {
+            for (feat in before) {
+              state_s[[feat]] <- x_interest[[feat]]
+            }
+          }
+          state_si <- state_s
+          state_si[[feat_i]] <- x_interest[[feat_i]]
+          state_sj <- state_s
+          state_sj[[feat_j]] <- x_interest[[feat_j]]
+          state_sij <- state_si
+          state_sij[[feat_j]] <- x_interest[[feat_j]]
+          delta <- pred_one(state_sij) - pred_one(state_si) - pred_one(state_sj) + pred_one(state_s)
+          pair_acc[i, j] <- pair_acc[i, j] + delta
+          pair_acc[j, i] <- pair_acc[j, i] + delta
+        }
+      }
+    }
+    off_diag <- pair_acc / (2 * nsim)
+    diag_vals <- if (is.null(shap_df)) {
+      rep(0, p)
+    } else {
+      shap_vals <- shap_df[shap_df$observation == obs_id, c("feature", "shap"), drop = FALSE]
+      shap_vals <- shap_vals[match(features, shap_vals$feature), "shap"]
+      as.numeric(shap_vals) - rowSums(off_diag)
+    }
+    diag(off_diag) <- diag_vals
+    out[obs_id, , ] <- off_diag
+  }
+  out
+}
+
 .interaction_pair <- function(fit, data_use, feat_a, feat_b, type, class_level, pos_level, grid_size) {
   grid_a <- .grid_values(data_use[[feat_a]], grid.resolution = grid_size)
   grid_b <- .grid_values(data_use[[feat_b]], grid.resolution = grid_size)
@@ -1231,41 +1341,101 @@ summary.funcml_iml_local_model <- function(object, ...) {
 }
 
 #' @export
-plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "summary", "beeswarm", "importance", "bar"), ...) {
+plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "force", "summary", "beeswarm", "importance", "bar", "dependence", "dependence2d", "interaction"), ...) {
   kind <- match.arg(kind)
   df <- x$result
+  dots <- list(...)
   if (kind == "auto") {
     kind <- if (length(unique(df$observation)) > 1L) "summary" else "waterfall"
   }
-  sv <- .as_shapviz_object(df)
+  need_interactions <- identical(kind, "interaction") || isTRUE(dots$interactions)
+  s_inter <- if (need_interactions) .funcml_shap_interaction_array(x, nsim = dots$nsim %||% NULL, seed = dots$seed %||% x$seed) else NULL
+  sv <- .as_shapviz_object(df, S_inter = s_inter)
   if (!is.null(sv)) {
     if (kind == "waterfall") {
-      return(
-        shapviz::sv_waterfall(
-          sv,
-          row_id = min(df$observation),
-          fill_colors = c("#2ca25f", "#de2d26")
-        ) +
-          .publication_theme()
+      plot_obj <- shapviz::sv_waterfall(
+        sv,
+        row_id = dots$row_id %||% min(df$observation),
+        fill_colors = c("#2ca25f", "#de2d26")
       )
+      return(.funcml_shapviz_style(plot_obj))
+    }
+    if (kind == "force") {
+      plot_obj <- shapviz::sv_force(
+        sv,
+        row_id = dots$row_id %||% min(df$observation),
+        fill_colors = c("#2ca25f", "#de2d26")
+      )
+      return(.funcml_shapviz_style(plot_obj))
     }
     if (kind %in% c("summary", "beeswarm")) {
-      return(
-        shapviz::sv_importance(
-          sv,
-          kind = "beeswarm",
-          show_numbers = FALSE
-        ) +
-          .publication_theme()
+      plot_obj <- shapviz::sv_importance(
+        sv,
+        kind = "beeswarm",
+        show_numbers = FALSE
       )
+      return(.funcml_shapviz_style(plot_obj))
     }
-    return(
-      shapviz::sv_importance(
+    if (kind %in% c("importance", "bar")) {
+      plot_obj <- shapviz::sv_importance(
         sv,
         kind = "bar",
         show_numbers = FALSE,
         fill = "grey35"
-      ) +
+      )
+      return(.funcml_shapviz_style(plot_obj))
+    }
+    if (kind == "dependence") {
+      v <- dots$v %||% x$features[1]
+      color_var <- dots$color_var %||% "auto"
+      plot_obj <- shapviz::sv_dependence(
+        sv,
+        v = v,
+        color_var = color_var,
+        interactions = isTRUE(dots$interactions)
+      )
+      return(.funcml_shapviz_style(plot_obj))
+    }
+    if (kind == "dependence2d") {
+      x_var <- dots$feature_x %||% dots$x %||% x$features[1]
+      y_var <- dots$feature_y %||% dots$y %||% x$features[min(2, length(x$features))]
+      if (identical(x_var, y_var)) {
+        stop("`x` and `y` must refer to two different features for `kind = \"dependence2d\"`.", call. = FALSE)
+      }
+      plot_obj <- shapviz::sv_dependence2D(
+        sv,
+        x = x_var,
+        y = y_var,
+        interactions = isTRUE(dots$interactions)
+      )
+      return(.funcml_shapviz_style(plot_obj))
+    }
+    if (kind == "interaction") {
+      plot_obj <- shapviz::sv_interaction(
+        sv,
+        kind = dots$interaction_kind %||% "bar"
+      )
+      return(.funcml_shapviz_style(plot_obj))
+    }
+  }
+  if (kind == "force") {
+    df <- df[df$observation == (dots$row_id %||% min(df$observation)), , drop = FALSE]
+    df <- df[order(abs(df$shap), decreasing = TRUE), , drop = FALSE]
+    base <- df$baseline[1]
+    pred <- df$prediction[1]
+    df$feature <- factor(df$feature_label, levels = rev(df$feature_label))
+    df$direction <- .funcml_direction(df$shap)
+    return(
+      ggplot2::ggplot(df, ggplot2::aes(x = shap, y = feature, fill = direction)) +
+        ggplot2::geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.4) +
+        ggplot2::geom_col(width = 0.7, colour = NA, show.legend = FALSE) +
+        ggplot2::scale_fill_manual(values = c(increase = "#2ca25f", decrease = "#de2d26")) +
+        ggplot2::labs(
+          x = "SHAP contribution",
+          y = NULL,
+          title = "Approximate SHAP force plot",
+          subtitle = sprintf("Baseline = %.3f | Final prediction = %.3f", base, pred)
+        ) +
         .publication_theme()
     )
   }
