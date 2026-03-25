@@ -14,6 +14,7 @@ tune(
   type = NULL,
   search = c("grid", "random"),
   n_evals = NULL,
+  outer_resampling = NULL,
   seed = NULL,
   ...
 )
@@ -37,6 +38,10 @@ tune(
 
 \item{n_evals}{Maximum number of configurations to evaluate when
 \code{search = "random"}.}
+
+\item{outer_resampling}{Optional outer resampling object. When supplied,
+\code{tune()} performs nested resampling and reports outer-fold performance
+estimates for the tuned workflow.}
 
 \item{seed}{Optional seed.}
 
