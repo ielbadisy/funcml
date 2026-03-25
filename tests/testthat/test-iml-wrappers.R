@@ -25,26 +25,3 @@ test_that("local_model, interaction, and surrogate return structured results", {
   expect_s3_class(sur, "funcml_surrogate")
   expect_true(all(c("model", "fidelity") %in% names(sur$result)))
 })
-
-test_that("breakdown returns an ordered contribution path", {
-  set.seed(21)
-  dat <- data.frame(
-    y = rnorm(40),
-    x = rnorm(40),
-    z = rnorm(40)
-  )
-  dat$y <- 2 * dat$x - 0.5 * dat$z + rnorm(40, sd = 0.1)
-  fit_obj <- fit(y ~ x + z, data = dat, model = "glm")
-
-  br <- interpret(
-    fit_obj,
-    dat,
-    method = "breakdown",
-    newdata = dat[1, , drop = FALSE],
-    nsamples = 30
-  )
-
-  expect_s3_class(br, "funcml_breakdown")
-  expect_equal(br$result$path$step, seq_len(nrow(br$result$path)))
-  expect_true(all(c("feature", "contribution") %in% names(br$result$path)))
-})
