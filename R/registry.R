@@ -160,7 +160,12 @@
   n <- nrow(X)
   feat_names <- .ensemble_feature_names(learners, levels)
   oof <- matrix(NA_real_, nrow = n, ncol = length(feat_names), dimnames = list(NULL, feat_names))
-  folds <- generate_folds(n, if (task == "classification") factor(y, levels = levels) else NULL, resampling)$folds
+  folds <- generate_folds(
+    n,
+    if (task == "classification") factor(y, levels = levels) else NULL,
+    resampling,
+    data = as.data.frame(X)
+  )$folds
   for (fold in folds) {
     train_x <- X[fold$train, , drop = FALSE]
     test_x <- X[fold$test, , drop = FALSE]

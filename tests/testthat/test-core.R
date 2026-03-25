@@ -24,7 +24,7 @@ test_that("design matrix mismatch errors clearly", {
   train <- data.frame(y = c(1,2,3,4), x = factor(c("a","a","b","b")))
   f <- fit(y ~ x, data = train, model = "glm")
   newdata <- data.frame(x = factor("c"))
-  expect_error(predict(f, newdata), "Design matrix mismatch")
+  expect_error(predict(f, newdata), "Unseen factor levels in `x`")
 })
 
 test_that("cv folds have no overlap", {

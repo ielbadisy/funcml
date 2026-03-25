@@ -6,5 +6,5 @@ utils::globalVariables(c(
   "i", "S", ".target", ".weights", "feature.value", "interaction",
   "surrogate", "index", "std_dev", "lower", "upper", "feature_label",
   "feature_value_scaled", "abs_shap", "feature_x", "feature_y",
-  "raw_score", "config_label"
+  "raw_score", "config_label", "model", "conf_low", "conf_high"
 ))

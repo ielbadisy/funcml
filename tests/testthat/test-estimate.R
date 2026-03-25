@@ -33,6 +33,9 @@ test_that("estimate supports binary outcome probabilities", {
   expect_s3_class(est, "funcml_estimand")
   expect_true(is.finite(est$estimate))
   expect_s3_class(p, "ggplot")
+  expect_equal(p$labels$x, "Estimated unit-level effect")
+  expect_equal(p$labels$y, "Count")
+  expect_match(p$labels$title, "ATE estimate")
 })
 
 test_that("CATE requires newdata and returns weighted average over target rows", {

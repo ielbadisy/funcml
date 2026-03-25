@@ -1,7 +1,7 @@
 Package: funcml
 Type: Package
 Title: Functional Machine Learning with Formula-First API
-Version: 0.1.1
+Version: 0.2.0
 Authors@R: c(
     person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
   )
@@ -24,7 +24,7 @@ Imports: stats, utils, methods, ggplot2, functionals
 Suggests: testthat (>= 3.1.0), knitr, rmarkdown, ranger, rpart, nnet,
         e1071, randomForest, gbm, kknn, earth, MASS, xgboost, glmnet,
         roxygen2, gggenes, ggfittext, mda, ada, pls, partykit, mgcv,
-        naivebayes, dbarts
+        naivebayes, dbarts, shapviz
 Enhances: C50, catboost, lightgbm
 VignetteBuilder: knitr
 Config/testthat/edition: 3

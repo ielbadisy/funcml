@@ -2,7 +2,7 @@
 % Please edit documentation in R/tune.R
 \name{tune}
 \alias{tune}
-\title{Simple grid search tuning.}
+\title{Hyperparameter tuning via grid or random search.}
 \usage{
 tune(
   data,
@@ -12,6 +12,8 @@ tune(
   resampling = cv(5),
   metric = NULL,
   type = NULL,
+  search = c("grid", "random"),
+  n_evals = NULL,
   seed = NULL,
   ...
 )
@@ -31,6 +33,11 @@ tune(
 
 \item{type}{Prediction type override.}
 
+\item{search}{Search strategy: \code{"grid"} or \code{"random"}.}
+
+\item{n_evals}{Maximum number of configurations to evaluate when
+\code{search = "random"}.}
+
 \item{seed}{Optional seed.}
 
 \item{...}{Passed to \code{fit()}.}
@@ -39,5 +46,5 @@ tune(
 A \code{funcml_tune} object.
 }
 \description{
-Simple grid search tuning.
+Hyperparameter tuning via grid or random search.
 }

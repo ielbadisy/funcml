@@ -14,6 +14,9 @@ estimate(
   control_level = NULL,
   spec = NULL,
   type = NULL,
+  interval = c("normal", "bootstrap"),
+  conf_level = 0.95,
+  n_boot = 200,
   seed = NULL,
   fit = NULL,
   ...
@@ -41,6 +44,12 @@ is treated as the treatment variable unless \code{treatment} is supplied.}
 \item{spec}{Hyperparameter list passed to \code{fit()}.}
 
 \item{type}{Prediction type override for the outcome model.}
+
+\item{interval}{Interval method: \code{"normal"} or \code{"bootstrap"}.}
+
+\item{conf_level}{Confidence level for uncertainty intervals.}
+
+\item{n_boot}{Number of bootstrap resamples used when \code{interval = "bootstrap"}.}
 
 \item{seed}{Optional seed.}
 

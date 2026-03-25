@@ -1013,6 +1013,22 @@ The SHAP interface also supports additional plot kinds:
 - `plot(shap_obj, kind = "auto")` to choose waterfall for one row and
   summary for multiple rows
 
+``` r
+shap_multi <- interpret(
+  fit_obj,
+  demo_data,
+  method = "shap",
+  newdata = demo_data[1:10, , drop = FALSE],
+  nsim = 30,
+  nsamples = 20,
+  seed = 42
+)
+
+plot(shap_multi, kind = "summary")
+plot(shap_multi, kind = "importance")
+plot(shap_multi, kind = "auto")
+```
+
 #### Global surrogate
 
 ``` r

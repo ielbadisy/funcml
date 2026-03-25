@@ -31,8 +31,9 @@ This design comes with a deliberate tradeoff:
   `fit()` is the exact data being modeled
 - the package favors functional composition and explicit inputs over hidden
   preprocessing state inside training workflows
-- cross-validation is the primary resampling strategy, reflecting the common
-  supervised learning case that the package is targeting
+- cross-validation is still the default, but the package also supports holdout
+  splits, grouped CV, and time-aware rolling evaluation through the same
+  resampling interface
 
 Users who need broader preprocessing orchestration or specialized resampling
 designs should use a more complete framework.
@@ -53,8 +54,19 @@ pdp_obj <- interpret(fit_obj, mtcars, method = "pdp", features = "wt")
 ale_obj <- interpret(fit_obj, mtcars, method = "ale", features = "wt")
 local_obj <- interpret(fit_obj, mtcars, method = "local_model", newdata = mtcars[1, , drop = FALSE], k = 2)
 shap_obj <- interpret(fit_obj, mtcars, method = "shap", newdata = mtcars[1, , drop = FALSE], nsim = 20)
-breakdown_obj <- interpret(fit_obj, mtcars, method = "breakdown", newdata = mtcars[1, , drop = FALSE])
+profile_obj <- interpret(fit_obj, mtcars, method = "profile", newdata = mtcars[1, , drop = FALSE])
 surrogate_obj <- interpret(fit_obj, mtcars, method = "surrogate")
+```
+
+```{r}
+eval_obj <- evaluate(mpg ~ wt + hp, data = mtcars, model = "glm", resampling = holdout(prop = 0.8, seed = 1))
+eval_obj$summary
+```
+
+```{r}
+tune_grid <- expand.grid(intercept = c(TRUE, FALSE))
+tune_obj <- tune(mpg ~ wt + hp, data = mtcars, model = "glm", grid = tune_grid, search = "random", n_evals = 1, resampling = cv(v = 3, seed = 1), seed = 1)
+tune_obj$best
 ```
 
 ```{r, eval = FALSE}
@@ -72,6 +84,6 @@ plot(pdp_obj)
 plot(ale_obj)
 plot(local_obj)
 plot(shap_obj, kind = "waterfall")
-plot(breakdown_obj)
+plot(profile_obj)
 plot(surrogate_obj)
 ```

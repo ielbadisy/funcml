@@ -12,6 +12,9 @@
 #' @param control_level Optional control level for binary treatment.
 #' @param spec Hyperparameter list passed to `fit()`.
 #' @param type Prediction type override for the outcome model.
+#' @param interval Interval method: `"normal"` or `"bootstrap"`.
+#' @param conf_level Confidence level for uncertainty intervals.
+#' @param n_boot Number of bootstrap resamples used when `interval = "bootstrap"`.
 #' @param seed Optional seed.
 #' @param fit Optional preconfigured `funcml_fit` object.
 #' @param ... Passed to `fit()`.
@@ -21,9 +24,13 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
                      estimand = c("ATE", "ATT", "CATE", "IATE"),
                      newdata = NULL,
                      treatment_level = NULL, control_level = NULL,
-                     spec = NULL, type = NULL, seed = NULL, fit = NULL, ...) {
+                     spec = NULL, type = NULL,
+                     interval = c("normal", "bootstrap"),
+                     conf_level = 0.95, n_boot = 200,
+                     seed = NULL, fit = NULL, ...) {
   if (!is.null(seed)) set.seed(seed)
   estimand <- match.arg(estimand)
+  interval <- match.arg(interval)
 
   if (!is.null(fit)) {
     formula <- formula %||% fit$formula
@@ -58,39 +65,42 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
     stop("Treatment variable not found in target data.", call. = FALSE)
   }
 
-  cf_treated <- target_data
-  cf_control <- target_data
-  cf_treated[[treatment]] <- .binary_level_value(target_data[[treatment]], trt_bin$treated)
-  cf_control[[treatment]] <- .binary_level_value(target_data[[treatment]], trt_bin$control)
-
-  mu1 <- .estimand_predict(base_fit, cf_treated, type = pred_type)
-  mu0 <- .estimand_predict(base_fit, cf_control, type = pred_type)
-  ite <- mu1 - mu0
-
-  weights <- switch(
-    estimand,
-    ATE = rep(1, length(ite)),
-    ATT = {
-      idx <- as.integer(trt_bin$values == trt_bin$treated)
-      if (!any(idx == 1L)) stop("ATT is undefined: no treated observations found.", call. = FALSE)
-      idx
-    },
-    CATE = rep(1, length(ite)),
-    IATE = rep(1, length(ite))
+  est_core <- .estimate_effects(
+    base_fit = base_fit,
+    data = data,
+    formula = formula,
+    treatment = treatment,
+    estimand = estimand,
+    target_data = target_data,
+    trt_bin = trt_bin,
+    pred_type = pred_type
+  )
+  alpha <- 1 - conf_level
+  ci <- .estimate_interval(
+    estimate_value = est_core$estimate,
+    se_value = est_core$std_error,
+    interval = interval,
+    conf_level = conf_level,
+    alpha = alpha,
+    estimand = estimand,
+    base_fit = base_fit,
+    data = data,
+    formula = formula,
+    treatment = treatment,
+    target_data = target_data,
+    trt_bin = trt_bin,
+    pred_type = pred_type,
+    spec = spec,
+    fit_obj = fit,
+    n_boot = n_boot
   )
 
-  estimate_value <- if (estimand == "IATE") NA_real_ else stats::weighted.mean(ite, w = weights)
-  se_value <- if (estimand == "IATE") NA_real_ else .weighted_se(ite, weights)
-  ci <- if (estimand == "IATE") {
-    stats::setNames(c(NA_real_, NA_real_), c("lower", "upper"))
-  } else {
-    stats::setNames(estimate_value + c(-1, 1) * stats::qnorm(0.975) * se_value, c("lower", "upper"))
-  }
-
   out <- list(
-    estimate = estimate_value,
-    std_error = se_value,
+    estimate = est_core$estimate,
+    std_error = est_core$std_error,
     conf_int = stats::setNames(ci, c("lower", "upper")),
+    conf_level = conf_level,
+    interval_method = interval,
     estimand = estimand,
     treatment = treatment,
     treatment_level = trt_bin$treated,
@@ -99,14 +109,7 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
     task = base_fit$task,
     call = match.call(),
     fit = base_fit,
-    effects = data.frame(
-      row_id = seq_along(ite),
-      effect = ite,
-      mu1 = mu1,
-      mu0 = mu0,
-      weight = weights,
-      stringsAsFactors = FALSE
-    ),
+    effects = est_core$effects,
     assumptions = c(
       "Binary treatment with no hidden confounding",
       "Consistency and positivity",
@@ -170,6 +173,108 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
   prob[, fit$levels[length(fit$levels)]]
 }
 
+.estimate_effects <- function(base_fit, data, formula, treatment, estimand, target_data, trt_bin, pred_type) {
+  cf_treated <- target_data
+  cf_control <- target_data
+  cf_treated[[treatment]] <- .binary_level_value(target_data[[treatment]], trt_bin$treated)
+  cf_control[[treatment]] <- .binary_level_value(target_data[[treatment]], trt_bin$control)
+
+  mu1 <- .estimand_predict(base_fit, cf_treated, type = pred_type)
+  mu0 <- .estimand_predict(base_fit, cf_control, type = pred_type)
+  ite <- mu1 - mu0
+
+  weights <- switch(
+    estimand,
+    ATE = rep(1, length(ite)),
+    ATT = {
+      idx <- as.integer(trt_bin$values == trt_bin$treated)
+      if (!any(idx == 1L)) stop("ATT is undefined: no treated observations found.", call. = FALSE)
+      idx
+    },
+    CATE = rep(1, length(ite)),
+    IATE = rep(1, length(ite))
+  )
+
+  list(
+    estimate = if (estimand == "IATE") NA_real_ else stats::weighted.mean(ite, w = weights),
+    std_error = if (estimand == "IATE") NA_real_ else .weighted_se(ite, weights),
+    effects = data.frame(
+      row_id = seq_along(ite),
+      effect = ite,
+      mu1 = mu1,
+      mu0 = mu0,
+      weight = weights,
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+.estimate_interval <- function(estimate_value, se_value, interval, conf_level, alpha, estimand,
+                               base_fit, data, formula, treatment, target_data, trt_bin,
+                               pred_type, spec, fit_obj, n_boot) {
+  if (estimand == "IATE") {
+    return(stats::setNames(c(NA_real_, NA_real_), c("lower", "upper")))
+  }
+
+  if (interval == "normal") {
+    crit <- stats::qnorm(1 - alpha / 2)
+    return(stats::setNames(estimate_value + c(-1, 1) * crit * se_value, c("lower", "upper")))
+  }
+
+  boot_vals <- .bootstrap_estimand(
+    data = data,
+    formula = formula,
+    treatment = treatment,
+    estimand = estimand,
+    target_data = target_data,
+    trt_bin = trt_bin,
+    pred_type = pred_type,
+    base_fit = base_fit,
+    spec = spec,
+    fit_obj = fit_obj,
+    n_boot = n_boot
+  )
+  stats::setNames(
+    as.numeric(stats::quantile(boot_vals, probs = c(alpha / 2, 1 - alpha / 2), na.rm = TRUE, names = FALSE)),
+    c("lower", "upper")
+  )
+}
+
+.bootstrap_estimand <- function(data, formula, treatment, estimand, target_data, trt_bin,
+                                pred_type, base_fit, spec, fit_obj, n_boot) {
+  if (!is.numeric(n_boot) || length(n_boot) != 1L || n_boot < 20) {
+    stop("`n_boot` must be a single integer greater than or equal to 20.", call. = FALSE)
+  }
+  n <- nrow(data)
+  vals <- numeric(n_boot)
+  for (b in seq_len(n_boot)) {
+    idx <- sample.int(n, size = n, replace = TRUE)
+    boot_data <- data[idx, , drop = FALSE]
+    boot_fit <- if (!is.null(fit_obj)) {
+      fit(formula %||% fit_obj$formula, boot_data, fit_obj$model, spec = fit_obj$spec)
+    } else {
+      fit(formula, boot_data, base_fit$model, spec = spec %||% base_fit$spec)
+    }
+    boot_trt <- .coerce_binary_treatment(
+      boot_data[[treatment]],
+      treatment_level = trt_bin$treated,
+      control_level = trt_bin$control
+    )
+    boot_core <- .estimate_effects(
+      base_fit = boot_fit,
+      data = boot_data,
+      formula = formula,
+      treatment = treatment,
+      estimand = estimand,
+      target_data = target_data,
+      trt_bin = boot_trt,
+      pred_type = pred_type
+    )
+    vals[b] <- boot_core$estimate
+  }
+  vals
+}
+
 .weighted_se <- function(x, w) {
   w <- as.numeric(w)
   w <- w / sum(w)
@@ -187,8 +292,11 @@ print.funcml_estimand <- function(x, ...) {
     cat(sprintf("Rows scored: %d | mean individualized effect: %.4f\n",
                 nrow(x$effects), mean(x$effects$effect)))
   } else {
-    cat(sprintf("Estimate: %.4f | SE: %.4f | 95%% CI [%.4f, %.4f]\n",
-                x$estimate, x$std_error, x$conf_int[1], x$conf_int[2]))
+    cat(sprintf(
+      "Estimate: %.4f | SE: %.4f | %.0f%% %s CI [%.4f, %.4f]\n",
+      x$estimate, x$std_error, 100 * x$conf_level, x$interval_method,
+      x$conf_int[1], x$conf_int[2]
+    ))
   }
   invisible(x)
 }
@@ -206,6 +314,8 @@ summary.funcml_estimand <- function(object, ...) {
     control_level = object$control_level,
     estimate = object$estimate,
     std_error = object$std_error,
+    interval_method = object$interval_method,
+    conf_level = object$conf_level,
     conf_low = object$conf_int[1],
     conf_high = object$conf_int[2],
     stringsAsFactors = FALSE
@@ -218,9 +328,25 @@ summary.funcml_estimand <- function(object, ...) {
 plot.funcml_estimand <- function(x, ...) {
   df <- x$effects
   center_line <- if (x$estimand == "IATE") mean(df$effect) else x$estimate
+  estimate_label <- if (x$estimand == "IATE") "Mean individualized effect" else "Estimated average effect"
   ggplot2::ggplot(df, ggplot2::aes(x = effect)) +
-    ggplot2::geom_histogram(fill = .funcml_palette$accent_alt, colour = "white", bins = 24, alpha = 0.9) +
-    ggplot2::geom_vline(xintercept = center_line, colour = .funcml_palette$accent, linewidth = 1) +
+    ggplot2::geom_histogram(
+      bins = 24,
+      fill = "white",
+      colour = "grey35",
+      linewidth = 0.4
+    ) +
+    ggplot2::geom_vline(
+      xintercept = 0,
+      colour = "grey55",
+      linewidth = 0.5,
+      linetype = "dashed"
+    ) +
+    ggplot2::geom_vline(
+      xintercept = center_line,
+      colour = .funcml_palette$accent,
+      linewidth = 0.9
+    ) +
     ggplot2::labs(
       x = "Estimated unit-level effect",
       y = "Count",
@@ -228,9 +354,9 @@ plot.funcml_estimand <- function(x, ...) {
       subtitle = sprintf(
         "%s: %s vs %s | %s = %.3f",
         x$treatment, x$treatment_level, x$control_level,
-        if (x$estimand == "IATE") "mean effect" else "estimate",
+        estimate_label,
         center_line
       )
     ) +
-    theme_funcml()
+    .publication_theme()
 }

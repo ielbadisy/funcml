@@ -2,22 +2,52 @@
 % Please edit documentation in R/cv.R
 \name{cv}
 \alias{cv}
-\title{Cross-validation fold generator.}
+\title{Resampling specification generator.}
 \usage{
-cv(v = 5, repeats = 1, strata = TRUE, seed = NULL)
+cv(
+  v = 5,
+  repeats = 1,
+  strata = TRUE,
+  seed = NULL,
+  method = c("vfold", "holdout", "group_vfold", "time"),
+  prop = 0.8,
+  group = NULL,
+  time = NULL,
+  initial = NULL,
+  assess = NULL,
+  skip = 0,
+  cumulative = TRUE
+)
 }
 \arguments{
-\item{v}{Number of folds.}
+\item{v}{Number of folds for cross-validation.}
 
-\item{repeats}{Number of repeats.}
+\item{repeats}{Number of repeats for standard or grouped cross-validation.}
 
-\item{strata}{Logical; stratify classification outcomes.}
+\item{strata}{Logical; stratify classification outcomes when supported.}
 
 \item{seed}{Optional seed for reproducibility.}
+
+\item{method}{Resampling strategy: \code{"vfold"}, \code{"holdout"}, \code{"group_vfold"},
+or \code{"time"}.}
+
+\item{prop}{Training-set proportion for holdout splits.}
+
+\item{group}{Optional grouping variable name or vector for grouped CV.}
+
+\item{time}{Optional ordering variable name or vector for time-aware splits.}
+
+\item{initial}{Initial training window size for time-aware CV.}
+
+\item{assess}{Assessment window size for time-aware CV.}
+
+\item{skip}{Number of observations to skip between successive time splits.}
+
+\item{cumulative}{Logical; use an expanding training window for time-aware CV.}
 }
 \value{
 A \code{funcml_cv} object containing fold indices and parameters.
 }
 \description{
-Cross-validation fold generator.
+Resampling specification generator.
 }

@@ -47,7 +47,33 @@ infer_task <- function(y) {
 }
 
 .encode_new <- function(fit, newdata, na_action = stats::na.fail) {
+  if (!is.data.frame(newdata)) {
+    stop("`newdata` must be a data frame.", call. = FALSE)
+  }
   terms_no_y <- stats::delete.response(fit$terms)
+  vars_needed <- all.vars(terms_no_y)
+  missing_vars <- setdiff(vars_needed, names(newdata))
+  if (length(missing_vars)) {
+    stop(
+      "Prediction data is missing required columns: ",
+      paste(missing_vars, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  factor_vars <- intersect(names(fit$xlevels), names(newdata))
+  for (var in factor_vars) {
+    vals <- as.character(newdata[[var]])
+    unseen <- setdiff(unique(vals[!is.na(vals)]), fit$xlevels[[var]])
+    if (length(unseen)) {
+      stop(
+        "Unseen factor levels in `", var, "`: ",
+        paste(unseen, collapse = ", "),
+        call. = FALSE
+      )
+    }
+  }
+
   mf_new <- tryCatch(
     stats::model.frame(terms_no_y, data = newdata, xlev = fit$xlevels, na.action = na_action),
     error = function(e) stop("Design matrix mismatch: ", e$message, call. = FALSE)
@@ -94,12 +120,28 @@ merge_spec <- function(defaults, spec, dots = list()) {
     prob <- cbind(1 - prob, prob)
   }
   prob <- as.matrix(prob)
+  if (ncol(prob) != length(levels) && is.null(colnames(prob))) {
+    stop("Probability matrix column count does not match the number of class levels.", call. = FALSE)
+  }
   if (!is.null(colnames(prob))) {
     missing <- setdiff(levels, colnames(prob))
     if (length(missing)) stop("Probability matrix missing levels: ", paste(missing, collapse = ", "), call. = FALSE)
     prob <- prob[, levels, drop = FALSE]
   } else {
     colnames(prob) <- levels
+  }
+  if (any(!is.finite(prob))) {
+    stop("Probability output contains non-finite values.", call. = FALSE)
+  }
+  if (any(prob < 0)) {
+    stop("Probability output contains negative values.", call. = FALSE)
+  }
+  row_sums <- rowSums(prob)
+  if (any(row_sums <= 0)) {
+    stop("Probability output must have positive row sums.", call. = FALSE)
+  }
+  if (any(abs(row_sums - 1) > 1e-8)) {
+    prob <- prob / row_sums
   }
   prob
 }

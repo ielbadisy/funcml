@@ -8,6 +8,7 @@
 #' @param metrics Character vector of metrics to report. When `tune = TRUE`,
 #'   these are computed for each learner's tuned best configuration.
 #' @param type Prediction type override.
+#' @param conf_level Confidence level for learner summary intervals.
 #' @param seed Optional seed.
 #' @param tune Logical; if `TRUE`, run `tune()` for each learner before comparing.
 #' @param grids Optional tuning grids. Supply either a single data frame to reuse
@@ -18,7 +19,7 @@
 #' @export
 compare_learners <- function(data, formula, models, specs = NULL,
                              resampling = cv(5), metrics = NULL, type = NULL,
-                             seed = NULL, tune = FALSE, grids = NULL,
+                             conf_level = 0.95, seed = NULL, tune = FALSE, grids = NULL,
                              metric = NULL, ...) {
   if (!is.character(models) || !length(models)) {
     stop("`models` must be a non-empty character vector.", call. = FALSE)
@@ -55,6 +56,7 @@ compare_learners <- function(data, formula, models, specs = NULL,
           resampling = resampling,
           metrics = metrics,
           type = type,
+          conf_level = conf_level,
           seed = seed
         ),
         dots
@@ -67,7 +69,7 @@ compare_learners <- function(data, formula, models, specs = NULL,
       out
     })
     results <- do.call(rbind, rows)
-    results <- results[, c("model", "metric", "mean", "sd", "tuned")]
+    results <- results[, c("model", "metric", "mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high", "tuned")]
     rownames(results) <- NULL
     results$rank <- .compare_rank(results)
   } else {
@@ -98,6 +100,7 @@ compare_learners <- function(data, formula, models, specs = NULL,
           resampling = resampling,
           metrics = metrics_use,
           type = type,
+          conf_level = conf_level,
           seed = seed
         ),
         dots
@@ -113,7 +116,7 @@ compare_learners <- function(data, formula, models, specs = NULL,
       out
     })
     results <- do.call(rbind, rows)
-    results <- results[, c("model", "metric", "mean", "sd", "tuned", "best_spec", "opt_metric")]
+    results <- results[, c("model", "metric", "mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high", "tuned", "best_spec", "opt_metric")]
     rownames(results) <- NULL
     results$rank <- .compare_rank(results)
   }
@@ -185,7 +188,7 @@ summary.funcml_compare <- function(object, ...) {
 plot.funcml_compare <- function(x, ...) {
   df <- x$results
   ggplot2::ggplot(df, ggplot2::aes(x = mean, y = stats::reorder(model, mean))) +
-    ggplot2::geom_segment(ggplot2::aes(x = mean - sd, xend = mean + sd, yend = stats::reorder(model, mean)), linewidth = 0.35, colour = "grey45") +
+    ggplot2::geom_segment(ggplot2::aes(x = conf_low, xend = conf_high, yend = stats::reorder(model, mean)), linewidth = 0.45, colour = "#2b8cbe") +
     ggplot2::geom_point(size = 2.4, colour = "black") +
     ggplot2::coord_flip() +
     ggplot2::facet_wrap(~metric, scales = "free_x") +

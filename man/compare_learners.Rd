@@ -11,6 +11,7 @@ compare_learners(
   resampling = cv(5),
   metrics = NULL,
   type = NULL,
+  conf_level = 0.95,
   seed = NULL,
   tune = FALSE,
   grids = NULL,
@@ -33,6 +34,8 @@ compare_learners(
 these are computed for each learner's tuned best configuration.}
 
 \item{type}{Prediction type override.}
+
+\item{conf_level}{Confidence level for learner summary intervals.}
 
 \item{seed}{Optional seed.}
 

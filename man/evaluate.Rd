@@ -12,6 +12,7 @@ evaluate(
   resampling = cv(5),
   metrics = NULL,
   type = NULL,
+  conf_level = 0.95,
   seed = NULL,
   fit = NULL,
   ...
@@ -31,6 +32,8 @@ evaluate(
 \item{metrics}{Character vector of metric names.}
 
 \item{type}{Prediction type override.}
+
+\item{conf_level}{Confidence level for fold-based summary intervals.}
 
 \item{seed}{Optional seed.}
 

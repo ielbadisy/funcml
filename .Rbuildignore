@@ -10,6 +10,9 @@
 ^R/\.Rhistory$
 ^\.\.Rcheck$
 ^funcml\.Rcheck$
+^\.git$
+^\.gitignore$
+^\.local-lib$
 ^lib$
 ^Rplots\.pdf$
 ^.*\.tar\.gz$

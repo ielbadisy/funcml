@@ -54,10 +54,9 @@ exchange for a more compact, explicit workflow.
   does not hide transformation state.
 - The package favors functional composition and clear inputs over implicit
   workflow objects that mutate or learn preprocessing steps inside training.
-- Cross-validation is the primary resampling strategy because it is the default
-  scientific baseline for many supervised learning problems. `funcml` focuses
-  on that common case rather than trying to cover every specialized resampling
-  design.
+- Cross-validation is still the default scientific baseline, but the package
+  now also supports holdout splits, grouped CV, and time-aware rolling
+  evaluation through the same resampling interface.
 - This is a tradeoff, not a universal claim. Users who need richer
   preprocessing orchestration, broader resampling strategies, or larger ML
   ecosystems should use more complete frameworks.
@@ -171,6 +170,27 @@ eval_obj
 summary(eval_obj)
 ```
 
+The summary now includes fold-level standard errors and confidence intervals.
+
+```{r evaluate-other-resampling}
+holdout_obj <- evaluate(
+  demo_data,
+  mpg ~ wt + hp + qsec + drat,
+  model = "glm",
+  resampling = holdout(prop = 0.8, seed = 42)
+)
+
+time_obj <- evaluate(
+  transform(demo_data, order_id = seq_len(nrow(demo_data))),
+  mpg ~ wt + hp + qsec + drat,
+  model = "glm",
+  resampling = time_cv(initial = 16, assess = 4, time = "order_id")
+)
+
+holdout_obj$summary
+time_obj$summary
+```
+
 ```{r eval-plot, fig.cap="Cross-validated performance for the xgboost regression workflow."}
 plot(eval_obj)
 ```
@@ -199,6 +219,26 @@ tune_obj
 summary(tune_obj)
 ```
 
+Budgeted random search is also supported for larger grids.
+
+```{r tune-random}
+random_tune_obj <- tune(
+  demo_data,
+  mpg ~ wt + hp + qsec + drat,
+  model = "xgboost",
+  grid = tune_grid,
+  search = "random",
+  n_evals = 3,
+  resampling = cv(v = 4, seed = 42),
+  metric = "rmse",
+  subsample = 1,
+  colsample_bytree = 1,
+  seed = 42
+)
+
+random_tune_obj$best
+```
+
 ```{r tune-plot, fig.cap="Grid-search trace for xgboost."}
 plot(tune_obj)
 ```
@@ -215,6 +255,8 @@ est_obj <- estimate(
   model = "xgboost",
   estimand = "ATE",
   spec = xgb_spec,
+  interval = "bootstrap",
+  n_boot = 30,
   seed = 42
 )
 
@@ -353,6 +395,22 @@ The SHAP interface also supports additional plot kinds:
 - `plot(shap_obj, kind = "auto")` to choose waterfall for one row and summary
   for multiple rows
 
+```{r shap-other-types, eval=FALSE}
+shap_multi <- interpret(
+  fit_obj,
+  demo_data,
+  method = "shap",
+  newdata = demo_data[1:10, , drop = FALSE],
+  nsim = 30,
+  nsamples = 20,
+  seed = 42
+)
+
+plot(shap_multi, kind = "summary")
+plot(shap_multi, kind = "importance")
+plot(shap_multi, kind = "auto")
+```
+
 #### Global surrogate
 
 ```{r surrogate}
@@ -393,7 +451,8 @@ plot(interaction_obj)
 ## Comparing multiple learners
 
 `compare_learners()` compares several models directly, or tunes each one first
-and then compares the tuned best configurations on one or more metrics.
+and then compares the tuned best configurations on one or more metrics. The
+result summaries also include uncertainty intervals around the resampled means.
 
 ```{r compare-learners}
 compare_obj <- compare_learners(
