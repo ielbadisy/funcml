@@ -968,27 +968,27 @@ shap_obj <- interpret(
 
 shap_obj
 #> <funcml_shap>
-#>      feature        shap   phi_var baseline prediction feature_value
-#> wt        wt  1.10991186 2.5953940 17.90246   21.21203          2.62
-#> hp        hp  1.99376491 6.9207786 17.90246   21.21203           110
-#> qsec    qsec -0.02074833 0.1641907 17.90246   21.21203         16.46
-#> drat    drat  0.22664289 0.3478303 17.90246   21.21203           3.9
-#>      feature_label
-#> wt       wt = 2.62
-#> hp        hp = 110
-#> qsec  qsec = 16.46
-#> drat    drat = 3.9
+#>   observation feature        shap   phi_var baseline prediction feature_value
+#> 1           1      wt  1.10991186 2.5953940 17.90246   21.21203          2.62
+#> 2           1      hp  1.99376491 6.9207786 17.90246   21.21203           110
+#> 3           1    qsec -0.02074833 0.1641907 17.90246   21.21203         16.46
+#> 4           1    drat  0.22664289 0.3478303 17.90246   21.21203           3.9
+#>   raw_value feature_label
+#> 1      2.62     wt = 2.62
+#> 2    110.00      hp = 110
+#> 3     16.46  qsec = 16.46
+#> 4      3.90    drat = 3.9
 summary(shap_obj)
-#>      feature        shap   phi_var baseline prediction feature_value
-#> wt        wt  1.10991186 2.5953940 17.90246   21.21203          2.62
-#> hp        hp  1.99376491 6.9207786 17.90246   21.21203           110
-#> qsec    qsec -0.02074833 0.1641907 17.90246   21.21203         16.46
-#> drat    drat  0.22664289 0.3478303 17.90246   21.21203           3.9
-#>      feature_label
-#> wt       wt = 2.62
-#> hp        hp = 110
-#> qsec  qsec = 16.46
-#> drat    drat = 3.9
+#>   observation feature        shap   phi_var baseline prediction feature_value
+#> 1           1      wt  1.10991186 2.5953940 17.90246   21.21203          2.62
+#> 2           1      hp  1.99376491 6.9207786 17.90246   21.21203           110
+#> 3           1    qsec -0.02074833 0.1641907 17.90246   21.21203         16.46
+#> 4           1    drat  0.22664289 0.3478303 17.90246   21.21203           3.9
+#>   raw_value feature_label
+#> 1      2.62     wt = 2.62
+#> 2    110.00      hp = 110
+#> 3     16.46  qsec = 16.46
+#> 4      3.90    drat = 3.9
 ```
 
 ``` r
@@ -1004,44 +1004,14 @@ SHAP waterfall plot for the first row.
 
 </div>
 
-#### Breakdown explanation
+The SHAP interface also supports additional plot kinds:
 
-``` r
-breakdown_obj <- interpret(
-  fit_obj,
-  demo_data,
-  method = "breakdown",
-  newdata = demo_data[1, , drop = FALSE],
-  nsamples = 20
-)
-
-breakdown_obj
-#> <funcml_breakdown>
-#>   step feature feature_value feature_label contribution
-#> 1    1      hp           110      hp = 110   1.21230359
-#> 2    2    qsec         16.46  qsec = 16.46  -0.38338003
-#> 3    3      wt          2.62     wt = 2.62   0.10471258
-#> 4    4    drat           3.9    drat = 3.9   0.02301197
-summary(breakdown_obj)
-#>   step feature feature_value feature_label contribution
-#> 1    1      hp           110      hp = 110   1.21230359
-#> 2    2    qsec         16.46  qsec = 16.46  -0.38338003
-#> 3    3      wt          2.62     wt = 2.62   0.10471258
-#> 4    4    drat           3.9    drat = 3.9   0.02301197
-```
-
-``` r
-plot(breakdown_obj)
-```
-
-<div class="figure" style="text-align: center">
-
-<img src="README_files/figure-gfm/breakdown-plot-1.png" alt="Greedy breakdown path for the first row."  />
-<p class="caption">
-Greedy breakdown path for the first row.
-</p>
-
-</div>
+- `plot(shap_obj, kind = "summary")` for a SHAP summary / beeswarm view
+  when explanations are computed for multiple rows
+- `plot(shap_obj, kind = "importance")` or `kind = "bar"` for mean
+  absolute SHAP importance
+- `plot(shap_obj, kind = "auto")` to choose waterfall for one row and
+  summary for multiple rows
 
 #### Global surrogate
 
@@ -1071,9 +1041,9 @@ summary(surrogate_obj)
 #>   n= 32 
 #> 
 #>          CP nsplit rel error    xerror      xstd
-#> 1 0.6540322      0 1.0000000 1.0814324 0.2482560
-#> 2 0.1666352      1 0.3459678 0.7371516 0.1846501
-#> 3 0.0100000      2 0.1793326 0.5972711 0.1399943
+#> 1 0.6540322      0 1.0000000 1.0414636 0.2422471
+#> 2 0.1666352      1 0.3459678 0.6095144 0.1654784
+#> 3 0.0100000      2 0.1793326 0.5240388 0.1350470
 #> 
 #> Variable importance
 #>   wt   hp drat qsec 
@@ -1128,9 +1098,9 @@ summary(surrogate_obj)
 #>   n= 32 
 #> 
 #>          CP nsplit rel error    xerror      xstd
-#> 1 0.6540322      0 1.0000000 1.0814324 0.2482560
-#> 2 0.1666352      1 0.3459678 0.7371516 0.1846501
-#> 3 0.0100000      2 0.1793326 0.5972711 0.1399943
+#> 1 0.6540322      0 1.0000000 1.0414636 0.2422471
+#> 2 0.1666352      1 0.3459678 0.6095144 0.1654784
+#> 3 0.0100000      2 0.1793326 0.5240388 0.1350470
 #> 
 #> Variable importance
 #>   wt   hp drat qsec 
@@ -1198,16 +1168,16 @@ interaction_obj <- interpret(
 interaction_obj
 #> <funcml_interaction>
 #>   feature interaction
-#> 1      wt  0.14520784
-#> 2      hp  0.14014280
-#> 3    qsec  0.12639979
-#> 4    drat  0.05630326
+#> 1      wt 0.136738112
+#> 2      hp 0.114104074
+#> 3    qsec 0.086276242
+#> 4    drat 0.006488173
 summary(interaction_obj)
 #>   feature interaction
-#> 1      wt  0.14520784
-#> 2      hp  0.14014280
-#> 3    qsec  0.12639979
-#> 4    drat  0.05630326
+#> 1      wt 0.136738112
+#> 2      hp 0.114104074
+#> 3    qsec 0.086276242
+#> 4    drat 0.006488173
 ```
 
 ``` r
