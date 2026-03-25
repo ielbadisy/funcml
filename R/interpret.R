@@ -151,6 +151,104 @@
   sprintf("%s = %s", feature, .format_feature_value(value))
 }
 
+.publication_theme <- function() {
+  ggplot2::theme_bw() +
+    ggplot2::theme(
+      panel.grid.minor = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_line(colour = "grey88", linewidth = 0.3),
+      panel.grid.major.y = ggplot2::element_blank(),
+      strip.background = ggplot2::element_rect(fill = "grey95", colour = "grey80"),
+      plot.title = ggplot2::element_text(face = "bold"),
+      legend.title = ggplot2::element_text(face = "bold")
+    )
+}
+
+.prediction_axis_label <- function(task, type, context = c("prediction", "pdp", "ice", "ale")) {
+  context <- match.arg(context)
+  base <- if (task == "regression") {
+    "Predicted response"
+  } else if (identical(type, "prob")) {
+    "Predicted probability"
+  } else {
+    "Predicted log-probability"
+  }
+  switch(
+    context,
+    prediction = base,
+    pdp = if (task == "regression") "Partial dependence" else sprintf("Partial dependence (%s)", tolower(base)),
+    ice = base,
+    ale = sprintf("ALE on %s scale", tolower(sub("^Predicted ", "", base)))
+  )
+}
+
+.permute_axis_label <- function(x) {
+  metric <- x$result$metric %||% x$metric %||% "metric"
+  comparison <- x$result$comparison %||% "difference"
+  direction <- if (comparison == "difference") {
+    sprintf("Change in %s after permutation", toupper(metric))
+  } else {
+    sprintf("Relative change in %s after permutation", toupper(metric))
+  }
+  direction
+}
+
+.support_frame <- function(data_use, features) {
+  rows <- lapply(features, function(feat) {
+    x <- data_use[[feat]]
+    if (is.numeric(x)) {
+      data.frame(feature = feat, value = x, stringsAsFactors = FALSE)
+    } else {
+      NULL
+    }
+  })
+  rows <- rows[!vapply(rows, is.null, logical(1))]
+  if (!length(rows)) {
+    return(NULL)
+  }
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+.as_shapviz_object <- function(df) {
+  if (!requireNamespace("shapviz", quietly = TRUE)) {
+    return(NULL)
+  }
+  obs_ids <- sort(unique(df$observation))
+  features <- unique(df$feature)
+  shap_mat <- sapply(features, function(feat) {
+    vals <- df[df$feature == feat, c("observation", "shap"), drop = FALSE]
+    vals <- vals[match(obs_ids, vals$observation), "shap"]
+    as.numeric(vals)
+  })
+  if (!is.matrix(shap_mat)) {
+    shap_mat <- matrix(shap_mat, ncol = length(features))
+  }
+  colnames(shap_mat) <- features
+  rownames(shap_mat) <- obs_ids
+
+  X <- data.frame(row.names = obs_ids, stringsAsFactors = FALSE)
+  for (feat in features) {
+    vals <- df[df$feature == feat, c("observation", "raw_value", "feature_value"), drop = FALSE]
+    vals <- vals[match(obs_ids, vals$observation), , drop = FALSE]
+    if (all(!is.na(vals$raw_value))) {
+      X[[feat]] <- as.numeric(vals$raw_value)
+    } else {
+      X[[feat]] <- vals$feature_value
+    }
+  }
+  baseline <- df[df$feature == features[1], c("observation", "baseline"), drop = FALSE]
+  baseline <- baseline[match(obs_ids, baseline$observation), "baseline"]
+  shapviz::shapviz(shap_mat, X = X, baseline = mean(as.numeric(baseline)))
+}
+
+.format_tune_config <- function(df, exclude = c("mean", "sd")) {
+  cols <- setdiff(names(df), exclude)
+  apply(df[, cols, drop = FALSE], 1, function(row) {
+    paste(sprintf("%s=%s", cols, unname(row)), collapse = ", ")
+  })
+}
+
 .recode_local_features <- function(dat, x_interest) {
   out <- vector("list", length(dat))
   names(out) <- names(dat)
@@ -213,14 +311,14 @@
 #' Model-agnostic interpretation (global + local).
 #'
 #' Implements native permutation VI, PDP/ICE/ALE, SHAP approximations, local
-#' surrogate explanations, interaction strength, breakdown profiles, and global
-#' surrogate models without vendoring external package source code.
+#' surrogate explanations, interaction strength, and global surrogate models
+#' without vendoring external package source code.
 #'
 #' @param fit A `funcml_fit` object.
 #' @param data Reference data (typically training set).
 #' @param formula Optional formula (defaults to `fit$formula`).
 #' @param method One of "vip","permute","pdp","ice","ale","local","lime",
-#'   "shap","local_model","interaction","breakdown","surrogate","profile",
+#'   "shap","local_model","interaction","surrogate","profile",
 #'   "ceteris_paribus".
 #' @param features Optional subset of features; defaults to all predictors.
 #' @param type Prediction scale: regression -> "response"; classification -> "prob" or "class".
@@ -236,8 +334,8 @@
 #'   local neighborhood.
 #' @param class_level Target class for multiclass/local prob explanations.
 #' @param pos_level Alias for binary positive class (second level default).
-#' @param newdata Single-row data frame for local/shap/breakdown explanations; defaults to first row of `data`.
-#' @param nsim Number of Monte Carlo simulations (importance/shap/breakdown) or repetitions.
+#' @param newdata Single-row data frame for local/SHAP explanations; defaults to first row of `data`.
+#' @param nsim Number of Monte Carlo simulations (importance/SHAP) or repetitions.
 #' @param nsamples Row subsample for speed (reference/background set).
 #' @param grid Optional list of grids per feature for PDP/ICE/ALE.
 #' @param seed Optional seed for determinism.
@@ -245,7 +343,7 @@
 #' @export
 interpret <- function(fit, data, formula = fit$formula,
                       method = c("vip", "permute", "pdp", "ice", "ale", "local", "lime", "shap",
-                                 "local_model", "interaction", "breakdown", "surrogate",
+                                 "local_model", "interaction", "surrogate",
                                  "profile", "ceteris_paribus"),
                       features = NULL, type = NULL, metric = NULL,
                       importance_type = c("permute", "model", "auto"),
@@ -296,7 +394,6 @@ interpret <- function(fit, data, formula = fit$formula,
     vip = 1,
     permute = 30,
     shap = 80,
-    breakdown = 50,
     50
   )
   if (is.null(nsim) || nsim < 1) {
@@ -322,7 +419,6 @@ interpret <- function(fit, data, formula = fit$formula,
     local_model = interpret_local_model,
     shap = interpret_shap,
     interaction = interpret_interaction,
-    breakdown = interpret_breakdown,
     surrogate = interpret_surrogate,
     profile = interpret_profile
   )
@@ -549,7 +645,7 @@ interpret_pdp <- function(fit, data, features, type, class_level, pos_level, gri
   curves <- do.call(rbind, curves)
   rownames(curves) <- NULL
   .interpret_result(
-    payload = list(curves = curves, grid = grid),
+    payload = list(curves = curves, grid = grid, support = .support_frame(data_use, features)),
     diagnostics = list(reference = "native partial dependence")
   )
 }
@@ -585,7 +681,7 @@ interpret_ice <- function(fit, data, features, type, class_level, pos_level, gri
   curves <- do.call(rbind, curves)
   rownames(curves) <- NULL
   .interpret_result(
-    payload = list(curves = curves, grid = grid),
+    payload = list(curves = curves, grid = grid, support = .support_frame(data_use, features)),
     diagnostics = list(reference = "native ICE", centered = isTRUE(center))
   )
 }
@@ -631,7 +727,7 @@ interpret_ale <- function(fit, data, features, type, class_level, pos_level, gri
   out <- Filter(Negate(is.null), out)
   curves <- if (length(out)) do.call(rbind, out) else data.frame(feature = character(), value = numeric(), effect = numeric())
   .interpret_result(
-    payload = list(curves = curves, grid = grid),
+    payload = list(curves = curves, grid = grid, support = .support_frame(data_use, features)),
     diagnostics = list(reference = "native ALE")
   )
 }
@@ -708,52 +804,62 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
   if (is.null(newdata)) {
     newdata <- data[1, , drop = FALSE]
   }
-  if (nrow(newdata) != 1L) {
-    stop("`newdata` must contain exactly one row for `method = \"shap\"`.", call. = FALSE)
-  }
   if (!is.null(seed)) {
     set.seed(seed)
   }
   background <- if (!is.null(nsamples) && nrow(data) > nsamples) data[sample(seq_len(nrow(data)), nsamples), , drop = FALSE] else data
-  x_interest <- newdata[1, , drop = FALSE]
 
   pred_one <- function(df) {
     .predict_numeric_target(fit, df, type = type, class_level = class_level, pos_level = pos_level)
   }
-  pred_interest <- pred_one(x_interest)[1]
-  contrib <- matrix(0, nrow = nsim, ncol = length(features), dimnames = list(NULL, features))
-  start_preds <- numeric(nsim)
 
-  for (m in seq_len(nsim)) {
-    ref_row <- background[sample(seq_len(nrow(background)), 1L), , drop = FALSE]
-    order_idx <- sample(features)
-    current <- ref_row
-    prev_pred <- pred_one(current)[1]
-    start_preds[m] <- prev_pred
-    for (feat in order_idx) {
-      current[[feat]] <- x_interest[[feat]]
-      next_pred <- pred_one(current)[1]
-      contrib[m, feat] <- next_pred - prev_pred
-      prev_pred <- next_pred
+  rows <- lapply(seq_len(nrow(newdata)), function(obs_id) {
+    x_interest <- newdata[obs_id, , drop = FALSE]
+    pred_interest <- pred_one(x_interest)[1]
+    contrib <- matrix(0, nrow = nsim, ncol = length(features), dimnames = list(NULL, features))
+    start_preds <- numeric(nsim)
+
+    for (m in seq_len(nsim)) {
+      ref_row <- background[sample(seq_len(nrow(background)), 1L), , drop = FALSE]
+      order_idx <- sample(features)
+      current <- ref_row
+      prev_pred <- pred_one(current)[1]
+      start_preds[m] <- prev_pred
+      for (feat in order_idx) {
+        current[[feat]] <- x_interest[[feat]]
+        next_pred <- pred_one(current)[1]
+        contrib[m, feat] <- next_pred - prev_pred
+        prev_pred <- next_pred
+      }
     }
-  }
 
-  shap_vals <- colMeans(contrib)
-  shap_var <- if (nsim > 1) apply(contrib, 2, stats::var) else rep(NA_real_, length(features))
-  baseline_value <- baseline %||% mean(start_preds)
-  result <- data.frame(
-    feature = features,
-    shap = as.numeric(shap_vals[features]),
-    phi_var = as.numeric(shap_var[features]),
-    baseline = baseline_value,
-    prediction = pred_interest,
-    feature_value = unlist(lapply(x_interest[1, features, drop = FALSE], as.character), use.names = FALSE),
-    feature_label = vapply(features, function(feat) .feature_display_label(feat, x_interest[[feat]][1]), character(1)),
-    stringsAsFactors = FALSE
-  )
+    shap_vals <- colMeans(contrib)
+    shap_var <- if (nsim > 1) apply(contrib, 2, stats::var) else rep(NA_real_, length(features))
+    baseline_value <- baseline %||% mean(start_preds)
+    numeric_values <- suppressWarnings(as.numeric(unlist(x_interest[1, features, drop = FALSE], use.names = FALSE)))
+    data.frame(
+      observation = obs_id,
+      feature = features,
+      shap = as.numeric(shap_vals[features]),
+      phi_var = as.numeric(shap_var[features]),
+      baseline = baseline_value,
+      prediction = pred_interest,
+      feature_value = unlist(lapply(x_interest[1, features, drop = FALSE], as.character), use.names = FALSE),
+      raw_value = numeric_values,
+      feature_label = vapply(features, function(feat) .feature_display_label(feat, x_interest[[feat]][1]), character(1)),
+      stringsAsFactors = FALSE
+    )
+  })
+  result <- do.call(rbind, rows)
+  rownames(result) <- NULL
   .interpret_result(
     payload = result,
-    diagnostics = list(reference = "native monte carlo shap", baseline = baseline_value, prediction = pred_interest)
+    diagnostics = list(
+      reference = "approximate monte carlo shap",
+      baseline = if (nrow(newdata) == 1L) result$baseline[1] else NA_real_,
+      prediction = if (nrow(newdata) == 1L) result$prediction[1] else NA_real_,
+      observations = nrow(newdata)
+    )
   )
 }
 
@@ -800,12 +906,23 @@ interpret_interaction <- function(fit, data, features, type, class_level, pos_le
   }
   if (!is.null(feature)) {
     others <- setdiff(features, feature)
-    results <- data.frame(
-      feature = others,
+    pairwise <- data.frame(
+      feature_x = feature,
+      feature_y = others,
       interaction = vapply(others, function(other) .interaction_pair(fit, data_use, feature, other, type, class_level, pos_level, grid_size), numeric(1)),
       stringsAsFactors = FALSE
     )
+    results <- data.frame(
+      feature = others,
+      interaction = pairwise$interaction,
+      stringsAsFactors = FALSE
+    )
   } else {
+    pair_grid <- utils::combn(features, 2, simplify = FALSE)
+    pairwise <- do.call(rbind, lapply(pair_grid, function(pair) {
+      val <- .interaction_pair(fit, data_use, pair[1], pair[2], type, class_level, pos_level, grid_size)
+      data.frame(feature_x = pair[1], feature_y = pair[2], interaction = val, stringsAsFactors = FALSE)
+    }))
     results <- data.frame(
       feature = features,
       interaction = vapply(features, function(feat) {
@@ -820,63 +937,17 @@ interpret_interaction <- function(fit, data, features, type, class_level, pos_le
   }
   results <- results[order(results$interaction, decreasing = TRUE), , drop = FALSE]
   rownames(results) <- NULL
-  .interpret_result(
-    payload = list(results = results, anchor_feature = feature),
-    diagnostics = list(reference = "native interaction", metric = "Friedman H", grid_size = grid_size)
-  )
-}
-
-interpret_breakdown <- function(fit, data, features, type, class_level, pos_level, newdata, nsamples, ...) {
-  if (is.null(newdata)) {
-    newdata <- data[1, , drop = FALSE]
-  }
-  nsamples <- nsamples %||% min(200L, nrow(data))
-  x0 <- newdata[1, , drop = FALSE]
-  bg <- data[sample(seq_len(nrow(data)), nsamples, replace = TRUE), , drop = FALSE]
-
-  base_pred <- predict(fit, bg, type = type, class_level = class_level, pos_level = pos_level)
-  if (fit$task == "classification" && type == "prob") {
-    base_pred <- .normalize_prob_matrix(base_pred, fit$levels)[, class_level %||% pos_level %||% fit$levels[length(fit$levels)]]
-  }
-  baseline <- mean(base_pred)
-
-  remaining <- features
-  current <- baseline
-  current_bg <- bg
-  path <- list()
-  while (length(remaining)) {
-    deltas <- vapply(remaining, function(feat) {
-      hybrid <- current_bg
-      hybrid[[feat]] <- x0[[feat]]
-      pred <- predict(fit, hybrid, type = type, class_level = class_level, pos_level = pos_level)
-      if (fit$task == "classification" && type == "prob") {
-        pred <- .normalize_prob_matrix(pred, fit$levels)[, class_level %||% pos_level %||% fit$levels[length(fit$levels)]]
-      }
-      mean(pred) - current
-    }, numeric(1))
-    best_idx <- which.max(abs(deltas))
-    best <- remaining[best_idx]
-    best_delta <- unname(deltas[[best_idx]])
-    current <- current + best_delta
-    path[[length(path) + 1L]] <- data.frame(
-      step = length(path) + 1L,
-      feature = unname(best),
-      feature_value = .format_feature_value(x0[[best]][1]),
-      feature_label = .feature_display_label(best, x0[[best]][1]),
-      contribution = best_delta,
-      stringsAsFactors = FALSE
+  if (nrow(pairwise)) {
+    pairwise <- rbind(
+      pairwise,
+      data.frame(feature_x = pairwise$feature_y, feature_y = pairwise$feature_x, interaction = pairwise$interaction, stringsAsFactors = FALSE)
     )
-    current_bg[[best]] <- x0[[best]]
-    remaining <- setdiff(remaining, best)
   }
-
-  total_pred <- predict(fit, x0, type = type, class_level = class_level, pos_level = pos_level)
-  if (fit$task == "classification" && type == "prob") {
-    total_pred <- .normalize_prob_matrix(total_pred, fit$levels)[, class_level %||% pos_level %||% fit$levels[length(fit$levels)]]
-  }
+  diag_rows <- data.frame(feature_x = features, feature_y = features, interaction = 0, stringsAsFactors = FALSE)
+  pairwise <- rbind(pairwise, diag_rows)
   .interpret_result(
-    payload = list(path = do.call(rbind, path), baseline = baseline, pred = as.numeric(total_pred)),
-    diagnostics = list(reference = "native breakdown")
+    payload = list(results = results, anchor_feature = feature, pairwise = pairwise),
+    diagnostics = list(reference = "native interaction", metric = "Friedman H", grid_size = grid_size)
   )
 }
 
@@ -916,20 +987,56 @@ plot_vi <- function(df, ylab, title) {
     stop("Expected an 'importance', 'weight', 'effect', 'interaction', or 'shap' column for plotting.", call. = FALSE)
   }
   df$yval <- df[[y_col]]
-  df$direction <- .funcml_direction(df$yval)
-
-  ggplot2::ggplot(df, ggplot2::aes(x = stats::reorder(feature, yval), y = yval)) +
-    ggplot2::geom_hline(yintercept = 0, colour = .funcml_palette$grid, linewidth = 0.5) +
-    ggplot2::geom_col(ggplot2::aes(fill = direction), width = 0.72, colour = NA) +
-    ggplot2::coord_flip() +
-    ggplot2::labs(x = "Feature", y = ylab, title = title) +
-    .funcml_direction_scale_fill(guide = "none") +
-    theme_funcml()
+  ggplot2::ggplot(df, ggplot2::aes(x = yval, y = stats::reorder(feature, yval))) +
+    ggplot2::geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.4) +
+    ggplot2::geom_segment(ggplot2::aes(x = 0, xend = yval, yend = feature), linewidth = 0.5, colour = "grey60") +
+    ggplot2::geom_point(size = 2.2, colour = "black") +
+    ggplot2::labs(x = ylab, y = NULL, title = title) +
+    .publication_theme()
 }
 
 #' @export
 plot.funcml_permute <- function(x, ...) {
-  plot_vi(x$result$scores, "Importance", "Permutation importance")
+  df <- x$result$scores
+  df <- df[order(df$importance, decreasing = TRUE), , drop = FALSE]
+  df$feature <- factor(df$feature, levels = rev(df$feature))
+  raw_scores <- x$result$raw_scores
+  if (!is.null(raw_scores)) {
+    raw_df <- data.frame(
+      feature = rep(colnames(raw_scores), each = nrow(raw_scores)),
+      raw_score = as.numeric(raw_scores),
+      stringsAsFactors = FALSE
+    )
+    raw_df$feature <- factor(raw_df$feature, levels = levels(df$feature))
+    return(
+      ggplot2::ggplot(raw_df, ggplot2::aes(x = raw_score, y = feature)) +
+        ggplot2::geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.4) +
+        ggplot2::geom_boxplot(
+          width = 0.65,
+          outlier.alpha = 0.25,
+          fill = "white",
+          colour = "grey25"
+        ) +
+        ggplot2::geom_point(
+          data = df,
+          ggplot2::aes(x = importance, y = feature),
+          inherit.aes = FALSE,
+          size = 2.1,
+          colour = "black"
+        ) +
+        ggplot2::labs(
+          x = .permute_axis_label(x),
+          y = NULL,
+          title = "Permutation feature importance"
+        ) +
+        .publication_theme()
+    )
+  }
+  ggplot2::ggplot(df, ggplot2::aes(x = importance, y = feature)) +
+    ggplot2::geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.4) +
+    ggplot2::geom_point(size = 2.3, colour = "black") +
+    ggplot2::labs(x = .permute_axis_label(x), y = NULL, title = "Permutation feature importance") +
+    .publication_theme()
 }
 
 #' @export
@@ -949,12 +1056,30 @@ summary.funcml_permute <- function(object, ...) {
 plot.funcml_pdp <- function(x, ...) {
   curves <- x$result$curves
   curves$plot_value <- .coerce_plot_value(curves$value)
-  ggplot2::ggplot(curves, ggplot2::aes(x = plot_value, y = yhat, group = 1)) +
-    ggplot2::geom_line(color = .funcml_palette$accent_alt, linewidth = 0.9) +
-    ggplot2::geom_point(color = .funcml_palette$accent, size = 1.8) +
+  support <- x$result$support
+  if (!is.null(support)) {
+    support$plot_value <- .coerce_plot_value(support$value)
+  }
+  p <- ggplot2::ggplot(curves, ggplot2::aes(x = plot_value, y = yhat, group = 1)) +
+    ggplot2::geom_line(colour = "black", linewidth = 0.7) +
     ggplot2::facet_wrap(~feature, scales = "free_x") +
-    ggplot2::labs(y = "yhat", title = "Partial dependence") +
-    theme_funcml()
+    ggplot2::labs(
+      x = "Feature value",
+      y = .prediction_axis_label(x$task, x$type, context = "pdp"),
+      title = "Partial dependence plot"
+    ) +
+    .publication_theme()
+  if (!is.null(support)) {
+    p <- p + ggplot2::geom_rug(
+      data = support,
+      ggplot2::aes(x = plot_value),
+      inherit.aes = FALSE,
+      sides = "b",
+      alpha = 0.12,
+      linewidth = 0.2
+    )
+  }
+  p
 }
 
 #' @export
@@ -977,13 +1102,17 @@ plot.funcml_ice <- function(x, ...) {
   mean_df <- stats::aggregate(yhat ~ feature + value, data = curves, FUN = mean)
   mean_df$plot_value <- .coerce_plot_value(mean_df$value)
   ggplot2::ggplot(curves, ggplot2::aes(x = plot_value, y = yhat, group = id)) +
-    ggplot2::geom_line(alpha = 0.18, linewidth = 0.35, colour = .funcml_palette$context) +
+    ggplot2::geom_line(alpha = 0.22, linewidth = 0.35, colour = "grey55") +
     ggplot2::geom_line(data = mean_df, ggplot2::aes(x = plot_value, y = yhat, group = 1),
-      inherit.aes = FALSE, color = .funcml_palette$accent, linewidth = 1.2
+      inherit.aes = FALSE, colour = "black", linewidth = 0.9
     ) +
     ggplot2::facet_wrap(~feature, scales = "free_x") +
-    ggplot2::labs(y = "yhat", title = "ICE curves") +
-    theme_funcml()
+    ggplot2::labs(
+      x = "Feature value",
+      y = .prediction_axis_label(x$task, x$type, context = "ice"),
+      title = if (isTRUE(x$diagnostics$centered)) "Centered ICE plot" else "ICE plot"
+    ) +
+    .publication_theme()
 }
 
 #' @export
@@ -1003,13 +1132,31 @@ summary.funcml_ice <- function(object, ...) {
 plot.funcml_ale <- function(x, ...) {
   curves <- x$result$curves
   curves$plot_value <- .coerce_plot_value(curves$value)
-  ggplot2::ggplot(curves, ggplot2::aes(x = plot_value, y = effect, group = 1)) +
-    ggplot2::geom_hline(yintercept = 0, colour = .funcml_palette$grid, linewidth = 0.5) +
-    ggplot2::geom_line(color = .funcml_palette$accent_alt, linewidth = 1.05) +
-    ggplot2::geom_point(color = .funcml_palette$accent_alt, size = 1.2) +
+  support <- x$result$support
+  if (!is.null(support)) {
+    support$plot_value <- .coerce_plot_value(support$value)
+  }
+  p <- ggplot2::ggplot(curves, ggplot2::aes(x = plot_value, y = effect, group = 1)) +
+    ggplot2::geom_hline(yintercept = 0, colour = "grey70", linewidth = 0.4) +
+    ggplot2::geom_line(colour = "black", linewidth = 0.8) +
     ggplot2::facet_wrap(~feature, scales = "free_x") +
-    ggplot2::labs(y = "ALE", title = "Accumulated local effects") +
-    theme_funcml()
+    ggplot2::labs(
+      x = "Feature value",
+      y = .prediction_axis_label(x$task, x$type, context = "ale"),
+      title = "Accumulated local effects"
+    ) +
+    .publication_theme()
+  if (!is.null(support)) {
+    p <- p + ggplot2::geom_rug(
+      data = support,
+      ggplot2::aes(x = plot_value),
+      inherit.aes = FALSE,
+      sides = "b",
+      alpha = 0.12,
+      linewidth = 0.2
+    )
+  }
+  p
 }
 
 #' @export
@@ -1047,31 +1194,22 @@ summary.funcml_local <- function(object, ...) {
 plot.funcml_iml_local_model <- function(x, ...) {
   df <- x$result$results
   df$feature <- factor(df$feature.value, levels = rev(df$feature.value))
-  df$label <- sprintf("%s\ncontrib=%+.3f", df$observed_value, df$effect)
   ggplot2::ggplot(df, ggplot2::aes(x = effect, y = feature, fill = effect >= 0)) +
-    ggplot2::geom_col(width = 0.72, show.legend = FALSE) +
-    ggplot2::geom_text(
-      ggplot2::aes(
-        x = effect / 2,
-        label = label
-      ),
-      colour = "white",
-      fontface = "bold",
-      lineheight = 0.95,
-      size = 3.1
-    ) +
-    ggplot2::scale_fill_manual(values = c(`TRUE` = "#f7d13d", `FALSE` = "#a52c60")) +
-    ggplot2::expand_limits(x = c(min(df$effect, 0) * 1.25, max(df$effect, 0) * 1.25)) +
+    ggplot2::geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.4) +
+    ggplot2::geom_col(width = 0.7, colour = NA, show.legend = FALSE) +
+    ggplot2::scale_fill_manual(values = c(`TRUE` = "#2ca25f", `FALSE` = "#de2d26")) +
     ggplot2::labs(
-      x = "Local contribution",
+      x = "Approximate local contribution",
       y = NULL,
-      title = sprintf(
-        "Local explanation\nmodel=%.3f, local=%.3f",
+      title = "Local surrogate contributions",
+      subtitle = sprintf(
+        "Black-box prediction = %.3f | local surrogate = %.3f | fidelity = %.3f",
         x$diagnostics$prediction %||% NA_real_,
-        x$result$local_prediction %||% NA_real_
+        x$result$local_prediction %||% NA_real_,
+        x$result$fidelity %||% NA_real_
       )
     ) +
-    ggplot2::theme_bw()
+    .publication_theme()
 }
 
 #' @export
@@ -1093,52 +1231,119 @@ summary.funcml_iml_local_model <- function(object, ...) {
 }
 
 #' @export
-plot.funcml_shap <- function(x, kind = c("waterfall", "importance", "bar", "beeswarm", "both"), ...) {
+plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "summary", "beeswarm", "importance", "bar"), ...) {
   kind <- match.arg(kind)
   df <- x$result
-  df <- df[order(abs(df$shap), decreasing = TRUE), , drop = FALSE]
+  if (kind == "auto") {
+    kind <- if (length(unique(df$observation)) > 1L) "summary" else "waterfall"
+  }
+  sv <- .as_shapviz_object(df)
+  if (!is.null(sv)) {
+    if (kind == "waterfall") {
+      return(
+        shapviz::sv_waterfall(
+          sv,
+          row_id = min(df$observation),
+          fill_colors = c("#2ca25f", "#de2d26")
+        ) +
+          .publication_theme()
+      )
+    }
+    if (kind %in% c("summary", "beeswarm")) {
+      return(
+        shapviz::sv_importance(
+          sv,
+          kind = "beeswarm",
+          show_numbers = FALSE
+        ) +
+          .publication_theme()
+      )
+    }
+    return(
+      shapviz::sv_importance(
+        sv,
+        kind = "bar",
+        show_numbers = FALSE,
+        fill = "grey35"
+      ) +
+        .publication_theme()
+    )
+  }
   if (kind == "waterfall") {
+    df <- df[df$observation == min(df$observation), , drop = FALSE]
+    df <- df[order(abs(df$shap), decreasing = TRUE), , drop = FALSE]
     base <- df$baseline[1]
+    x_range <- range(c(df$baseline[1], df$prediction[1], df$baseline[1] + cumsum(df$shap)))
+    pad <- max(diff(x_range) * 0.08, 0.05)
     df$start <- c(base, base + cumsum(utils::head(df$shap, -1L)))
     df$end <- base + cumsum(df$shap)
     df$direction <- .funcml_direction(df$shap)
     df$feature <- factor(df$feature_label, levels = rev(df$feature_label))
     return(
       ggplot2::ggplot(df, ggplot2::aes(y = feature)) +
-        ggplot2::geom_vline(xintercept = base, colour = .funcml_palette$grid, linewidth = 0.6, linetype = "dashed") +
-        ggplot2::geom_vline(xintercept = df$prediction[1], colour = .funcml_palette$context, linewidth = 0.6, linetype = "dotted") +
-        ggplot2::geom_segment(ggplot2::aes(x = start, xend = end, yend = feature, colour = direction), linewidth = 6, lineend = "round") +
-        ggplot2::geom_point(ggplot2::aes(x = end, colour = direction), size = 2.4) +
+        ggplot2::geom_vline(xintercept = base, colour = "grey70", linewidth = 0.4, linetype = "dashed") +
+        ggplot2::geom_vline(xintercept = df$prediction[1], colour = "grey40", linewidth = 0.4, linetype = "dotted") +
+        ggplot2::geom_segment(ggplot2::aes(x = start, xend = end, yend = feature, colour = direction), linewidth = 5, lineend = "butt") +
+        ggplot2::geom_point(ggplot2::aes(x = end, colour = direction), size = 2.1) +
         ggplot2::geom_text(
-          ggplot2::aes(x = (start + end) / 2, label = sprintf("%+.3f", shap)),
-          colour = "white",
-          size = 3.1,
-          fontface = "bold"
+          ggplot2::aes(x = end, label = sprintf("%+.3f", shap), hjust = ifelse(shap >= 0, -0.15, 1.15)),
+          size = 3,
+          colour = "black"
         ) +
-        ggplot2::annotate(
-          "text",
-          x = base,
-          y = length(df$feature) + 0.55,
-          label = sprintf("baseline = %.3f", base),
-          hjust = 0,
-          colour = .funcml_palette$context,
-          size = 3.2
+        ggplot2::labs(
+          x = "SHAP contribution",
+          y = NULL,
+          title = "Approximate SHAP waterfall",
+          subtitle = sprintf("Baseline = %.3f | Final prediction = %.3f", base, df$prediction[1])
         ) +
-        ggplot2::annotate(
-          "text",
-          x = df$prediction[1],
-          y = 0.45,
-          label = sprintf("prediction = %.3f", df$prediction[1]),
-          hjust = 1,
-          colour = .funcml_palette$context,
-          size = 3.2
-        ) +
-        ggplot2::labs(x = "Contribution path", y = NULL, title = "SHAP waterfall") +
+        ggplot2::expand_limits(x = c(x_range[1] - pad, x_range[2] + pad)) +
         .funcml_direction_scale_colour(guide = "none") +
-        ggplot2::theme_bw()
+        .publication_theme()
     )
   }
-  plot_vi(df, "SHAP", "Approximate Shapley values")
+  if (kind %in% c("summary", "beeswarm")) {
+    df$abs_shap <- abs(df$shap)
+    ord <- stats::aggregate(abs_shap ~ feature, data = df, FUN = mean)
+    ord <- ord[order(ord$abs_shap, decreasing = TRUE), "feature"]
+    numeric_value <- suppressWarnings(as.numeric(df$feature_value))
+    df$feature_value_scaled <- ave(
+      numeric_value,
+      df$feature,
+      FUN = function(v) {
+        if (all(is.na(v))) {
+          rep(0.5, length(v))
+        } else {
+          rng <- range(v, na.rm = TRUE)
+          if (!is.finite(rng[1]) || diff(rng) == 0) rep(0.5, length(v)) else (v - rng[1]) / diff(rng)
+        }
+      }
+    )
+    df$feature <- factor(df$feature, levels = rev(ord))
+    return(
+      ggplot2::ggplot(df, ggplot2::aes(x = shap, y = feature, colour = feature_value_scaled)) +
+        ggplot2::geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.4) +
+        ggplot2::geom_point(
+          position = ggplot2::position_jitter(height = 0.18, width = 0),
+          alpha = 0.7,
+          size = 1.6
+        ) +
+        ggplot2::scale_colour_gradient(low = "#2c7bb6", high = "#d7191c", name = "Feature value") +
+        ggplot2::labs(
+          x = "SHAP contribution",
+          y = NULL,
+          title = "Approximate SHAP summary"
+        ) +
+        .publication_theme()
+    )
+  }
+  df$abs_shap <- abs(df$shap)
+  imp <- stats::aggregate(abs_shap ~ feature, data = df, FUN = mean)
+  imp <- imp[order(imp$abs_shap, decreasing = TRUE), , drop = FALSE]
+  ggplot2::ggplot(imp, ggplot2::aes(x = abs_shap, y = stats::reorder(feature, abs_shap))) +
+    ggplot2::geom_segment(ggplot2::aes(x = 0, xend = abs_shap, yend = feature), linewidth = 0.55, colour = "grey65") +
+    ggplot2::geom_point(size = 2.3, colour = "black") +
+    ggplot2::labs(x = "Mean |SHAP contribution|", y = NULL, title = "Approximate SHAP importance") +
+    .publication_theme()
 }
 
 #' @export
@@ -1155,61 +1360,6 @@ summary.funcml_shap <- function(object, ...) {
 }
 
 #' @export
-plot.funcml_breakdown <- function(x, ...) {
-  df <- x$result$path
-  baseline <- x$result$baseline
-  df$start <- c(baseline, baseline + cumsum(utils::head(df$contribution, -1L)))
-  df$end <- baseline + cumsum(df$contribution)
-  df$direction <- .funcml_direction(df$contribution)
-  df$feature <- factor(df$feature_label, levels = rev(df$feature_label))
-  ggplot2::ggplot(df, ggplot2::aes(y = feature)) +
-    ggplot2::geom_vline(xintercept = baseline, colour = .funcml_palette$grid, linewidth = 0.6, linetype = "dashed") +
-    ggplot2::geom_vline(xintercept = x$result$pred, colour = .funcml_palette$context, linewidth = 0.6, linetype = "dotted") +
-    ggplot2::geom_segment(ggplot2::aes(x = start, xend = end, yend = feature, colour = direction), linewidth = 6, lineend = "round") +
-    ggplot2::geom_point(ggplot2::aes(x = end, colour = direction), size = 2.4) +
-    ggplot2::geom_text(
-      ggplot2::aes(x = (start + end) / 2, label = sprintf("%+.3f", contribution)),
-      colour = "white",
-      size = 3.1,
-      fontface = "bold"
-    ) +
-    ggplot2::annotate(
-      "text",
-      x = baseline,
-      y = length(df$feature) + 0.55,
-      label = sprintf("baseline = %.3f", baseline),
-      hjust = 0,
-      colour = .funcml_palette$context,
-      size = 3.2
-    ) +
-    ggplot2::annotate(
-      "text",
-      x = x$result$pred,
-      y = 0.45,
-      label = sprintf("prediction = %.3f", x$result$pred),
-      hjust = 1,
-      colour = .funcml_palette$context,
-      size = 3.2
-    ) +
-    ggplot2::labs(x = "Contribution path", y = NULL, title = "Breakdown profile") +
-    .funcml_direction_scale_colour(guide = "none") +
-    ggplot2::theme_bw()
-}
-
-#' @export
-print.funcml_breakdown <- function(x, ...) {
-  cat("<funcml_breakdown>\n")
-  print(x$result$path)
-  invisible(x)
-}
-
-#' @export
-summary.funcml_breakdown <- function(object, ...) {
-  print(object$result$path)
-  invisible(object$result$path)
-}
-
-#' @export
 plot.funcml_surrogate <- function(x, ...) {
   surrogate_pred <- if (!is.null(x$result$nodes)) as.numeric(x$result$nodes) else as.numeric(stats::fitted(x$result$model))
   target <- tryCatch(as.numeric(x$result$model$y), error = function(e) NULL)
@@ -1217,18 +1367,23 @@ plot.funcml_surrogate <- function(x, ...) {
     surrogate_df <- data.frame(index = seq_along(surrogate_pred), surrogate = surrogate_pred)
     return(
       ggplot2::ggplot(surrogate_df, ggplot2::aes(x = index, y = surrogate)) +
-        ggplot2::geom_line(color = .funcml_palette$context, linewidth = 0.55, alpha = 0.9) +
+        ggplot2::geom_line(colour = "black", linewidth = 0.55, alpha = 0.9) +
         ggplot2::labs(x = "Observation", y = "Surrogate prediction", title = "Global surrogate predictions") +
-        theme_funcml()
+        .publication_theme()
     )
   }
   surrogate_df <- data.frame(target = target, surrogate = surrogate_pred)
   ggplot2::ggplot(surrogate_df, ggplot2::aes(x = target, y = surrogate)) +
-    ggplot2::geom_abline(slope = 1, intercept = 0, colour = .funcml_palette$grid, linewidth = 0.6, linetype = "dashed") +
-    ggplot2::geom_point(colour = .funcml_palette$context, fill = .funcml_palette$accent_alt, alpha = 0.65, shape = 21, size = 2.2, stroke = 0.2) +
-    ggplot2::geom_smooth(method = "lm", se = FALSE, formula = y ~ x, colour = .funcml_palette$accent_alt, linewidth = 0.9) +
-    ggplot2::labs(x = "Original model prediction", y = "Surrogate prediction", title = sprintf("Global surrogate fidelity (R^2 = %.3f)", x$result$fidelity)) +
-    theme_funcml()
+    ggplot2::geom_abline(slope = 1, intercept = 0, colour = "grey65", linewidth = 0.5, linetype = "dashed") +
+    ggplot2::geom_point(colour = "black", alpha = 0.65, size = 2) +
+    ggplot2::geom_smooth(method = "lm", se = FALSE, formula = y ~ x, colour = "#3182bd", linewidth = 0.8) +
+    ggplot2::labs(
+      x = "Black-box prediction",
+      y = "Surrogate prediction",
+      title = "Global surrogate fidelity",
+      subtitle = sprintf("R^2 = %.3f", x$result$fidelity)
+    ) +
+    .publication_theme()
 }
 
 #' @export
@@ -1246,7 +1401,19 @@ summary.funcml_surrogate <- function(object, ...) {
 
 #' @export
 plot.funcml_interaction <- function(x, ...) {
-  plot_vi(x$result$results, "Interaction strength", "Feature interaction strength")
+  pairwise <- x$result$pairwise
+  pairwise$feature_x <- factor(pairwise$feature_x, levels = unique(pairwise$feature_x))
+  pairwise$feature_y <- factor(pairwise$feature_y, levels = rev(unique(pairwise$feature_y)))
+  ggplot2::ggplot(pairwise, ggplot2::aes(x = feature_x, y = feature_y, fill = interaction)) +
+    ggplot2::geom_tile(colour = "white") +
+    ggplot2::scale_fill_gradient(low = "white", high = "#08519c", name = "Interaction") +
+    ggplot2::labs(
+      x = "Feature",
+      y = "Feature",
+      title = if (is.null(x$result$anchor_feature)) "Feature interaction heatmap" else sprintf("Interaction heatmap for %s", x$result$anchor_feature)
+    ) +
+    .publication_theme() +
+    ggplot2::theme(panel.grid = ggplot2::element_blank())
 }
 
 #' @export
