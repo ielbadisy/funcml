@@ -4,5 +4,7 @@ utils::globalVariables(c(
   "plot_value", "direction", "start", "end", "x", "y", "observation",
   "Variable", "Importance", "Var2", "color", "from", "to", "label",
   "i", "S", ".target", ".weights", "feature.value", "interaction",
-  "surrogate", "index"
+  "surrogate", "index", "std_dev", "lower", "upper", "feature_label",
+  "feature_value_scaled", "abs_shap", "feature_x", "feature_y",
+  "raw_score", "config_label"
 ))
