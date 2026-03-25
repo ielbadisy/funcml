@@ -69,6 +69,24 @@ tune_obj <- tune(mpg ~ wt + hp, data = mtcars, model = "glm", grid = tune_grid, 
 tune_obj$best
 ```
 
+Nested CV is available through `outer_resampling`. The inner `resampling`
+argument still selects the best configuration, and the outer resampling loop
+provides an unbiased estimate of tuned workflow performance.
+
+```{r}
+nested_tune_obj <- tune(
+  mpg ~ wt + hp,
+  data = mtcars,
+  model = "glm",
+  grid = tune_grid,
+  resampling = cv(v = 3, seed = 1),
+  outer_resampling = cv(v = 4, seed = 2),
+  metric = "rmse",
+  seed = 1
+)
+nested_tune_obj$nested$summary
+```
+
 ```{r, eval = FALSE}
 interaction_obj <- interpret(fit_obj, mtcars, method = "interaction")
 plot(interaction_obj)
