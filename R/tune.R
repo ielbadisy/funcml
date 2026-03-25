@@ -64,14 +64,20 @@ summary.funcml_tune <- function(object, ...) {
 #' @export
 plot.funcml_tune <- function(x, ...) {
   df <- x$results
-  df$config <- seq_len(nrow(df))
-  best_config <- which.max(if (x$direction == "max") df$mean else -df$mean)
-  ggplot2::ggplot(df, ggplot2::aes(x = config, y = mean)) +
-    ggplot2::geom_errorbar(ggplot2::aes(ymin = mean - sd, ymax = mean + sd), width = 0.18, alpha = 0.45, colour = .funcml_palette$context) +
-    ggplot2::geom_line(color = .funcml_palette$accent_alt, linewidth = 0.8) +
-    ggplot2::geom_point(color = .funcml_palette$accent_alt, size = 2.2) +
-    ggplot2::geom_point(data = df[best_config, , drop = FALSE], color = .funcml_palette$accent, size = 3.2) +
-    ggplot2::labs(x = "Config", y = sprintf("%s (%s)", x$metric, x$direction),
-                  title = "Grid search results") +
-    theme_funcml()
+  df$config_label <- .format_tune_config(df)
+  ord <- if (x$direction == "max") order(df$mean, decreasing = TRUE) else order(df$mean, decreasing = FALSE)
+  df <- df[ord, , drop = FALSE]
+  df$config_label <- factor(df$config_label, levels = rev(df$config_label))
+  best_label <- .format_tune_config(x$best)[1]
+  ggplot2::ggplot(df, ggplot2::aes(x = mean, y = config_label)) +
+    ggplot2::geom_segment(ggplot2::aes(x = mean - sd, xend = mean + sd, yend = config_label), linewidth = 0.35, colour = "grey45") +
+    ggplot2::geom_point(size = 2.2, colour = "black") +
+    ggplot2::geom_point(data = df[df$config_label == best_label, , drop = FALSE], size = 2.8, colour = "#2b8cbe") +
+    ggplot2::labs(
+      x = sprintf("%s (%s)", toupper(x$metric), x$direction),
+      y = NULL,
+      title = "Grid search results"
+    ) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
 }
