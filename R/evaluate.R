@@ -120,9 +120,16 @@ summary.funcml_eval <- function(object, ...) {
 
 #' @export
 plot.funcml_eval <- function(x, ...) {
-  ggplot2::ggplot(x$folds, ggplot2::aes(x = factor(metric), y = value)) +
-    ggplot2::geom_boxplot(fill = .funcml_palette$accent_alt, alpha = 0.75, outlier.alpha = 0.5) +
-    ggplot2::geom_jitter(width = 0.08, alpha = 0.35, colour = .funcml_palette$ink, size = 1.2) +
-    ggplot2::labs(x = "Metric", y = "Score", title = "Cross-validation performance") +
-    theme_funcml()
+  df <- x$folds
+  ggplot2::ggplot(df, ggplot2::aes(x = value, y = stats::reorder(metric, value, FUN = median))) +
+    ggplot2::geom_boxplot(fill = "white", colour = "grey25", outlier.alpha = 0.3, width = 0.65) +
+    ggplot2::geom_point(
+      position = ggplot2::position_jitter(height = 0.12, width = 0),
+      alpha = 0.3,
+      size = 1.2,
+      colour = "grey30"
+    ) +
+    ggplot2::labs(x = "Cross-validated metric value", y = NULL, title = "Cross-validation performance") +
+    ggplot2::theme_bw() +
+    ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
 }
