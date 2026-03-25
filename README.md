@@ -900,25 +900,25 @@ local_obj <- interpret(
 
 local_obj
 #> <funcml_iml_local_model>
-#>   feature feature.value        beta      effect
-#> 1      wt            wt -3.72838540 -3.72838540
-#> 2    drat          drat  1.75357748  1.75357748
-#> 3    qsec          qsec -0.04752917 -0.04752917
+#>   feature feature.value observed_value encoded_value        beta     effect
+#> 1      wt     wt = 2.62           2.62          2.62 -3.72838540 -9.7683698
+#> 2    drat    drat = 3.9            3.9          3.90  1.75357748  6.8389522
+#> 3    qsec  qsec = 16.46          16.46         16.46 -0.04752917 -0.7823302
 summary(local_obj)
 #> $results
-#>   feature feature.value        beta      effect
-#> 1      wt            wt -3.72838540 -3.72838540
-#> 2    drat          drat  1.75357748  1.75357748
-#> 3    qsec          qsec -0.04752917 -0.04752917
+#>   feature feature.value observed_value encoded_value        beta     effect
+#> 1      wt     wt = 2.62           2.62          2.62 -3.72838540 -9.7683698
+#> 2    drat    drat = 3.9            3.9          3.90  1.75357748  6.8389522
+#> 3    qsec  qsec = 16.46          16.46         16.46 -0.04752917 -0.7823302
 #> 
 #> $fidelity
 #> [1] 0.8729239
 #> 
 #> $weights
-#>   feature feature.value        beta      effect
-#> 1      wt            wt -3.72838540 -3.72838540
-#> 2    drat          drat  1.75357748  1.75357748
-#> 3    qsec          qsec -0.04752917 -0.04752917
+#>   feature feature.value observed_value encoded_value        beta     effect
+#> 1      wt     wt = 2.62           2.62          2.62 -3.72838540 -9.7683698
+#> 2    drat    drat = 3.9            3.9          3.90  1.75357748  6.8389522
+#> 3    qsec  qsec = 16.46          16.46         16.46 -0.04752917 -0.7823302
 #> 
 #> $sample_weights
 #>  [1] 0.8910268 0.7291470 0.8886166 0.8583971 0.6581651 0.5131897 0.6090240
@@ -933,11 +933,11 @@ summary(local_obj)
 #> 
 #> Coefficients:
 #> (Intercept)           wt           hp         qsec         drat  
-#>    23.94930     -3.72839     -0.02542     -0.04753      1.75358  
+#>    30.45753     -3.72839     -0.02542     -0.04753      1.75358  
 #> 
 #> 
 #> $local_prediction
-#> [1] 25.31013
+#> [1] 23.9493
 ```
 
 ``` r
@@ -968,17 +968,27 @@ shap_obj <- interpret(
 
 shap_obj
 #> <funcml_shap>
-#>   feature        shap   phi_var baseline prediction feature_value
-#> 1      wt  1.10991186 2.5953940 18.96437   21.21203          2.62
-#> 2      hp  1.99376491 6.9207786 18.96437   21.21203           110
-#> 3    qsec -0.02074833 0.1641907 18.96437   21.21203         16.46
-#> 4    drat  0.22664289 0.3478303 18.96437   21.21203           3.9
+#>      feature        shap   phi_var baseline prediction feature_value
+#> wt        wt  1.10991186 2.5953940 17.90246   21.21203          2.62
+#> hp        hp  1.99376491 6.9207786 17.90246   21.21203           110
+#> qsec    qsec -0.02074833 0.1641907 17.90246   21.21203         16.46
+#> drat    drat  0.22664289 0.3478303 17.90246   21.21203           3.9
+#>      feature_label
+#> wt       wt = 2.62
+#> hp        hp = 110
+#> qsec  qsec = 16.46
+#> drat    drat = 3.9
 summary(shap_obj)
-#>   feature        shap   phi_var baseline prediction feature_value
-#> 1      wt  1.10991186 2.5953940 18.96437   21.21203          2.62
-#> 2      hp  1.99376491 6.9207786 18.96437   21.21203           110
-#> 3    qsec -0.02074833 0.1641907 18.96437   21.21203         16.46
-#> 4    drat  0.22664289 0.3478303 18.96437   21.21203           3.9
+#>      feature        shap   phi_var baseline prediction feature_value
+#> wt        wt  1.10991186 2.5953940 17.90246   21.21203          2.62
+#> hp        hp  1.99376491 6.9207786 17.90246   21.21203           110
+#> qsec    qsec -0.02074833 0.1641907 17.90246   21.21203         16.46
+#> drat    drat  0.22664289 0.3478303 17.90246   21.21203           3.9
+#>      feature_label
+#> wt       wt = 2.62
+#> hp        hp = 110
+#> qsec  qsec = 16.46
+#> drat    drat = 3.9
 ```
 
 ``` r
@@ -1007,17 +1017,17 @@ breakdown_obj <- interpret(
 
 breakdown_obj
 #> <funcml_breakdown>
-#>   step feature contribution
-#> 1    1      hp    1.2123036
-#> 2    2      wt   -2.0166749
-#> 3    3    drat    0.9082389
-#> 4    4    qsec   -0.4628849
+#>   step feature feature_value feature_label contribution
+#> 1    1      hp           110      hp = 110   1.21230359
+#> 2    2    qsec         16.46  qsec = 16.46  -0.38338003
+#> 3    3      wt          2.62     wt = 2.62   0.10471258
+#> 4    4    drat           3.9    drat = 3.9   0.02301197
 summary(breakdown_obj)
-#>   step feature contribution
-#> 1    1      hp    1.2123036
-#> 2    2      wt   -2.0166749
-#> 3    3    drat    0.9082389
-#> 4    4    qsec   -0.4628849
+#>   step feature feature_value feature_label contribution
+#> 1    1      hp           110      hp = 110   1.21230359
+#> 2    2    qsec         16.46  qsec = 16.46  -0.38338003
+#> 3    3      wt          2.62     wt = 2.62   0.10471258
+#> 4    4    drat           3.9    drat = 3.9   0.02301197
 ```
 
 ``` r
