@@ -184,15 +184,16 @@ summary.funcml_compare <- function(object, ...) {
 #' @export
 plot.funcml_compare <- function(x, ...) {
   df <- x$results
-  ggplot2::ggplot(df, ggplot2::aes(x = stats::reorder(model, mean), y = mean)) +
-    ggplot2::geom_errorbar(ggplot2::aes(ymin = mean - sd, ymax = mean + sd), width = 0.18, alpha = 0.45, colour = .funcml_palette$context) +
-    ggplot2::geom_point(color = .funcml_palette$accent_alt, size = 2.6) +
+  ggplot2::ggplot(df, ggplot2::aes(x = mean, y = stats::reorder(model, mean))) +
+    ggplot2::geom_segment(ggplot2::aes(x = mean - sd, xend = mean + sd, yend = stats::reorder(model, mean)), linewidth = 0.35, colour = "grey45") +
+    ggplot2::geom_point(size = 2.4, colour = "black") +
     ggplot2::coord_flip() +
     ggplot2::facet_wrap(~metric, scales = "free_x") +
     ggplot2::labs(
-      x = "Model",
-      y = "Mean score",
+      x = "Mean cross-validated metric",
+      y = NULL,
       title = if (x$tuned) "Tuned learner comparison" else "Learner comparison"
     ) +
-    theme_funcml()
+    ggplot2::theme_bw() +
+    ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
 }
