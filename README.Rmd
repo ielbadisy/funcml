@@ -239,6 +239,27 @@ random_tune_obj <- tune(
 random_tune_obj$best
 ```
 
+Nested CV is available by supplying an outer resampling object. The inner
+`resampling` argument still drives model selection, while `outer_resampling`
+provides an unbiased performance estimate for the tuned workflow.
+
+```{r tune-nested}
+nested_tune_obj <- tune(
+  demo_data,
+  mpg ~ wt + hp + qsec + drat,
+  model = "xgboost",
+  grid = tune_grid,
+  resampling = cv(v = 3, seed = 42),
+  outer_resampling = cv(v = 4, seed = 99),
+  metric = "rmse",
+  subsample = 1,
+  colsample_bytree = 1,
+  seed = 42
+)
+
+nested_tune_obj$nested$summary
+```
+
 ```{r tune-plot, fig.cap="Grid-search trace for xgboost."}
 plot(tune_obj)
 ```
