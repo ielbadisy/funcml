@@ -42,3 +42,25 @@ test_that("shap plot returns ggplot objects", {
   expect_s3_class(plot(sh), "ggplot")
   expect_s3_class(plot(sh, kind = "waterfall"), "ggplot")
 })
+
+test_that("plot labels follow method-specific semantics", {
+  set.seed(10)
+  dat <- data.frame(y = rnorm(40), x = rnorm(40), z = rnorm(40))
+  dat$y <- 1.8 * dat$x - 0.7 * dat$z + rnorm(40, sd = 0.2)
+  fit_obj <- fit(y ~ x + z, data = dat, model = "glm")
+
+  perm <- interpret(fit_obj, dat, method = "permute", metric = "rmse", nsim = 5, seed = 1)
+  pdp_obj <- interpret(fit_obj, dat, method = "pdp", features = "x", nsamples = 20)
+  ale_obj <- interpret(fit_obj, dat, method = "ale", features = "x", nsamples = 20)
+  sh_obj <- interpret(fit_obj, dat, method = "shap", newdata = dat[1:10, , drop = FALSE], nsim = 10, nsamples = 20, seed = 2)
+
+  perm_plot <- plot(perm)
+  pdp_plot <- plot(pdp_obj)
+  ale_plot <- plot(ale_obj)
+  sh_plot <- plot(sh_obj, kind = "summary")
+
+  expect_match(perm_plot$labels$x, "Change in RMSE after permutation")
+  expect_equal(pdp_plot$labels$y, "Partial dependence")
+  expect_match(ale_plot$labels$y, "ALE on response scale")
+  expect_equal(sh_plot$labels$x, "SHAP value")
+})
