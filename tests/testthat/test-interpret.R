@@ -76,7 +76,7 @@ test_that("ICE handles vectorized feature grids for numeric predictors", {
   expect_true(all(c("id", "feature", "value", "yhat") %in% names(ice$result$curves)))
 })
 
-test_that("breakdown and shap paths sum back to the prediction", {
+test_that("shap paths sum back to the prediction", {
   set.seed(31)
   dat <- data.frame(y = rnorm(50), x = rnorm(50), z = rnorm(50))
   dat$y <- 1.8 * dat$x - 0.9 * dat$z + rnorm(50, sd = 0.2)
@@ -91,15 +91,34 @@ test_that("breakdown and shap paths sum back to the prediction", {
     nsamples = 30,
     seed = 1
   )
-  br <- interpret(
-    fit_obj,
-    dat,
-    method = "breakdown",
-    newdata = dat[1, , drop = FALSE],
-    nsamples = 30
-  )
 
   expect_equal(sh$result$baseline[1] + sum(sh$result$shap), sh$result$prediction[1], tolerance = 1e-8)
-  expect_equal(br$result$baseline + sum(br$result$path$contribution), br$result$pred, tolerance = 1e-8)
-  expect_true(all(grepl(" = ", br$result$path$feature_label, fixed = TRUE)))
+})
+
+test_that("shap supports multiple observations for summary-style output", {
+  set.seed(41)
+  dat <- data.frame(y = rnorm(30), x = rnorm(30), z = rnorm(30))
+  dat$y <- 1.5 * dat$x - 0.6 * dat$z + rnorm(30, sd = 0.2)
+  fit_obj <- fit(y ~ x + z, data = dat, model = "glm")
+
+  sh <- interpret(
+    fit_obj,
+    dat,
+    method = "shap",
+    newdata = dat[1:5, , drop = FALSE],
+    nsim = 12,
+    nsamples = 20,
+    seed = 1
+  )
+
+  expect_equal(sort(unique(sh$result$observation)), 1:5)
+  expect_true(all(c("observation", "feature", "shap", "feature_value", "feature_label") %in% names(sh$result)))
+})
+
+test_that("breakdown is no longer an available interpretability method", {
+  fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
+  expect_error(
+    interpret(fit_obj, mtcars, method = "breakdown"),
+    "arg"
+  )
 })
