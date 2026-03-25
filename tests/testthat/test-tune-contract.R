@@ -26,6 +26,31 @@ test_that("tune supports random search with an evaluation budget", {
   expect_s3_class(plot(tr), "ggplot")
 })
 
+test_that("tune reports nested CV performance from an outer resampling loop", {
+  grid <- expand.grid(
+    intercept = c(TRUE, FALSE),
+    stringsAsFactors = FALSE
+  )
+
+  tr <- tune(
+    mtcars,
+    mpg ~ wt + hp,
+    model = "glm",
+    grid = grid,
+    resampling = cv(v = 3, seed = 1),
+    outer_resampling = cv(v = 4, seed = 2),
+    metric = "rmse",
+    seed = 3
+  )
+
+  expect_s3_class(tr, "funcml_tune")
+  expect_true(!is.null(tr$nested))
+  expect_equal(nrow(tr$nested$folds), 4)
+  expect_true(all(c("repeat_id", "fold", "metric", "value", "selected_config") %in% names(tr$nested$folds)))
+  expect_equal(tr$nested$summary$metric, "rmse")
+  expect_true(all(c("mean", "sd", "conf_low", "conf_high") %in% names(tr$nested$summary)))
+})
+
 test_that("predict errors clearly for missing required columns", {
   fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
   expect_error(
