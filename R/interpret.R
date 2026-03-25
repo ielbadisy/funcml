@@ -137,6 +137,20 @@
   prob[, selected_class]
 }
 
+.format_feature_value <- function(value) {
+  if (length(value) == 0L || is.null(value) || is.na(value)) {
+    return("NA")
+  }
+  if (is.numeric(value)) {
+    return(format(signif(as.numeric(value), 4), trim = TRUE, scientific = FALSE))
+  }
+  as.character(value)
+}
+
+.feature_display_label <- function(feature, value) {
+  sprintf("%s = %s", feature, .format_feature_value(value))
+}
+
 .recode_local_features <- function(dat, x_interest) {
   out <- vector("list", length(dat))
   names(out) <- names(dat)
@@ -145,9 +159,9 @@
     target <- x_interest[[j]]
     if (is.factor(col) || is.character(col) || is.logical(col) || is.ordered(col)) {
       out[[j]] <- as.numeric(as.character(col) == as.character(target))
-      names(out)[j] <- sprintf("%s=%s", names(dat)[j], as.character(target))
+      names(out)[j] <- sprintf("%s=%s", names(dat)[j], .format_feature_value(target))
     } else {
-      out[[j]] <- as.numeric(col) - as.numeric(target)
+      out[[j]] <- as.numeric(col)
     }
   }
   as.data.frame(out, check.names = FALSE)
@@ -634,6 +648,7 @@ interpret_local_model <- function(fit, data, features, type, class_level, pos_le
   X <- data_use[, features, drop = FALSE]
   yhat <- .predict_numeric_target(fit, data_use, type = type, class_level = class_level, pos_level = pos_level)
   X_recode <- .recode_local_features(X, x_interest)
+  x_interest_recode <- .recode_local_features(x_interest[, features, drop = FALSE], x_interest)
   sample_weights <- .local_similarity_weights(X, x_interest, features, power = gower_power)
   df <- data.frame(.target = yhat, .weights = sample_weights, X_recode, check.names = FALSE)
   model <- stats::lm(.local_formula(colnames(X_recode)), data = df, weights = .weights)
@@ -645,18 +660,30 @@ interpret_local_model <- function(fit, data, features, type, class_level, pos_le
     keep_idx <- order(abs(beta[feature_names]), decreasing = TRUE)[seq_len(k)]
     feature_names <- feature_names[keep_idx]
   }
+  encoded_values <- unname(as.numeric(x_interest_recode[1, feature_names, drop = TRUE]))
+  raw_feature_names <- sub("=.*$", "", feature_names)
+  observed_values <- vapply(raw_feature_names, function(feat) x_interest[[feat]][1], FUN.VALUE = x_interest[[1]][1])
+  display_values <- vapply(raw_feature_names, function(feat) .format_feature_value(x_interest[[feat]][1]), character(1))
   effects <- data.frame(
-    feature = sub("=.*$", "", feature_names),
-    feature.value = feature_names,
+    feature = raw_feature_names,
+    feature.value = vapply(seq_along(feature_names), function(i) {
+      if (grepl("=", feature_names[i], fixed = TRUE)) {
+        feature_names[i]
+      } else {
+        .feature_display_label(raw_feature_names[i], observed_values[[i]])
+      }
+    }, character(1)),
+    observed_value = display_values,
+    encoded_value = encoded_values,
     beta = unname(beta[feature_names]),
-    effect = unname(beta[feature_names]),
+    effect = unname(beta[feature_names]) * encoded_values,
     stringsAsFactors = FALSE
   )
-  effects <- effects[effects$beta != 0, , drop = FALSE]
+  effects <- effects[effects$effect != 0, , drop = FALSE]
   effects <- effects[order(abs(effects$effect), decreasing = TRUE), , drop = FALSE]
   rownames(effects) <- NULL
 
-  local_pred <- as.numeric(stats::predict(model, newdata = data.frame(X_recode[1, , drop = FALSE]))[1])
+  local_pred <- as.numeric(stats::predict(model, newdata = data.frame(x_interest_recode, check.names = FALSE))[1])
   fitted_local <- as.numeric(stats::predict(model, newdata = X_recode))
   .interpret_result(
     payload = list(
@@ -693,15 +720,16 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
   pred_one <- function(df) {
     .predict_numeric_target(fit, df, type = type, class_level = class_level, pos_level = pos_level)
   }
-  baseline_value <- baseline %||% mean(pred_one(background))
   pred_interest <- pred_one(x_interest)[1]
   contrib <- matrix(0, nrow = nsim, ncol = length(features), dimnames = list(NULL, features))
+  start_preds <- numeric(nsim)
 
   for (m in seq_len(nsim)) {
     ref_row <- background[sample(seq_len(nrow(background)), 1L), , drop = FALSE]
     order_idx <- sample(features)
     current <- ref_row
     prev_pred <- pred_one(current)[1]
+    start_preds[m] <- prev_pred
     for (feat in order_idx) {
       current[[feat]] <- x_interest[[feat]]
       next_pred <- pred_one(current)[1]
@@ -712,6 +740,7 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
 
   shap_vals <- colMeans(contrib)
   shap_var <- if (nsim > 1) apply(contrib, 2, stats::var) else rep(NA_real_, length(features))
+  baseline_value <- baseline %||% mean(start_preds)
   result <- data.frame(
     feature = features,
     shap = as.numeric(shap_vals[features]),
@@ -719,6 +748,7 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
     baseline = baseline_value,
     prediction = pred_interest,
     feature_value = unlist(lapply(x_interest[1, features, drop = FALSE], as.character), use.names = FALSE),
+    feature_label = vapply(features, function(feat) .feature_display_label(feat, x_interest[[feat]][1]), character(1)),
     stringsAsFactors = FALSE
   )
   .interpret_result(
@@ -812,10 +842,11 @@ interpret_breakdown <- function(fit, data, features, type, class_level, pos_leve
 
   remaining <- features
   current <- baseline
+  current_bg <- bg
   path <- list()
   while (length(remaining)) {
     deltas <- vapply(remaining, function(feat) {
-      hybrid <- bg
+      hybrid <- current_bg
       hybrid[[feat]] <- x0[[feat]]
       pred <- predict(fit, hybrid, type = type, class_level = class_level, pos_level = pos_level)
       if (fit$task == "classification" && type == "prob") {
@@ -830,9 +861,12 @@ interpret_breakdown <- function(fit, data, features, type, class_level, pos_leve
     path[[length(path) + 1L]] <- data.frame(
       step = length(path) + 1L,
       feature = unname(best),
+      feature_value = .format_feature_value(x0[[best]][1]),
+      feature_label = .feature_display_label(best, x0[[best]][1]),
       contribution = best_delta,
       stringsAsFactors = FALSE
     )
+    current_bg[[best]] <- x0[[best]]
     remaining <- setdiff(remaining, best)
   }
 
@@ -1013,19 +1047,31 @@ summary.funcml_local <- function(object, ...) {
 plot.funcml_iml_local_model <- function(x, ...) {
   df <- x$result$results
   df$feature <- factor(df$feature.value, levels = rev(df$feature.value))
+  df$label <- sprintf("%s\ncontrib=%+.3f", df$observed_value, df$effect)
   ggplot2::ggplot(df, ggplot2::aes(x = effect, y = feature, fill = effect >= 0)) +
     ggplot2::geom_col(width = 0.72, show.legend = FALSE) +
+    ggplot2::geom_text(
+      ggplot2::aes(
+        x = effect / 2,
+        label = label
+      ),
+      colour = "white",
+      fontface = "bold",
+      lineheight = 0.95,
+      size = 3.1
+    ) +
     ggplot2::scale_fill_manual(values = c(`TRUE` = "#f7d13d", `FALSE` = "#a52c60")) +
-    ggplot2::theme_bw() +
+    ggplot2::expand_limits(x = c(min(df$effect, 0) * 1.25, max(df$effect, 0) * 1.25)) +
     ggplot2::labs(
-      x = "Effect",
+      x = "Local contribution",
       y = NULL,
       title = sprintf(
         "Local explanation\nmodel=%.3f, local=%.3f",
         x$diagnostics$prediction %||% NA_real_,
         x$result$local_prediction %||% NA_real_
       )
-    )
+    ) +
+    ggplot2::theme_bw()
 }
 
 #' @export
@@ -1056,15 +1102,40 @@ plot.funcml_shap <- function(x, kind = c("waterfall", "importance", "bar", "bees
     df$start <- c(base, base + cumsum(utils::head(df$shap, -1L)))
     df$end <- base + cumsum(df$shap)
     df$direction <- .funcml_direction(df$shap)
-    df$feature <- factor(df$feature, levels = rev(df$feature))
+    df$feature <- factor(df$feature_label, levels = rev(df$feature_label))
     return(
       ggplot2::ggplot(df, ggplot2::aes(y = feature)) +
         ggplot2::geom_vline(xintercept = base, colour = .funcml_palette$grid, linewidth = 0.6, linetype = "dashed") +
+        ggplot2::geom_vline(xintercept = df$prediction[1], colour = .funcml_palette$context, linewidth = 0.6, linetype = "dotted") +
         ggplot2::geom_segment(ggplot2::aes(x = start, xend = end, yend = feature, colour = direction), linewidth = 6, lineend = "round") +
         ggplot2::geom_point(ggplot2::aes(x = end, colour = direction), size = 2.4) +
+        ggplot2::geom_text(
+          ggplot2::aes(x = (start + end) / 2, label = sprintf("%+.3f", shap)),
+          colour = "white",
+          size = 3.1,
+          fontface = "bold"
+        ) +
+        ggplot2::annotate(
+          "text",
+          x = base,
+          y = length(df$feature) + 0.55,
+          label = sprintf("baseline = %.3f", base),
+          hjust = 0,
+          colour = .funcml_palette$context,
+          size = 3.2
+        ) +
+        ggplot2::annotate(
+          "text",
+          x = df$prediction[1],
+          y = 0.45,
+          label = sprintf("prediction = %.3f", df$prediction[1]),
+          hjust = 1,
+          colour = .funcml_palette$context,
+          size = 3.2
+        ) +
         ggplot2::labs(x = "Contribution path", y = NULL, title = "SHAP waterfall") +
         .funcml_direction_scale_colour(guide = "none") +
-        theme_funcml()
+        ggplot2::theme_bw()
     )
   }
   plot_vi(df, "SHAP", "Approximate Shapley values")
@@ -1090,14 +1161,39 @@ plot.funcml_breakdown <- function(x, ...) {
   df$start <- c(baseline, baseline + cumsum(utils::head(df$contribution, -1L)))
   df$end <- baseline + cumsum(df$contribution)
   df$direction <- .funcml_direction(df$contribution)
-  df$feature <- factor(df$feature, levels = rev(df$feature))
+  df$feature <- factor(df$feature_label, levels = rev(df$feature_label))
   ggplot2::ggplot(df, ggplot2::aes(y = feature)) +
     ggplot2::geom_vline(xintercept = baseline, colour = .funcml_palette$grid, linewidth = 0.6, linetype = "dashed") +
+    ggplot2::geom_vline(xintercept = x$result$pred, colour = .funcml_palette$context, linewidth = 0.6, linetype = "dotted") +
     ggplot2::geom_segment(ggplot2::aes(x = start, xend = end, yend = feature, colour = direction), linewidth = 6, lineend = "round") +
     ggplot2::geom_point(ggplot2::aes(x = end, colour = direction), size = 2.4) +
+    ggplot2::geom_text(
+      ggplot2::aes(x = (start + end) / 2, label = sprintf("%+.3f", contribution)),
+      colour = "white",
+      size = 3.1,
+      fontface = "bold"
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = baseline,
+      y = length(df$feature) + 0.55,
+      label = sprintf("baseline = %.3f", baseline),
+      hjust = 0,
+      colour = .funcml_palette$context,
+      size = 3.2
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = x$result$pred,
+      y = 0.45,
+      label = sprintf("prediction = %.3f", x$result$pred),
+      hjust = 1,
+      colour = .funcml_palette$context,
+      size = 3.2
+    ) +
     ggplot2::labs(x = "Contribution path", y = NULL, title = "Breakdown profile") +
     .funcml_direction_scale_colour(guide = "none") +
-    theme_funcml()
+    ggplot2::theme_bw()
 }
 
 #' @export

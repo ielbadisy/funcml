@@ -54,7 +54,10 @@ test_that("classification interpretability supports subsetted features", {
 
   expect_true(all(c("x1", "x2") %in% vi$result$scores$feature))
   expect_gt(nrow(loc$result$results), 0)
+  expect_true(all(grepl(" = ", loc$result$results$feature.value, fixed = TRUE)))
+  expect_true(all(c("observed_value", "encoded_value", "beta", "effect") %in% names(loc$result$results)))
   expect_equal(sort(sh$result$feature), c("x1", "x2"))
+  expect_true(all(grepl(" = ", sh$result$feature_label, fixed = TRUE)))
 })
 
 test_that("ICE handles vectorized feature grids for numeric predictors", {
@@ -71,4 +74,32 @@ test_that("ICE handles vectorized feature grids for numeric predictors", {
   expect_s3_class(ice, "funcml_ice")
   expect_gt(nrow(ice$result$curves), 0)
   expect_true(all(c("id", "feature", "value", "yhat") %in% names(ice$result$curves)))
+})
+
+test_that("breakdown and shap paths sum back to the prediction", {
+  set.seed(31)
+  dat <- data.frame(y = rnorm(50), x = rnorm(50), z = rnorm(50))
+  dat$y <- 1.8 * dat$x - 0.9 * dat$z + rnorm(50, sd = 0.2)
+  fit_obj <- fit(y ~ x + z, data = dat, model = "glm")
+
+  sh <- interpret(
+    fit_obj,
+    dat,
+    method = "shap",
+    newdata = dat[1, , drop = FALSE],
+    nsim = 40,
+    nsamples = 30,
+    seed = 1
+  )
+  br <- interpret(
+    fit_obj,
+    dat,
+    method = "breakdown",
+    newdata = dat[1, , drop = FALSE],
+    nsamples = 30
+  )
+
+  expect_equal(sh$result$baseline[1] + sum(sh$result$shap), sh$result$prediction[1], tolerance = 1e-8)
+  expect_equal(br$result$baseline + sum(br$result$path$contribution), br$result$pred, tolerance = 1e-8)
+  expect_true(all(grepl(" = ", br$result$path$feature_label, fixed = TRUE)))
 })
