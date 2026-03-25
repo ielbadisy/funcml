@@ -1,5 +1,11 @@
 library(funcml)
 
+skip_if_not_installed <- function(pkg) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    skip(paste("Package", pkg, "not installed"))
+  }
+}
+
 test_that("lime alias returns a ggplot local explanation", {
   set.seed(5)
   dat <- data.frame(y = rnorm(30), x = rnorm(30), z = rnorm(30))
@@ -63,4 +69,42 @@ test_that("plot labels follow method-specific semantics", {
   expect_equal(pdp_plot$labels$y, "Partial dependence")
   expect_match(ale_plot$labels$y, "ALE on response scale")
   expect_equal(sh_plot$labels$x, "SHAP value")
+})
+
+test_that("shap supports dependence, 2d dependence, force, and interaction plots", {
+  skip_if_not_installed("shapviz")
+
+  set.seed(12)
+  dat <- data.frame(y = rnorm(40), x = rnorm(40), z = rnorm(40))
+  dat$y <- 1.5 * dat$x - 0.8 * dat$z + rnorm(40, sd = 0.2)
+  fit_obj <- fit(y ~ x + z, data = dat, model = "glm")
+
+  sh_multi <- interpret(
+    fit_obj,
+    dat,
+    method = "shap",
+    newdata = dat[1:5, , drop = FALSE],
+    nsim = 10,
+    nsamples = 20,
+    seed = 3
+  )
+  sh_one <- interpret(
+    fit_obj,
+    dat,
+    method = "shap",
+    newdata = dat[1, , drop = FALSE],
+    nsim = 10,
+    nsamples = 20,
+    seed = 4
+  )
+
+  p_dep <- plot(sh_multi, kind = "dependence", v = "x")
+  p_dep2d <- plot(sh_multi, kind = "dependence2d", feature_x = "x", feature_y = "z")
+  p_force <- plot(sh_one, kind = "force")
+  p_inter <- plot(sh_multi, kind = "interaction", interaction_kind = "bar", nsim = 6)
+
+  expect_s3_class(p_dep, "ggplot")
+  expect_s3_class(p_dep2d, "ggplot")
+  expect_s3_class(p_force, "ggplot")
+  expect_s3_class(p_inter, "ggplot")
 })
