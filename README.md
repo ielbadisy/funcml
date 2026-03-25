@@ -39,10 +39,9 @@ in exchange for a more compact, explicit workflow.
 - The package favors functional composition and clear inputs over
   implicit workflow objects that mutate or learn preprocessing steps
   inside training.
-- Cross-validation is the primary resampling strategy because it is the
-  default scientific baseline for many supervised learning problems.
-  `funcml` focuses on that common case rather than trying to cover every
-  specialized resampling design.
+- Cross-validation is still the default scientific baseline, but the
+  package now also supports holdout splits, grouped CV, and time-aware
+  rolling evaluation through the same resampling interface.
 - This is a tradeoff, not a universal claim. Users who need richer
   preprocessing orchestration, broader resampling strategies, or larger
   ML ecosystems should use more complete frameworks.
@@ -182,15 +181,45 @@ eval_obj <- evaluate(
 
 eval_obj
 #> <funcml_eval> model: xgboost | task: regression
-#>   metric      mean        sd
-#> 1    mae 2.6851715 1.1364892
-#> 2   rmse 3.3212659 1.3516883
-#> 3    rsq 0.4888104 0.6548592
+#>   metric      mean        sd n std_error conf_level    conf_low conf_high
+#> 1   rmse 3.3212659 1.3516883 8 0.4778940       0.95  2.19122616  4.451306
+#> 2    mae 2.6851715 1.1364892 8 0.4018096       0.95  1.73504268  3.635300
+#> 3    rsq 0.4888104 0.6548592 8 0.2315277       0.95 -0.05866561  1.036286
 summary(eval_obj)
-#>   metric      mean        sd
-#> 1    mae 2.6851715 1.1364892
-#> 2   rmse 3.3212659 1.3516883
-#> 3    rsq 0.4888104 0.6548592
+#>   metric      mean        sd n std_error conf_level    conf_low conf_high
+#> 1   rmse 3.3212659 1.3516883 8 0.4778940       0.95  2.19122616  4.451306
+#> 2    mae 2.6851715 1.1364892 8 0.4018096       0.95  1.73504268  3.635300
+#> 3    rsq 0.4888104 0.6548592 8 0.2315277       0.95 -0.05866561  1.036286
+```
+
+The summary now includes fold-level standard errors and confidence
+intervals.
+
+``` r
+holdout_obj <- evaluate(
+  demo_data,
+  mpg ~ wt + hp + qsec + drat,
+  model = "glm",
+  resampling = holdout(prop = 0.8, seed = 42)
+)
+
+time_obj <- evaluate(
+  transform(demo_data, order_id = seq_len(nrow(demo_data))),
+  mpg ~ wt + hp + qsec + drat,
+  model = "glm",
+  resampling = time_cv(initial = 16, assess = 4, time = "order_id")
+)
+
+holdout_obj$summary
+#>   metric      mean sd n std_error conf_level conf_low conf_high
+#> 1   rmse 2.9758151 NA 1        NA       0.95       NA        NA
+#> 2    mae 2.4628044 NA 1        NA       0.95       NA        NA
+#> 3    rsq 0.8071063 NA 1        NA       0.95       NA        NA
+time_obj$summary
+#>   metric      mean        sd n  std_error conf_level   conf_low conf_high
+#> 1   rmse 3.4035641 1.8393880 4 0.91969399       0.95 0.47668740 6.3304409
+#> 2    mae 3.0176533 1.8598108 4 0.92990538       0.95 0.05827939 5.9770272
+#> 3    rsq 0.3999926 0.1253424 4 0.06267121       0.95 0.20054484 0.5994404
 ```
 
 ``` r
@@ -227,20 +256,77 @@ tune_obj <- tune(
 )
 
 tune_obj
-#> <funcml_tune> metric=rmse direction=min
+#> <funcml_tune> metric=rmse direction=min search=grid
 #> Best:
-#>   max_depth eta nrounds     mean       sd
-#> 7         2 0.1      40 3.219042 1.564248
+#>   max_depth eta nrounds     mean       sd n std_error conf_level  conf_low
+#> 7         2 0.1      40 3.219042 1.564248 4 0.7821242       0.95 0.7299739
+#>   conf_high
+#> 7   5.70811
 summary(tune_obj)
-#>   max_depth  eta nrounds     mean        sd
-#> 1         2 0.05      20 3.750195 1.0025482
-#> 2         3 0.05      20 3.730291 1.0077308
-#> 3         2 0.10      20 3.443088 0.9637624
-#> 4         3 0.10      20 3.417483 1.0506080
-#> 5         2 0.05      40 3.414422 0.9530057
-#> 6         3 0.05      40 3.426919 1.0539511
-#> 7         2 0.10      40 3.219042 1.5642484
-#> 8         3 0.10      40 3.300439 1.7181246
+#>   max_depth  eta nrounds     mean        sd n std_error conf_level  conf_low
+#> 1         2 0.05      20 3.750195 1.0025482 4 0.5012741       0.95 2.1549170
+#> 2         3 0.05      20 3.730291 1.0077308 4 0.5038654       0.95 2.1267669
+#> 3         2 0.10      20 3.443088 0.9637624 4 0.4818812       0.95 1.9095271
+#> 4         3 0.10      20 3.417483 1.0506080 4 0.5253040       0.95 1.7457316
+#> 5         2 0.05      40 3.414422 0.9530057 4 0.4765029       0.95 1.8979773
+#> 6         3 0.05      40 3.426919 1.0539511 4 0.5269755       0.95 1.7498479
+#> 7         2 0.10      40 3.219042 1.5642484 4 0.7821242       0.95 0.7299739
+#> 8         3 0.10      40 3.300439 1.7181246 4 0.8590623       0.95 0.5665192
+#>   conf_high
+#> 1  5.345473
+#> 2  5.333816
+#> 3  4.976649
+#> 4  5.089235
+#> 5  4.930867
+#> 6  5.103991
+#> 7  5.708110
+#> 8  6.034358
+```
+
+Budgeted random search is also supported for larger grids.
+
+``` r
+random_tune_obj <- tune(
+  demo_data,
+  mpg ~ wt + hp + qsec + drat,
+  model = "xgboost",
+  grid = tune_grid,
+  search = "random",
+  n_evals = 3,
+  resampling = cv(v = 4, seed = 42),
+  metric = "rmse",
+  subsample = 1,
+  colsample_bytree = 1,
+  seed = 42
+)
+
+random_tune_obj$best
+#>   max_depth eta nrounds     mean       sd n std_error conf_level  conf_low
+#> 3         3 0.1      40 3.300439 1.718125 4 0.8590623       0.95 0.5665192
+#>   conf_high
+#> 3  6.034358
+```
+
+Nested CV is available by supplying an outer resampling object. The
+inner `resampling` argument still drives model selection, while
+`outer_resampling` provides an unbiased performance estimate for the
+tuned workflow.
+
+``` r
+nested_tune_obj <- tune(
+  demo_data,
+  mpg ~ wt + hp + qsec + drat,
+  model = "xgboost",
+  grid = tune_grid,
+  resampling = cv(v = 3, seed = 42),
+  outer_resampling = cv(v = 4, seed = 99),
+  metric = "rmse",
+  subsample = 1,
+  colsample_bytree = 1,
+  seed = 42
+)
+
+nested_tune_obj$nested$summary
 ```
 
 ``` r
@@ -268,18 +354,20 @@ est_obj <- estimate(
   model = "xgboost",
   estimand = "ATE",
   spec = xgb_spec,
+  interval = "bootstrap",
+  n_boot = 30,
   seed = 42
 )
 
 est_obj
 #> <funcml_estimand> ATE via g-computation
 #> Treatment: trt (1 vs 0)
-#> Estimate: -2.1013 | SE: 0.1308 | 95% CI [-2.3577, -1.8449]
+#> Estimate: -2.1013 | SE: 0.1308 | 95% bootstrap CI [-7.4312, -0.1184]
 summary(est_obj)
 #>       estimand treatment treatment_level control_level  estimate std_error
 #> lower      ATE       trt               1             0 -2.101282 0.1308223
-#>        conf_low conf_high
-#> lower -2.357689 -1.844875
+#>       interval_method conf_level  conf_low  conf_high
+#> lower       bootstrap       0.95 -7.431153 -0.1183845
 ```
 
 ``` r
@@ -1213,7 +1301,8 @@ Estimated interaction strength by feature.
 
 `compare_learners()` compares several models directly, or tunes each one
 first and then compares the tuned best configurations on one or more
-metrics.
+metrics. The result summaries also include uncertainty intervals around
+the resampled means.
 
 ``` r
 compare_obj <- compare_learners(
@@ -1229,21 +1318,35 @@ compare_obj <- compare_learners(
 
 compare_obj
 #> <funcml_compare> task: regression | tuned: FALSE
-#>     model metric     mean        sd tuned rank
-#> 1     glm    mae 2.324837 0.6977166 FALSE    1
-#> 2     glm   rmse 2.823282 0.8391539 FALSE    1
-#> 3   rpart    mae 3.781101 0.3039781 FALSE    3
-#> 4   rpart   rmse 4.589988 0.5112815 FALSE    3
-#> 5 xgboost    mae 2.741977 0.8471626 FALSE    2
-#> 6 xgboost   rmse 3.453442 1.0279252 FALSE    2
+#>     model metric     mean        sd n std_error conf_level conf_low conf_high
+#> 1     glm   rmse 2.823282 0.8391539 4 0.4195769       0.95 1.488001  4.158563
+#> 2     glm    mae 2.324837 0.6977166 4 0.3488583       0.95 1.214614  3.435060
+#> 3   rpart   rmse 4.589988 0.5112815 4 0.2556408       0.95 3.776425  5.403552
+#> 4   rpart    mae 3.781101 0.3039781 4 0.1519891       0.95 3.297404  4.264798
+#> 5 xgboost   rmse 3.453442 1.0279252 4 0.5139626       0.95 1.817784  5.089100
+#> 6 xgboost    mae 2.741977 0.8471626 4 0.4235813       0.95 1.393952  4.090002
+#>   tuned rank
+#> 1 FALSE    1
+#> 2 FALSE    1
+#> 3 FALSE    3
+#> 4 FALSE    3
+#> 5 FALSE    2
+#> 6 FALSE    2
 summary(compare_obj)
-#>     model metric     mean        sd tuned rank
-#> 1     glm    mae 2.324837 0.6977166 FALSE    1
-#> 2     glm   rmse 2.823282 0.8391539 FALSE    1
-#> 3   rpart    mae 3.781101 0.3039781 FALSE    3
-#> 4   rpart   rmse 4.589988 0.5112815 FALSE    3
-#> 5 xgboost    mae 2.741977 0.8471626 FALSE    2
-#> 6 xgboost   rmse 3.453442 1.0279252 FALSE    2
+#>     model metric     mean        sd n std_error conf_level conf_low conf_high
+#> 1     glm   rmse 2.823282 0.8391539 4 0.4195769       0.95 1.488001  4.158563
+#> 2     glm    mae 2.324837 0.6977166 4 0.3488583       0.95 1.214614  3.435060
+#> 3   rpart   rmse 4.589988 0.5112815 4 0.2556408       0.95 3.776425  5.403552
+#> 4   rpart    mae 3.781101 0.3039781 4 0.1519891       0.95 3.297404  4.264798
+#> 5 xgboost   rmse 3.453442 1.0279252 4 0.5139626       0.95 1.817784  5.089100
+#> 6 xgboost    mae 2.741977 0.8471626 4 0.4235813       0.95 1.393952  4.090002
+#>   tuned rank
+#> 1 FALSE    1
+#> 2 FALSE    1
+#> 3 FALSE    3
+#> 4 FALSE    3
+#> 5 FALSE    2
+#> 6 FALSE    2
 ```
 
 ``` r
@@ -1278,37 +1381,37 @@ compare_tuned_obj <- compare_learners(
 
 compare_tuned_obj
 #> <funcml_compare> task: regression | tuned: TRUE
-#>     model metric     mean        sd tuned
-#> 1   rpart    mae 2.548437 0.9101399  TRUE
-#> 2   rpart   rmse 3.291912 1.2738673  TRUE
-#> 3 xgboost    mae 2.770873 0.8394140  TRUE
-#> 4 xgboost   rmse 3.448358 0.9195461  TRUE
-#>                                                           best_spec opt_metric
-#> 1             cp=0.001, minsplit=5, subsample=1, colsample_bytree=1       rmse
-#> 2             cp=0.001, minsplit=5, subsample=1, colsample_bytree=1       rmse
-#> 3 nrounds=20, max_depth=2, eta=0.1, subsample=1, colsample_bytree=1       rmse
-#> 4 nrounds=20, max_depth=2, eta=0.1, subsample=1, colsample_bytree=1       rmse
-#>   rank
-#> 1    1
-#> 2    1
-#> 3    2
-#> 4    2
+#>     model metric     mean        sd n std_error conf_level conf_low conf_high
+#> 1   rpart   rmse 3.291912 1.2738673 4 0.6369337       0.95 1.264905  5.318920
+#> 2   rpart    mae 2.548437 0.9101399 4 0.4550700       0.95 1.100202  3.996673
+#> 3 xgboost   rmse 3.448358 0.9195461 4 0.4597730       0.95 1.985155  4.911561
+#> 4 xgboost    mae 2.770873 0.8394140 4 0.4197070       0.95 1.435178  4.106568
+#>   tuned                                                         best_spec
+#> 1  TRUE             cp=0.001, minsplit=5, subsample=1, colsample_bytree=1
+#> 2  TRUE             cp=0.001, minsplit=5, subsample=1, colsample_bytree=1
+#> 3  TRUE nrounds=20, max_depth=2, eta=0.1, subsample=1, colsample_bytree=1
+#> 4  TRUE nrounds=20, max_depth=2, eta=0.1, subsample=1, colsample_bytree=1
+#>   opt_metric rank
+#> 1       rmse    1
+#> 2       rmse    1
+#> 3       rmse    2
+#> 4       rmse    2
 summary(compare_tuned_obj)
-#>     model metric     mean        sd tuned
-#> 1   rpart    mae 2.548437 0.9101399  TRUE
-#> 2   rpart   rmse 3.291912 1.2738673  TRUE
-#> 3 xgboost    mae 2.770873 0.8394140  TRUE
-#> 4 xgboost   rmse 3.448358 0.9195461  TRUE
-#>                                                           best_spec opt_metric
-#> 1             cp=0.001, minsplit=5, subsample=1, colsample_bytree=1       rmse
-#> 2             cp=0.001, minsplit=5, subsample=1, colsample_bytree=1       rmse
-#> 3 nrounds=20, max_depth=2, eta=0.1, subsample=1, colsample_bytree=1       rmse
-#> 4 nrounds=20, max_depth=2, eta=0.1, subsample=1, colsample_bytree=1       rmse
-#>   rank
-#> 1    1
-#> 2    1
-#> 3    2
-#> 4    2
+#>     model metric     mean        sd n std_error conf_level conf_low conf_high
+#> 1   rpart   rmse 3.291912 1.2738673 4 0.6369337       0.95 1.264905  5.318920
+#> 2   rpart    mae 2.548437 0.9101399 4 0.4550700       0.95 1.100202  3.996673
+#> 3 xgboost   rmse 3.448358 0.9195461 4 0.4597730       0.95 1.985155  4.911561
+#> 4 xgboost    mae 2.770873 0.8394140 4 0.4197070       0.95 1.435178  4.106568
+#>   tuned                                                         best_spec
+#> 1  TRUE             cp=0.001, minsplit=5, subsample=1, colsample_bytree=1
+#> 2  TRUE             cp=0.001, minsplit=5, subsample=1, colsample_bytree=1
+#> 3  TRUE nrounds=20, max_depth=2, eta=0.1, subsample=1, colsample_bytree=1
+#> 4  TRUE nrounds=20, max_depth=2, eta=0.1, subsample=1, colsample_bytree=1
+#>   opt_metric rank
+#> 1       rmse    1
+#> 2       rmse    1
+#> 3       rmse    2
+#> 4       rmse    2
 ```
 
 ## Notes on local development
