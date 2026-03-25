@@ -4,6 +4,7 @@
 - Added uncertainty summaries to `evaluate()` and `compare_learners()`, including fold-level standard errors and confidence intervals in summaries and plots.
 - Extended `estimate()` with configurable interval reporting, including bootstrap percentile intervals for average causal estimands.
 - Added random-search tuning with `search = "random"` and `n_evals` for budgeted hyperparameter search.
+- Added nested resampling to `tune()` via `outer_resampling`, so tuning can report unbiased outer-fold performance estimates for the selected workflow.
 - Hardened the fit/predict contract with clearer errors for missing predictor columns and unseen factor levels, plus stricter probability-output normalization.
 - Expanded the test suite with focused coverage for resampling, uncertainty, tuning, and prediction-contract behavior.
 
