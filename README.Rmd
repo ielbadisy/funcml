@@ -344,24 +344,14 @@ summary(shap_obj)
 plot(shap_obj, kind = "waterfall")
 ```
 
-#### Breakdown explanation
+The SHAP interface also supports additional plot kinds:
 
-```{r breakdown}
-breakdown_obj <- interpret(
-  fit_obj,
-  demo_data,
-  method = "breakdown",
-  newdata = demo_data[1, , drop = FALSE],
-  nsamples = 20
-)
-
-breakdown_obj
-summary(breakdown_obj)
-```
-
-```{r breakdown-plot, fig.cap="Greedy breakdown path for the first row."}
-plot(breakdown_obj)
-```
+- `plot(shap_obj, kind = "summary")` for a SHAP summary / beeswarm view
+  when explanations are computed for multiple rows
+- `plot(shap_obj, kind = "importance")` or `kind = "bar"` for mean absolute
+  SHAP importance
+- `plot(shap_obj, kind = "auto")` to choose waterfall for one row and summary
+  for multiple rows
 
 #### Global surrogate
 
