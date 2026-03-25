@@ -10,6 +10,9 @@
 #' @param search Search strategy: `"grid"` or `"random"`.
 #' @param n_evals Maximum number of configurations to evaluate when
 #'   `search = "random"`.
+#' @param outer_resampling Optional outer resampling object. When supplied,
+#'   `tune()` performs nested resampling and reports outer-fold performance
+#'   estimates for the tuned workflow.
 #' @param seed Optional seed.
 #' @param ... Passed to `fit()`.
 #' @return A `funcml_tune` object.
@@ -17,7 +20,7 @@
 tune <- function(data, formula, model, grid, resampling = cv(5),
                  metric = NULL, type = NULL,
                  search = c("grid", "random"), n_evals = NULL,
-                 seed = NULL, ...) {
+                 outer_resampling = NULL, seed = NULL, ...) {
   search <- match.arg(search)
   if (!is.data.frame(grid) || !nrow(grid)) {
     stop("`grid` must be a non-empty data frame.", call. = FALSE)
@@ -31,6 +34,23 @@ tune <- function(data, formula, model, grid, resampling = cv(5),
   }
   dirs <- metric_direction(metric)
   search_grid <- .select_tuning_configs(grid, search = search, n_evals = n_evals)
+  nested <- NULL
+  if (!is.null(outer_resampling)) {
+    nested <- .nested_resampling_summary(
+      data = data,
+      formula = formula,
+      model = model,
+      grid = grid,
+      resampling = resampling,
+      outer_resampling = outer_resampling,
+      metric = metric,
+      type = type,
+      search = search,
+      n_evals = n_evals,
+      seed = seed,
+      ...
+    )
+  }
   rows <- split(search_grid, seq_len(nrow(search_grid)))
   results <- lapply(rows, function(row) {
     spec_row <- as.list(row)
@@ -62,6 +82,7 @@ tune <- function(data, formula, model, grid, resampling = cv(5),
     search = search,
     n_evals = nrow(search_grid),
     candidates = nrow(grid),
+    nested = nested,
     call = match.call()
   )
   class(out) <- "funcml_tune"
@@ -91,6 +112,10 @@ print.funcml_tune <- function(x, ...) {
   cat(sprintf("<funcml_tune> metric=%s direction=%s search=%s\n", x$metric, x$direction, x$search))
   cat("Best:\n")
   print(x$best)
+  if (!is.null(x$nested)) {
+    cat("Nested resampling:\n")
+    print(x$nested$summary)
+  }
   invisible(x)
 }
 
@@ -117,6 +142,102 @@ plot.funcml_tune <- function(x, ...) {
       y = NULL,
       title = sprintf("%s search results", tools::toTitleCase(x$search))
     ) +
-    ggplot2::theme_bw() +
-    ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
+  ggplot2::theme_bw() +
+  ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
+}
+
+.nested_resampling_summary <- function(data, formula, model, grid, resampling,
+                                       outer_resampling, metric, type,
+                                       search, n_evals, seed, ...) {
+  y_all <- model.response(model.frame(formula, data))
+  task <- infer_task(y_all)
+  if (task == "classification") {
+    y_all <- factor(y_all)
+  }
+  outer_resampling <- generate_folds(nrow(data), y_all, outer_resampling, data = data)
+
+  outer_folds <- lapply(seq_along(outer_resampling$folds), function(i) {
+    fold <- outer_resampling$folds[[i]]
+    inner_seed <- if (is.null(seed)) NULL else seed + i
+    train_data <- data[fold$train, , drop = FALSE]
+    test_data <- data[fold$test, , drop = FALSE]
+    inner_tune <- tune(
+      data = train_data,
+      formula = formula,
+      model = model,
+      grid = grid,
+      resampling = resampling,
+      metric = metric,
+      type = type,
+      search = search,
+      n_evals = n_evals,
+      outer_resampling = NULL,
+      seed = inner_seed,
+      ...
+    )
+    metric_value <- .score_tuned_split(
+      train_data = train_data,
+      test_data = test_data,
+      formula = formula,
+      model = model,
+      spec = inner_tune$fit_best$spec,
+      metric = metric,
+      type = type,
+      seed = inner_seed,
+      ...
+    )
+    spec_label <- .format_tune_config(inner_tune$best)[1]
+    data.frame(
+      repeat_id = fold$repeat_id,
+      fold = fold$fold,
+      metric = metric,
+      value = metric_value,
+      selected_config = spec_label,
+      stringsAsFactors = FALSE
+    )
+  })
+  outer_folds <- do.call(rbind, outer_folds)
+  list(
+    folds = outer_folds,
+    summary = .summarize_metric_uncertainty(outer_folds),
+    resampling = outer_resampling
+  )
+}
+
+.score_tuned_split <- function(train_data, test_data, formula, model, spec,
+                               metric, type, seed, ...) {
+  fit_obj <- fit(formula, train_data, model, spec = spec, seed = seed, ...)
+  truth <- model.response(model.frame(formula, test_data))
+  if (fit_obj$task == "classification") {
+    truth <- factor(truth, levels = fit_obj$levels)
+  }
+
+  type_use <- type %||% if (fit_obj$task == "regression") {
+    "response"
+  } else if (metric %in% c("logloss", "brier", "auc")) {
+    "prob"
+  } else {
+    "class"
+  }
+
+  preds <- predict(fit_obj, newdata = test_data, type = type_use)
+  prob_matrix <- NULL
+  pred_class <- NULL
+  if (fit_obj$task == "classification") {
+    if (type_use == "prob") {
+      prob_matrix <- as.matrix(preds)
+      if (is.null(colnames(prob_matrix))) {
+        colnames(prob_matrix) <- fit_obj$levels
+      }
+      pred_class <- factor(fit_obj$levels[max.col(prob_matrix)], levels = fit_obj$levels)
+    } else {
+      pred_class <- preds
+    }
+  }
+
+  if (fit_obj$task == "regression") {
+    return(.loss(truth, preds, fit_obj$task, metric))
+  }
+
+  .loss(truth, pred_class, fit_obj$task, metric, prob_matrix = prob_matrix)
 }
