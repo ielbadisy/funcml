@@ -289,6 +289,23 @@ summary(est_obj)
 plot(est_obj)
 ```
 
+The returned estimand object stores its reference and target data, so
+effect-targeted importance can be computed directly from the estimand.
+For target semantics, `CATE` is the average effect over `newdata`, while
+`IATE` is the row-wise individualized effect profile.
+
+```{r estimate-vip}
+vip_est_obj <- estimate_vip(
+  est_obj,
+  mode = "evaluate",
+  nsim = 10,
+  seed = 42
+)
+
+vip_est_obj
+summary(vip_est_obj)
+```
+
 ### Native interpretability workflow
 
 #### Permutation importance

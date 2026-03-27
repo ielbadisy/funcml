@@ -64,6 +64,10 @@ A \code{funcml_estimand} object.
 Estimates simple causal targets with plug-in g-computation from a fitted
 outcome model. The current implementation is intentionally narrow: binary
 treatment only, no hidden-confounding adjustment beyond supplied covariates,
-and outcome-model-based estimation. \code{"IATE"} returns row-wise individualized
-treatment effects rather than a single aggregated contrast.
+and outcome-model-based estimation. \code{"CATE"} returns the average treatment
+effect over the supplied target rows in \code{newdata}. \code{"IATE"} returns
+row-wise individualized treatment effects rather than a single aggregated
+contrast. The returned object stores the fitted model, the reference data,
+and the target data used for the estimand so downstream tools such as
+\code{estimate_vip()} can reuse the same causal target definition.
 }

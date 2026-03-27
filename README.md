@@ -362,12 +362,15 @@ est_obj <- estimate(
 est_obj
 #> <funcml_estimand> ATE via g-computation
 #> Treatment: trt (1 vs 0)
+#> Reference rows: 32 | Target rows: 32
 #> Estimate: -2.1013 | SE: 0.1308 | 95% bootstrap CI [-7.4312, -0.1184]
 summary(est_obj)
-#>       estimand treatment treatment_level control_level  estimate std_error
-#> lower      ATE       trt               1             0 -2.101282 0.1308223
-#>       interval_method conf_level  conf_low  conf_high
-#> lower       bootstrap       0.95 -7.431153 -0.1183845
+#>       estimand treatment treatment_level control_level reference_rows
+#> lower      ATE       trt               1             0             32
+#>       target_rows  estimate std_error interval_method conf_level  conf_low
+#> lower          32 -2.101282 0.1308223       bootstrap       0.95 -7.431153
+#>        conf_high
+#> lower -0.1183845
 ```
 
 ``` r
@@ -383,6 +386,23 @@ g-computation.
 </p>
 
 </div>
+
+The returned estimand object stores its reference and target data, so
+effect-targeted importance can be computed directly from the estimand.
+For target semantics, `CATE` is the average effect over `newdata`, while
+`IATE` is the row-wise individualized effect profile.
+
+``` r
+vip_est_obj <- estimate_vip(
+  est_obj,
+  mode = "evaluate",
+  nsim = 10,
+  seed = 42
+)
+
+vip_est_obj
+summary(vip_est_obj)
+```
 
 ### Native interpretability workflow
 
