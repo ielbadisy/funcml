@@ -122,3 +122,22 @@ test_that("breakdown is no longer an available interpretability method", {
     "arg"
   )
 })
+
+test_that("calibration interpretability returns curve and calibration errors", {
+  set.seed(51)
+  dat <- data.frame(
+    x1 = rnorm(120),
+    x2 = rnorm(120)
+  )
+  eta <- 1.1 * dat$x1 - 0.7 * dat$x2
+  dat$y <- factor(ifelse(runif(120) < stats::plogis(eta), "yes", "no"), levels = c("no", "yes"))
+
+  fit_obj <- fit(y ~ x1 + x2, data = dat, model = "glm")
+  cal <- interpret(fit_obj, dat, method = "calibration", bins = 6, strategy = "quantile")
+
+  expect_s3_class(cal, "funcml_calibration")
+  expect_true(all(c("curve", "prob", "truth", "positive", "ece", "mce") %in% names(cal$result)))
+  expect_equal(nrow(cal$result$curve), 6)
+  expect_true(is.finite(cal$result$ece))
+  expect_true(is.finite(cal$result$mce))
+})

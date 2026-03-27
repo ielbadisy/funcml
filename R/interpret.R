@@ -31,10 +31,20 @@
     metric,
     rmse = TRUE,
     mae = TRUE,
+    mse = TRUE,
+    medae = TRUE,
+    mape = TRUE,
     rsq = FALSE,
     accuracy = FALSE,
+    precision = FALSE,
+    recall = FALSE,
+    specificity = FALSE,
+    f1 = FALSE,
+    balanced_accuracy = FALSE,
     logloss = TRUE,
     brier = TRUE,
+    ece = TRUE,
+    mce = TRUE,
     auc = FALSE,
     stop("Unsupported metric: ", metric, call. = FALSE)
   )
@@ -55,6 +65,22 @@
     }
     return(accuracy(truth, pred_class))
   }
+  if (metric %in% c("precision", "recall", "specificity", "f1", "balanced_accuracy")) {
+    pred_class <- if (is.matrix(pred) || is.data.frame(pred)) {
+      prob <- .normalize_prob_matrix(pred, levels)
+      factor(levels[max.col(prob)], levels = levels)
+    } else {
+      factor(pred, levels = levels)
+    }
+    return(switch(
+      metric,
+      precision = precision(truth, pred_class),
+      recall = recall(truth, pred_class),
+      specificity = specificity(truth, pred_class),
+      f1 = f1(truth, pred_class),
+      balanced_accuracy = balanced_accuracy(truth, pred_class)
+    ))
+  }
 
   prob <- .normalize_prob_matrix(pred, levels)
   if (metric == "logloss") {
@@ -62,6 +88,12 @@
   }
   if (metric == "brier") {
     return(brier(truth, prob))
+  }
+  if (metric == "ece") {
+    return(ece(truth, prob, positive = event_level))
+  }
+  if (metric == "mce") {
+    return(mce(truth, prob, positive = event_level))
   }
   if (metric == "auc") {
     if (length(levels) != 2) {
@@ -79,12 +111,12 @@
     return("response")
   }
   if (!type_missing && !is.null(type)) {
-    if (metric %in% c("logloss", "brier", "auc") && type != "prob") {
-      stop("Metrics logloss, brier, and auc require `type = \"prob\"`.", call. = FALSE)
+    if (metric %in% c("logloss", "brier", "auc", "ece", "mce") && type != "prob") {
+      stop("Metrics logloss, brier, auc, ece, and mce require `type = \"prob\"`.", call. = FALSE)
     }
     return(type)
   }
-  if (metric %in% c("logloss", "brier", "auc")) "prob" else "class"
+  if (metric %in% c("logloss", "brier", "auc", "ece", "mce")) "prob" else "class"
 }
 
 .grid_values <- function(vec, grid = NULL, grid.resolution = NULL,
@@ -334,10 +366,10 @@
 #' @param formula Optional formula (defaults to `fit$formula`).
 #' @param method One of "vip","permute","pdp","ice","ale","local","lime",
 #'   "shap","local_model","interaction","surrogate","profile",
-#'   "ceteris_paribus".
+#'   "ceteris_paribus", or "calibration".
 #' @param features Optional subset of features; defaults to all predictors.
 #' @param type Prediction scale: regression -> "response"; classification -> "prob" or "class".
-#' @param metric Loss/score for importance (reg: rmse/mae/rsq; cls: accuracy/logloss/brier/auc).
+#' @param metric Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc).
 #' @param importance_type Importance engine for `method = "vip"`: `"permute"`,
 #'   `"model"`, or `"auto"`.
 #' @param compare How to compare baseline and perturbed performance for
@@ -354,12 +386,14 @@
 #' @param nsamples Row subsample for speed (reference/background set).
 #' @param grid Optional list of grids per feature for PDP/ICE/ALE.
 #' @param seed Optional seed for determinism.
+#' @param bins Number of bins for calibration diagnostics.
+#' @param strategy Binning strategy for calibration diagnostics.
 #' @param ... Additional method-specific args.
 #' @export
 interpret <- function(fit, data, formula = fit$formula,
                       method = c("vip", "permute", "pdp", "ice", "ale", "local", "lime", "shap",
                                  "local_model", "interaction", "surrogate",
-                                 "profile", "ceteris_paribus"),
+                                 "profile", "ceteris_paribus", "calibration"),
                       features = NULL, type = NULL, metric = NULL,
                       importance_type = c("permute", "model", "auto"),
                       compare = c("difference", "ratio"),
@@ -435,7 +469,8 @@ interpret <- function(fit, data, formula = fit$formula,
     shap = interpret_shap,
     interaction = interpret_interaction,
     surrogate = interpret_surrogate,
-    profile = interpret_profile
+    profile = interpret_profile,
+    calibration = interpret_calibration
   )
 
   result <- dispatcher(
@@ -482,6 +517,8 @@ interpret <- function(fit, data, formula = fit$formula,
     c("funcml_lime", "funcml_iml_local_model", "funcml_local")
   } else if (method == "shap") {
     c("funcml_shapley", "funcml_shap")
+  } else if (method == "calibration") {
+    "funcml_calibration"
   } else {
     paste0("funcml_", method)
   }
@@ -1082,6 +1119,41 @@ interpret_surrogate <- function(fit, data, features, type, class_level, pos_leve
   .interpret_result(payload = result, diagnostics = list(reference = "native surrogate"))
 }
 
+interpret_calibration <- function(fit, data, type, class_level, pos_level, bins = 10,
+                                  strategy = c("quantile", "uniform"), ...) {
+  if (fit$task != "classification") {
+    stop("Calibration diagnostics are available only for classification models.", call. = FALSE)
+  }
+  if (length(fit$levels) != 2L) {
+    stop("Calibration diagnostics are currently implemented for binary classification only.", call. = FALSE)
+  }
+  strategy <- match.arg(strategy)
+  positive <- class_level %||% pos_level %||% fit$levels[2L]
+  truth <- stats::model.response(stats::model.frame(fit$formula, data))
+  prob_matrix <- .normalize_prob_matrix(
+    predict(fit, data, type = "prob", class_level = positive, pos_level = pos_level),
+    fit$levels
+  )
+  prob <- prob_matrix[, positive]
+  curve <- calibration_curve(truth, prob, bins = bins, strategy = strategy, positive = positive)
+  .interpret_result(
+    payload = list(
+      curve = curve,
+      prob = prob,
+      truth = factor(truth, levels = fit$levels),
+      positive = positive,
+      ece = ece(truth, prob, bins = bins, strategy = strategy, positive = positive),
+      mce = mce(truth, prob, bins = bins, strategy = strategy, positive = positive)
+    ),
+    diagnostics = list(
+      reference = "native calibration diagnostics",
+      bins = bins,
+      strategy = strategy,
+      positive = positive
+    )
+  )
+}
+
 plot_vi <- function(df, ylab, title) {
   y_col <- if ("importance" %in% names(df)) {
     "importance"
@@ -1338,6 +1410,65 @@ print.funcml_iml_local_model <- function(x, ...) {
 summary.funcml_iml_local_model <- function(object, ...) {
   print(object$result)
   invisible(object$result)
+}
+
+#' @export
+plot.funcml_calibration <- function(x, style = c("curve", "histogram"), ...) {
+  style <- match.arg(style)
+  curve <- x$result$curve
+  curve_nonempty <- curve[curve$n > 0, , drop = FALSE]
+
+  if (style == "histogram") {
+    hist_df <- data.frame(prob = x$result$prob, stringsAsFactors = FALSE)
+    return(
+      ggplot2::ggplot(hist_df, ggplot2::aes(x = prob)) +
+        ggplot2::geom_histogram(bins = x$diagnostics$bins %||% 10L, fill = "grey80", colour = "white") +
+        ggplot2::labs(
+          x = sprintf("Predicted probability for '%s'", x$result$positive),
+          y = "Count",
+          title = "Predicted probability distribution"
+        ) +
+        .publication_theme()
+    )
+  }
+
+  ggplot2::ggplot(curve_nonempty, ggplot2::aes(x = mean_pred, y = observed)) +
+    ggplot2::geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "grey55") +
+    ggplot2::geom_line(colour = "black", linewidth = 0.7) +
+    ggplot2::geom_point(ggplot2::aes(size = n), colour = "black") +
+    ggplot2::geom_segment(
+      ggplot2::aes(x = mean_pred, xend = mean_pred, y = 0, yend = observed),
+      linewidth = 0.35,
+      colour = "grey75"
+    ) +
+    ggplot2::scale_size_continuous(range = c(1.8, 5), guide = "none") +
+    ggplot2::coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+    ggplot2::labs(
+      x = sprintf("Mean predicted probability for '%s'", x$result$positive),
+      y = "Observed event rate",
+      title = "Calibration plot",
+      subtitle = sprintf("ECE = %.4f | MCE = %.4f", x$result$ece, x$result$mce)
+    ) +
+    .publication_theme()
+}
+
+#' @export
+print.funcml_calibration <- function(x, ...) {
+  cat("<funcml_calibration>\n")
+  print(x$result$curve)
+  invisible(x)
+}
+
+#' @export
+summary.funcml_calibration <- function(object, ...) {
+  out <- list(
+    curve = object$result$curve,
+    ece = object$result$ece,
+    mce = object$result$mce,
+    positive = object$result$positive
+  )
+  print(out)
+  invisible(out)
 }
 
 #' @export

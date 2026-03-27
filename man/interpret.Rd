@@ -8,7 +8,7 @@ interpret(
   formula = fit$formula,
   method = c("vip", "permute", "pdp", "ice", "ale", "local", "lime",
     "shap", "local_model", "interaction", "surrogate",
-    "profile", "ceteris_paribus"),
+    "profile", "ceteris_paribus", "calibration"),
   features = NULL,
   type = NULL,
   metric = NULL,
@@ -37,13 +37,13 @@ interpret(
 \item{method}{One of \code{"vip"}, \code{"permute"}, \code{"pdp"}, \code{"ice"},
 \code{"ale"}, \code{"local"}, \code{"lime"}, \code{"shap"},
 \code{"local_model"}, \code{"interaction"}, \code{"surrogate"},
-\code{"profile"}, or \code{"ceteris_paribus"}.}
+\code{"profile"}, \code{"ceteris_paribus"}, or \code{"calibration"}.}
 
 \item{features}{Optional subset of features; defaults to all predictors.}
 
 \item{type}{Prediction scale: regression -> \code{"response"}; classification -> \code{"prob"} or \code{"class"}.}
 
-\item{metric}{Loss/score for importance (reg: rmse/mae/rsq; cls: accuracy/logloss/brier/auc).}
+\item{metric}{Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc).}
 
 \item{importance_type}{Importance engine for \code{method = "vip"}: \code{"permute"}, \code{"model"}, or \code{"auto"}.}
 
@@ -69,10 +69,16 @@ interpret(
 
 \item{seed}{Optional seed for determinism.}
 
+\item{bins}{Number of bins for calibration diagnostics.}
+
+\item{strategy}{Binning strategy for calibration diagnostics.}
+
 \item{...}{Additional method-specific arguments.}
 }
 \description{
 Implements native permutation VI, PDP/ICE/ALE, SHAP approximations, local
 surrogate explanations, interaction strength, and global surrogate models
-without vendoring external package source code.
+without vendoring external package source code. Calibration diagnostics are
+available through \code{method = "calibration"} for binary classification
+models.
 }
