@@ -104,7 +104,7 @@ tune <- function(data, formula, model, grid, resampling = cv(5),
 }
 
 metric_direction <- function(metric) {
-  if (metric %in% c("rmse", "mae", "logloss", "brier")) "min" else "max"
+  if (metric %in% c("rmse", "mae", "mse", "medae", "mape", "logloss", "brier", "ece", "mce")) "min" else "max"
 }
 
 #' @export
@@ -214,7 +214,7 @@ plot.funcml_tune <- function(x, ...) {
 
   type_use <- type %||% if (fit_obj$task == "regression") {
     "response"
-  } else if (metric %in% c("logloss", "brier", "auc")) {
+  } else if (metric %in% c("logloss", "brier", "auc", "ece", "mce")) {
     "prob"
   } else {
     "class"

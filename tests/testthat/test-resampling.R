@@ -61,5 +61,5 @@ test_that("time-aware CV respects ordering and evaluates end to end", {
   )
 
   expect_s3_class(ev, "funcml_eval")
-  expect_true(all(c("rmse", "mae", "rsq") %in% ev$summary$metric))
+  expect_true(all(c("rmse", "mae", "mse", "medae", "mape", "rsq") %in% ev$summary$metric))
 })

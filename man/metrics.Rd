@@ -4,16 +4,33 @@
 \alias{metrics}
 \alias{rmse}
 \alias{mae}
+\alias{mse}
+\alias{medae}
+\alias{mape}
 \alias{rsq}
 \alias{logloss}
 \alias{brier}
 \alias{accuracy}
+\alias{precision}
+\alias{recall}
+\alias{specificity}
+\alias{f1}
+\alias{balanced_accuracy}
 \alias{auc}
+\alias{calibration_curve}
+\alias{ece}
+\alias{mce}
 \title{Regression and classification metrics.}
 \usage{
 rmse(truth, pred)
 
 mae(truth, pred)
+
+mse(truth, pred)
+
+medae(truth, pred)
+
+mape(truth, pred)
 
 rsq(truth, pred)
 
@@ -23,7 +40,29 @@ brier(truth, prob_matrix)
 
 accuracy(truth, pred_class)
 
+precision(truth, pred_class)
+
+recall(truth, pred_class)
+
+specificity(truth, pred_class)
+
+f1(truth, pred_class)
+
+balanced_accuracy(truth, pred_class)
+
 auc(truth, prob)
+
+calibration_curve(
+  truth,
+  prob,
+  bins = 10,
+  strategy = c("quantile", "uniform"),
+  positive = NULL
+)
+
+ece(truth, prob, bins = 10, strategy = c("quantile", "uniform"), positive = NULL)
+
+mce(truth, prob, bins = 10, strategy = c("quantile", "uniform"), positive = NULL)
 }
 \arguments{
 \item{truth}{Observed outcomes.}
@@ -35,9 +74,16 @@ auc(truth, prob)
 \item{pred_class}{Predicted class labels (classification).}
 
 \item{prob}{Probability vector for binary classification metrics.}
+
+\item{bins}{Number of bins for calibration summaries.}
+
+\item{strategy}{Binning strategy: \code{"quantile"} or \code{"uniform"}.}
+
+\item{positive}{Optional positive/event class for binary classification.}
 }
 \value{
-Numeric scalar metric.
+Numeric scalar metric. \code{calibration_curve()} returns a data frame of bin-wise
+calibration summaries.
 }
 \description{
 Base R implementations used across evaluation and interpretation utilities.

@@ -37,7 +37,11 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
   resampling <- generate_folds(nrow(data), y_all, resampling, data = data)
 
   if (is.null(metrics)) {
-    metrics <- if (task == "regression") c("rmse", "mae", "rsq") else c("accuracy", "logloss", "brier", if (!is_multiclass) "auc")
+    metrics <- if (task == "regression") {
+      c("rmse", "mae", "mse", "medae", "mape", "rsq")
+    } else {
+      c("accuracy", "precision", "recall", "specificity", "f1", "balanced_accuracy", "logloss", "brier", "ece", "mce", if (!is_multiclass) "auc")
+    }
     metrics <- unlist(metrics)
   }
   folds_out <- list()
@@ -47,7 +51,7 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
     train_data <- data[fold$train, , drop = FALSE]
     test_data  <- data[fold$test, , drop = FALSE]
     fit_fold <- fit(formula, train_data, base_model, spec = base_spec, ...)
-    type_use <- type %||% if (task == "regression") "response" else if (any(metrics %in% c("logloss", "brier", "auc"))) "prob" else "class"
+    type_use <- type %||% if (task == "regression") "response" else if (any(metrics %in% c("logloss", "brier", "auc", "ece", "mce"))) "prob" else "class"
     preds <- predict(fit_fold, newdata = test_data, type = type_use)
 
     prob_matrix <- NULL
@@ -66,7 +70,7 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
     for (m in metrics) {
       val <- if (task == "regression") {
         .loss(y_all[fold$test], preds, task, m)
-      } else if (m %in% c("logloss", "brier", "auc")) {
+      } else if (m %in% c("logloss", "brier", "auc", "ece", "mce")) {
         .loss(y_all[fold$test], pred_class, task, m, prob_matrix = prob_matrix)
       } else {
         .loss(y_all[fold$test], pred_class, task, m, prob_matrix = prob_matrix)
