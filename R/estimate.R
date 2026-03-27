@@ -101,7 +101,10 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
     conf_int = stats::setNames(ci, c("lower", "upper")),
     conf_level = conf_level,
     interval_method = interval,
+    prediction_type = pred_type,
     estimand = estimand,
+    estimand_label = .estimand_label(estimand),
+    estimand_role = .estimand_role(estimand),
     treatment = treatment,
     treatment_level = trt_bin$treated,
     control_level = trt_bin$control,
@@ -109,6 +112,8 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
     task = base_fit$task,
     call = match.call(),
     fit = base_fit,
+    data = data,
+    target_data = target_data,
     effects = est_core$effects,
     assumptions = c(
       "Binary treatment with no hidden confounding",
@@ -118,6 +123,26 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
   )
   class(out) <- "funcml_estimand"
   out
+}
+
+.estimand_label <- function(estimand) {
+  switch(
+    estimand,
+    ATE = "average treatment effect",
+    ATT = "average treatment effect on the treated",
+    CATE = "target-average conditional treatment effect",
+    IATE = "individualized treatment effect profile"
+  )
+}
+
+.estimand_role <- function(estimand) {
+  switch(
+    estimand,
+    ATE = "scalar_contrast",
+    ATT = "scalar_contrast",
+    CATE = "target_average_contrast",
+    IATE = "individualized_profile"
+  )
 }
 
 .coerce_binary_treatment <- function(x, treatment_level = NULL, control_level = NULL) {
@@ -287,7 +312,9 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
 #' @export
 print.funcml_estimand <- function(x, ...) {
   cat(sprintf("<funcml_estimand> %s via g-computation\n", x$estimand))
+  cat(sprintf("Target: %s\n", x$estimand_label %||% .estimand_label(x$estimand)))
   cat(sprintf("Treatment: %s (%s vs %s)\n", x$treatment, x$treatment_level, x$control_level))
+  cat(sprintf("Reference rows: %d | Target rows: %d\n", nrow(x$data), nrow(x$target_data)))
   if (x$estimand == "IATE") {
     cat(sprintf("Rows scored: %d | mean individualized effect: %.4f\n",
                 nrow(x$effects), mean(x$effects$effect)))
@@ -309,9 +336,13 @@ summary.funcml_estimand <- function(object, ...) {
   }
   out <- data.frame(
     estimand = object$estimand,
+    estimand_label = object$estimand_label %||% .estimand_label(object$estimand),
+    estimand_role = object$estimand_role %||% .estimand_role(object$estimand),
     treatment = object$treatment,
     treatment_level = object$treatment_level,
     control_level = object$control_level,
+    reference_rows = nrow(object$data),
+    target_rows = nrow(object$target_data),
     estimate = object$estimate,
     std_error = object$std_error,
     interval_method = object$interval_method,

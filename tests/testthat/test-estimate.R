@@ -57,6 +57,7 @@ test_that("CATE requires newdata and returns weighted average over target rows",
     estimand = "CATE",
     newdata = dat[1:10, , drop = FALSE]
   )
+  expect_equal(est$estimand_role, "target_average_contrast")
   expect_equal(nrow(est$effects), 10)
 })
 
@@ -76,6 +77,30 @@ test_that("IATE returns row-wise individualized effects", {
   )
 
   expect_true(is.na(est$estimate))
+  expect_equal(est$estimand_role, "individualized_profile")
   expect_equal(nrow(est$effects), 7)
   expect_true(all(c("row_id", "effect", "mu1", "mu0", "weight") %in% names(est$effects)))
+})
+
+test_that("estimate stores reference and target data for downstream causal workflows", {
+  set.seed(25)
+  dat <- data.frame(
+    trt = rbinom(90, 1, 0.5),
+    x1 = rnorm(90),
+    x2 = rnorm(90)
+  )
+  dat$y <- 0.7 * dat$trt + 0.4 * dat$x1 + rnorm(90, sd = 0.4)
+
+  est <- estimate(
+    dat,
+    y ~ trt + x1 + x2,
+    model = "glm",
+    estimand = "CATE",
+    newdata = dat[1:12, , drop = FALSE]
+  )
+
+  expect_equal(nrow(est$data), 90)
+  expect_equal(nrow(est$target_data), 12)
+  expect_true(identical(names(est$data), names(dat)))
+  expect_true(identical(names(est$target_data), names(dat)))
 })
