@@ -1,6 +1,6 @@
 #' Fit a model using a formula-first functional interface.
 #'
-#' Supported learner ids currently include:
+#' Registered learner ids currently include:
 #' regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`,
 #' `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
 #' `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner`;
@@ -10,6 +10,10 @@
 #' regression plus binary classification: `earth`;
 #' regression only: `pls`.
 #'
+#' These learner backends are declared as package dependencies so the advertised
+#' registry is meant to be available after a standard `install.packages("funcml")`
+#' installation.
+#'
 #' @param formula Model formula.
 #' @param data Data frame.
 #' @param model Learner id (see `learners()`).
@@ -18,6 +22,9 @@
 #' @param na_action NA handling passed to `model.frame`/`model.matrix` (default `stats::na.fail`).
 #' @param ... Additional parameters merged into `spec`.
 #' @return An object of class `funcml_fit`.
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
+#' predict(fit_obj, newdata = mtcars[1:3, , drop = FALSE])
 #' @export
 fit <- function(formula, data, model, spec = NULL, seed = NULL, na_action = stats::na.fail, ...) {
   call <- match.call()
@@ -80,7 +87,12 @@ create_predict <- function(obj, adapter, state) {
 #' classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`;
 #' binary classification only: `adaboost`;
 #' regression only: `pls`.
+#'
+#' The learner engine packages are declared in `Imports`, so these ids are
+#' intended to be available immediately after installing `funcml`.
 #' @return Character vector of learner ids.
+#' @examples
+#' learners()
 #' @export
 learners <- function() {
   names(funcml_registry())

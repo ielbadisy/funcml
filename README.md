@@ -68,6 +68,9 @@ modeling surface.
 
 Current learner ids exposed through `learners()` include:
 
+These backends are declared as installation dependencies, so the full learner
+registry is intended to be available after a standard `funcml` install.
+
 | Task support                       | Learners                                                                                                                                                                  |
 |------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Regression + classification        | `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner` |

@@ -284,7 +284,8 @@
     return(plot_obj + .publication_theme())
   }
   if ("patchwork" %in% class(plot_obj)) {
-    return(patchwork::`&`(plot_obj, .publication_theme()))
+    patchwork_and <- getFromNamespace("&", "patchwork")
+    return(patchwork_and(plot_obj, .publication_theme()))
   }
   plot_obj
 }
@@ -389,6 +390,22 @@
 #' @param bins Number of bins for calibration diagnostics.
 #' @param strategy Binning strategy for calibration diagnostics.
 #' @param ... Additional method-specific args.
+#' @examples
+#' fit_obj <- fit(
+#'   mpg ~ wt + hp + disp,
+#'   data = mtcars,
+#'   model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5)
+#' )
+#' vi <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "permute",
+#'   features = c("wt", "hp"),
+#'   nsim = 2,
+#'   metric = "rmse"
+#' )
+#' vi$result$scores
 #' @export
 interpret <- function(fit, data, formula = fit$formula,
                       method = c("vip", "permute", "pdp", "ice", "ale", "local", "lime", "shap",
@@ -401,7 +418,8 @@ interpret <- function(fit, data, formula = fit$formula,
                       k = NULL,
                       gower_power = NULL,
                       class_level = NULL, pos_level = NULL, newdata = NULL,
-                      nsim = NULL, nsamples = NULL, grid = NULL, seed = NULL, ...) {
+                      nsim = NULL, nsamples = NULL, grid = NULL, seed = NULL,
+                      bins = 10, strategy = c("quantile", "uniform"), ...) {
   if (!inherits(fit, "funcml_fit")) {
     stop("fit must be a funcml_fit.", call. = FALSE)
   }
@@ -479,7 +497,7 @@ interpret <- function(fit, data, formula = fit$formula,
     newdata = newdata, nsim = nsim, nsamples = nsamples, grid = grid,
     seed = seed, features_was_null = features_was_null, type_missing = type_missing,
     importance_type = importance_type, compare = compare, keep = keep,
-    k = k, gower_power = gower_power,
+    k = k, gower_power = gower_power, bins = bins, strategy = strategy,
     ...
   )
   parsed <- .as_interpret_result(result)

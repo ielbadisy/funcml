@@ -19,3 +19,10 @@ classification only: \code{C50}, \code{naivebayes}, \code{fda}, \code{lda}, \cod
 binary classification only: \code{adaboost};
 regression only: \code{pls}.
 }
+\details{
+The learner engine packages are declared in \code{Imports}, so these ids are
+intended to be available immediately after installing \code{funcml}.
+}
+\examples{
+learners()
+}

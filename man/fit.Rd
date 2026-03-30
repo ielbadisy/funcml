@@ -33,7 +33,7 @@ fit(
 An object of class \code{funcml_fit}.
 }
 \description{
-Supported learner ids currently include:
+Registered learner ids currently include:
 regression and classification: \code{glm}, \code{rpart}, \code{glmnet}, \code{ranger}, \code{nnet},
 \code{e1071_svm}, \code{randomForest}, \code{gbm}, \code{kknn}, \code{ctree}, \code{cforest},
 \code{lightgbm}, \code{catboost}, \code{xgboost}, \code{stacking}, \code{superlearner};
@@ -42,4 +42,13 @@ classification only: \code{C50}, \code{naivebayes}, \code{fda}, \code{lda}, \cod
 binary classification only: \code{adaboost};
 regression plus binary classification: \code{earth};
 regression only: \code{pls}.
+}
+\details{
+These learner backends are declared as package dependencies so the advertised
+registry is meant to be available after a standard \code{install.packages("funcml")}
+installation.
+}
+\examples{
+fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
+predict(fit_obj, newdata = mtcars[1:3, , drop = FALSE])
 }
