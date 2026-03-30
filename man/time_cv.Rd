@@ -32,3 +32,6 @@ A \code{funcml_cv} object.
 \description{
 Time-aware rolling resampling.
 }
+\examples{
+time_cv(initial = 8, assess = 2, skip = 1)
+}

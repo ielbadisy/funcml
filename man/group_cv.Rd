@@ -21,3 +21,6 @@ A \code{funcml_cv} object.
 \description{
 Grouped cross-validation.
 }
+\examples{
+group_cv(v = 3, group = rep(letters[1:3], each = 4), seed = 1)
+}

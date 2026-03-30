@@ -12,6 +12,15 @@
 #' @param fit Optional preconfigured `funcml_fit` object (re-fit per fold).
 #' @param ... Passed to `fit()`.
 #' @return A `funcml_eval` object.
+#' @examples
+#' eval_obj <- evaluate(
+#'   data = mtcars,
+#'   formula = mpg ~ wt + hp,
+#'   model = "glm",
+#'   resampling = cv(3, seed = 1),
+#'   metrics = c("rmse", "mae")
+#' )
+#' eval_obj$summary
 #' @export
 evaluate <- function(data, formula, model = NULL, spec = NULL,
                      resampling = cv(5), metrics = NULL, type = NULL,

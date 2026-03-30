@@ -12,6 +12,34 @@
 #' @param positive Optional positive/event class for binary classification.
 #' @return Numeric scalar metric.
 #' @name metrics
+#' @examples
+#' truth_reg <- c(3, 5, 2.5, 7)
+#' pred_reg <- c(2.8, 4.9, 2.7, 6.8)
+#' rmse(truth_reg, pred_reg)
+#' mae(truth_reg, pred_reg)
+#' mse(truth_reg, pred_reg)
+#' rsq(truth_reg, pred_reg)
+#' medae(truth_reg, pred_reg)
+#' mape(truth_reg, pred_reg)
+#'
+#' truth_cls <- factor(c("no", "yes", "yes", "no"), levels = c("no", "yes"))
+#' pred_cls <- factor(c("no", "yes", "no", "no"), levels = levels(truth_cls))
+#' prob_cls <- cbind(
+#'   no = c(0.8, 0.2, 0.6, 0.7),
+#'   yes = c(0.2, 0.8, 0.4, 0.3)
+#' )
+#' logloss(truth_cls, prob_cls)
+#' brier(truth_cls, prob_cls)
+#' accuracy(truth_cls, pred_cls)
+#' precision(truth_cls, pred_cls)
+#' recall(truth_cls, pred_cls)
+#' specificity(truth_cls, pred_cls)
+#' f1(truth_cls, pred_cls)
+#' balanced_accuracy(truth_cls, pred_cls)
+#' auc(truth_cls, prob_cls[, "yes"])
+#' calibration_curve(truth_cls, prob_cls[, "yes"])
+#' ece(truth_cls, prob_cls[, "yes"])
+#' mce(truth_cls, prob_cls[, "yes"])
 #' @export
 rmse <- function(truth, pred) {
   sqrt(mean((truth - pred)^2))

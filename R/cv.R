@@ -14,6 +14,8 @@
 #' @param skip Number of observations to skip between successive time splits.
 #' @param cumulative Logical; use an expanding training window for time-aware CV.
 #' @return A `funcml_cv` object containing fold indices and parameters.
+#' @examples
+#' cv(v = 3, repeats = 2, seed = 1)
 #' @export
 cv <- function(v = 5, repeats = 1, strata = TRUE, seed = NULL,
                method = c("vfold", "holdout", "group_vfold", "time"),
@@ -45,6 +47,8 @@ cv <- function(v = 5, repeats = 1, strata = TRUE, seed = NULL,
 #' @param strata Logical; stratify classification outcomes.
 #' @param seed Optional seed.
 #' @return A `funcml_cv` object.
+#' @examples
+#' holdout(prop = 0.75, seed = 1)
 #' @export
 holdout <- function(prop = 0.8, strata = TRUE, seed = NULL) {
   cv(method = "holdout", prop = prop, strata = strata, seed = seed, v = 1, repeats = 1)
@@ -57,6 +61,8 @@ holdout <- function(prop = 0.8, strata = TRUE, seed = NULL) {
 #' @param repeats Number of repeats.
 #' @param seed Optional seed.
 #' @return A `funcml_cv` object.
+#' @examples
+#' group_cv(v = 3, group = rep(letters[1:3], each = 4), seed = 1)
 #' @export
 group_cv <- function(v = 5, group, repeats = 1, seed = NULL) {
   cv(method = "group_vfold", v = v, repeats = repeats, seed = seed, strata = FALSE, group = group)
@@ -71,6 +77,8 @@ group_cv <- function(v = 5, group, repeats = 1, seed = NULL) {
 #' @param cumulative Logical; use an expanding training window.
 #' @param seed Optional seed.
 #' @return A `funcml_cv` object.
+#' @examples
+#' time_cv(initial = 8, assess = 2, skip = 1)
 #' @export
 time_cv <- function(initial, assess = 1, time = NULL, skip = 0, cumulative = TRUE, seed = NULL) {
   cv(

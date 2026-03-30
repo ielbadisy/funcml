@@ -29,12 +29,7 @@ evaluate(
 
 \item{resampling}{Resampling object from \code{cv()}.}
 
-\item{metrics}{Character vector of metric names. Defaults expand by task:
-regression uses \code{rmse}, \code{mae}, \code{mse}, \code{medae},
-\code{mape}, and \code{rsq}; classification uses \code{accuracy},
-\code{precision}, \code{recall}, \code{specificity}, \code{f1},
-\code{balanced_accuracy}, \code{logloss}, \code{brier}, \code{ece},
-\code{mce}, and \code{auc} for binary outcomes.}
+\item{metrics}{Character vector of metric names.}
 
 \item{type}{Prediction type override.}
 
@@ -51,4 +46,14 @@ A \code{funcml_eval} object.
 }
 \description{
 Cross-validated evaluation.
+}
+\examples{
+eval_obj <- evaluate(
+  data = mtcars,
+  formula = mpg ~ wt + hp,
+  model = "glm",
+  resampling = cv(3, seed = 1),
+  metrics = c("rmse", "mae")
+)
+eval_obj$summary
 }

@@ -19,3 +19,6 @@ A \code{funcml_cv} object.
 \description{
 Plain holdout resampling.
 }
+\examples{
+holdout(prop = 0.75, seed = 1)
+}

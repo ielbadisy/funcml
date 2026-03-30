@@ -18,6 +18,10 @@
 #'
 #' @param base_size Base text size passed to the theme.
 #' @return A ggplot2 theme object.
+#' @examples
+#' ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+#'   ggplot2::geom_point() +
+#'   theme_funcml()
 #' @export
 theme_funcml <- function(base_size = 11) {
   ggplot2::theme_minimal(base_size = base_size) +

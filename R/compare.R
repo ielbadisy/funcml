@@ -16,6 +16,15 @@
 #' @param metric Optimization metric used when `tune = TRUE`.
 #' @param ... Additional arguments passed to `evaluate()` or `tune()` / `fit()`.
 #' @return A `funcml_compare` object.
+#' @examples
+#' cmp <- compare_learners(
+#'   data = mtcars,
+#'   formula = mpg ~ wt + hp,
+#'   models = c("glm", "rpart"),
+#'   resampling = cv(3, seed = 1),
+#'   metrics = c("rmse", "mae")
+#' )
+#' cmp$results
 #' @export
 compare_learners <- function(data, formula, models, specs = NULL,
                              resampling = cv(5), metrics = NULL, type = NULL,

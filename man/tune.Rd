@@ -53,3 +53,14 @@ A \code{funcml_tune} object.
 \description{
 Hyperparameter tuning via grid or random search.
 }
+\examples{
+tune_obj <- tune(
+  data = mtcars,
+  formula = mpg ~ wt + hp,
+  model = "rpart",
+  grid = expand.grid(cp = c(0.001, 0.01), minsplit = c(5, 10)),
+  resampling = cv(3, seed = 1),
+  metric = "rmse"
+)
+tune_obj$best
+}

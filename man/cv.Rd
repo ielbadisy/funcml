@@ -51,3 +51,6 @@ A \code{funcml_cv} object containing fold indices and parameters.
 \description{
 Resampling specification generator.
 }
+\examples{
+cv(v = 3, repeats = 2, seed = 1)
+}

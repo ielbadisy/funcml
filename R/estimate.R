@@ -19,6 +19,17 @@
 #' @param fit Optional preconfigured `funcml_fit` object.
 #' @param ... Passed to `fit()`.
 #' @return A `funcml_estimand` object.
+#' @examples
+#' causal_data <- mtcars
+#' causal_data$am <- factor(causal_data$am, labels = c("auto", "manual"))
+#' ate <- estimate(
+#'   data = causal_data,
+#'   formula = mpg ~ am + wt + hp,
+#'   model = "glm",
+#'   treatment = "am",
+#'   estimand = "ATE"
+#' )
+#' ate$estimate
 #' @export
 estimate <- function(data, formula, model = NULL, treatment = NULL,
                      estimand = c("ATE", "ATT", "CATE", "IATE"),
