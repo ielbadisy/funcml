@@ -10,6 +10,7 @@ lib/
 .local-lib/
 Rplots.pdf
 *.tar.gz
+.codex
 reports/
 scripts/
 plots-examples-style/
