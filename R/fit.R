@@ -49,6 +49,7 @@ fit <- function(formula, data, model, spec = NULL, seed = NULL, na_action = stat
     xlevels = encoded$xlevels,
     contrasts = encoded$contrasts,
     features = encoded$features,
+    has_intercept = encoded$has_intercept,
     levels = encoded$levels,
     na_action = na_action,
     n = nrow(encoded$X),

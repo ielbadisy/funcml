@@ -32,6 +32,10 @@ infer_task <- function(y) {
   trm <- stats::terms(mf)
   contrasts <- attr(mf, "contrasts")
   X <- stats::model.matrix(trm, mf, contrasts.arg = contrasts)
+  has_intercept <- attr(trm, "intercept") == 1
+  if (has_intercept && "(Intercept)" %in% colnames(X)) {
+    X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
+  }
 
   list(
     y = y,
@@ -42,7 +46,7 @@ infer_task <- function(y) {
     contrasts = contrasts,
     X = X,
     features = colnames(X),
-    has_intercept = attr(trm, "intercept") == 1
+    has_intercept = has_intercept
   )
 }
 
@@ -82,6 +86,9 @@ infer_task <- function(y) {
     stats::model.matrix(terms_no_y, mf_new, contrasts.arg = fit$contrasts),
     error = function(e) stop("Design matrix mismatch: ", e$message, call. = FALSE)
   )
+  if (isTRUE(fit$has_intercept) && "(Intercept)" %in% colnames(Xnew)) {
+    Xnew <- Xnew[, colnames(Xnew) != "(Intercept)", drop = FALSE]
+  }
 
   cols_new <- colnames(Xnew)
   if (!identical(cols_new, fit$features)) {
