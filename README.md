@@ -118,15 +118,7 @@ summary(eval_obj)
 plot(eval_obj)
 ```
 
-<div class="figure" style="text-align: center">
-
-<img src="README_files/figure-gfm/eval-plot-1.png" alt="Cross-validated regression performance from the same formula-first workflow."  />
-<p class="caption">
-Cross-validated regression performance from the same formula-first
-workflow.
-</p>
-
-</div>
+<img src="README_files/figure-gfm/eval-plot-1.png" alt="" style="display: block; margin: auto;" />
 
 ### 2. Tune a learner, then compare it against alternatives
 
@@ -160,14 +152,7 @@ tune_obj$best
 plot(tune_obj)
 ```
 
-<div class="figure" style="text-align: center">
-
-<img src="README_files/figure-gfm/tune-plot-1.png" alt="Tuning trace for the xgboost workflow."  />
-<p class="caption">
-Tuning trace for the xgboost workflow.
-</p>
-
-</div>
+<img src="README_files/figure-gfm/tune-plot-1.png" alt="" style="display: block; margin: auto;" />
 
 ``` r
 compare_obj <- compare_learners(
@@ -200,14 +185,7 @@ summary(compare_obj)
 plot(compare_obj)
 ```
 
-<div class="figure" style="text-align: center">
-
-<img src="README_files/figure-gfm/compare-plot-1.png" alt="Direct learner comparison with uncertainty intervals."  />
-<p class="caption">
-Direct learner comparison with uncertainty intervals.
-</p>
-
-</div>
+<img src="README_files/figure-gfm/compare-plot-1.png" alt="" style="display: block; margin: auto;" />
 
 ### 3. Build explanations from the same fitted model
 
@@ -224,14 +202,7 @@ ale_obj <- interpret(
 plot(ale_obj)
 ```
 
-<div class="figure" style="text-align: center">
-
-<img src="README_files/figure-gfm/ale-plot-1.png" alt="Accumulated local effects for two important predictors."  />
-<p class="caption">
-Accumulated local effects for two important predictors.
-</p>
-
-</div>
+<img src="README_files/figure-gfm/ale-plot-1.png" alt="" style="display: block; margin: auto;" />
 
 ``` r
 shap_obj <- interpret(
@@ -249,14 +220,7 @@ shap_obj <- interpret(
 plot(shap_obj, kind = "waterfall")
 ```
 
-<div class="figure" style="text-align: center">
-
-<img src="README_files/figure-gfm/shap-plot-1.png" alt="Local SHAP-style decomposition for one prediction."  />
-<p class="caption">
-Local SHAP-style decomposition for one prediction.
-</p>
-
-</div>
+<img src="README_files/figure-gfm/shap-plot-1.png" alt="" style="display: block; margin: auto;" />
 
 The interpretation layer also supports permutation importance, PDP, ICE,
 local surrogate explanations, global surrogates, interaction strength,
@@ -299,14 +263,7 @@ calibration_obj <- interpret(
 plot(calibration_obj)
 ```
 
-<div class="figure" style="text-align: center">
-
-<img src="README_files/figure-gfm/calibration-plot-1.png" alt="Probability calibration for a binary classification workflow."  />
-<p class="caption">
-Probability calibration for a binary classification workflow.
-</p>
-
-</div>
+<img src="README_files/figure-gfm/calibration-plot-1.png" alt="" style="display: block; margin: auto;" />
 
 ### 5. Estimate causal effects with the same learner interface
 
@@ -333,15 +290,7 @@ summary(est_obj)
 plot(est_obj)
 ```
 
-<div class="figure" style="text-align: center">
-
-<img src="README_files/figure-gfm/estimate-plot-1.png" alt="Estimated distribution of unit-level treatment effects from plug-in g-computation."  />
-<p class="caption">
-Estimated distribution of unit-level treatment effects from plug-in
-g-computation.
-</p>
-
-</div>
+<img src="README_files/figure-gfm/estimate-plot-1.png" alt="" style="display: block; margin: auto;" />
 
 ## Ensembles are first-class learners
 
@@ -380,11 +329,3 @@ The current registry covers 26 learner ids. Broadly:
 The learner adapter layer was audited package-wide. Unsupported
 combinations are now rejected early instead of failing later in
 evaluation or interpretation code.
-
-## Local development note
-
-- `README.md` is generated from `README.Rmd`.
-- The audit-backed learner status artifacts live under
-  [`work/audit/`](work/audit/).
-- The full `tests/testthat` suite currently passes against the source
-  tree.

@@ -123,7 +123,7 @@ eval_obj <- evaluate(
 summary(eval_obj)
 ```
 
-```{r eval-plot, fig.cap="Cross-validated regression performance from the same formula-first workflow."}
+```{r eval-plot}
 plot(eval_obj)
 ```
 
@@ -151,7 +151,7 @@ tune_obj <- tune(
 tune_obj$best
 ```
 
-```{r tune-plot, fig.cap="Tuning trace for the xgboost workflow."}
+```{r tune-plot}
 plot(tune_obj)
 ```
 
@@ -168,7 +168,7 @@ compare_obj <- compare_learners(
 summary(compare_obj)
 ```
 
-```{r compare-plot, fig.cap="Direct learner comparison with uncertainty intervals."}
+```{r compare-plot}
 plot(compare_obj)
 ```
 
@@ -183,7 +183,7 @@ ale_obj <- interpret(
 )
 ```
 
-```{r ale-plot, fig.cap="Accumulated local effects for two important predictors."}
+```{r ale-plot}
 plot(ale_obj)
 ```
 
@@ -199,7 +199,7 @@ shap_obj <- interpret(
 )
 ```
 
-```{r shap-plot, fig.cap="Local SHAP-style decomposition for one prediction."}
+```{r shap-plot}
 plot(shap_obj, kind = "waterfall")
 ```
 
@@ -233,7 +233,7 @@ calibration_obj <- interpret(
 )
 ```
 
-```{r calibration-plot, fig.cap="Probability calibration for a binary classification workflow."}
+```{r calibration-plot}
 plot(calibration_obj)
 ```
 
@@ -254,7 +254,7 @@ est_obj <- estimate(
 summary(est_obj)
 ```
 
-```{r estimate-plot, fig.cap="Estimated distribution of unit-level treatment effects from plug-in g-computation."}
+```{r estimate-plot}
 plot(est_obj)
 ```
 
@@ -294,9 +294,3 @@ The current registry covers 26 learner ids. Broadly:
 The learner adapter layer was audited package-wide. Unsupported combinations
 are now rejected early instead of failing later in evaluation or
 interpretation code.
-
-## Local development note
-
-- `README.md` is generated from `README.Rmd`.
-- The audit-backed learner status artifacts live under [`work/audit/`](work/audit/).
-- The full `tests/testthat` suite currently passes against the source tree.
