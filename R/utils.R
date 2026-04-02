@@ -158,6 +158,9 @@ merge_spec <- function(defaults, spec, dots = list()) {
   levels <- fit$levels
   default_type <- if (task == "regression") "response" else "class"
   type <- type %||% default_type
+  if (identical(type, "raw")) {
+    type <- if (task == "regression") "response" else "class"
+  }
 
   if (task == "regression" && type != "response") {
     stop("Regression models support only type='response'.", call. = FALSE)
@@ -166,6 +169,9 @@ merge_spec <- function(defaults, spec, dots = list()) {
   if (task == "classification") {
     if (!type %in% c("class", "prob", "response")) stop("Classification type must be 'class', 'prob', or 'response'.", call. = FALSE)
     if (is.null(levels)) stop("Classification predictions require stored factor levels.", call. = FALSE)
+    if (type == "prob" && !isTRUE(adapter$supports$prob)) {
+      stop(sprintf("Model '%s' does not support type='prob'.", fit$model), call. = FALSE)
+    }
   }
 
   adapter_type <- if (task == "classification" && type %in% c("class", "response")) "class" else type
@@ -185,7 +191,7 @@ merge_spec <- function(defaults, spec, dots = list()) {
   # class / response
   if (is.matrix(raw)) {
     prob <- .normalize_prob_matrix(raw, levels)
-    cls <- levels[max.col(prob)]
+    cls <- levels[max.col(prob, ties.method = "first")]
     return(factor(cls, levels = levels))
   }
 

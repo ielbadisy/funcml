@@ -33,6 +33,9 @@ fit <- function(formula, data, model, spec = NULL, seed = NULL, na_action = stat
   encoded <- .encode_train(data = data, formula = formula, na_action = na_action)
   task <- encoded$task
   if (!task %in% adapter$tasks) stop(sprintf("Model '%s' does not support %s.", model, task), call. = FALSE)
+  if (identical(task, "classification") && length(encoded$levels) > 2L && !isTRUE(adapter$supports$multiclass)) {
+    stop(sprintf("Model '%s' does not support multiclass classification.", model), call. = FALSE)
+  }
 
   spec_full <- merge_spec(adapter$defaults, spec, list(...))
   state <- adapter$fit_xy(encoded$X, encoded$y, spec_full, task = task, levels = encoded$levels)
