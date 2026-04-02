@@ -1002,7 +1002,9 @@ build_registry <- function() {
           depth = spec$depth,
           learning_rate = spec$learning_rate,
           l2_leaf_reg = spec$l2_leaf_reg,
-          verbose = FALSE
+          logging_level = "Silent",
+          train_dir = tempfile("funcml-catboost-"),
+          allow_writing_files = FALSE
         )
         fit <- catboost::catboost.train(pool, params = params)
         list(state = fit, levels = levels, loss_function = loss)
