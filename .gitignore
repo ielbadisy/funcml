@@ -24,3 +24,6 @@ inst/reference_src/**/inst/doc/
 inst/reference_src/**/man/
 inst/reference_src/**/tests/
 inst/reference_src/**/vignettes/
+
+/.quarto/
+**/*.quarto_ipynb
