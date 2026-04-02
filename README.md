@@ -118,7 +118,7 @@ summary(eval_obj)
 plot(eval_obj)
 ```
 
-<img src="README_files/figure-gfm/eval-plot-1.png" alt="" style="display: block; margin: auto;" />
+![](README_files/figure-gfm/eval-plot-1.png)<!-- -->
 
 ### 2. Tune a learner, then compare it against alternatives
 
@@ -152,7 +152,7 @@ tune_obj$best
 plot(tune_obj)
 ```
 
-<img src="README_files/figure-gfm/tune-plot-1.png" alt="" style="display: block; margin: auto;" />
+![](README_files/figure-gfm/tune-plot-1.png)<!-- -->
 
 ``` r
 compare_obj <- compare_learners(
@@ -185,7 +185,7 @@ summary(compare_obj)
 plot(compare_obj)
 ```
 
-<img src="README_files/figure-gfm/compare-plot-1.png" alt="" style="display: block; margin: auto;" />
+![](README_files/figure-gfm/compare-plot-1.png)<!-- -->
 
 ### 3. Build explanations from the same fitted model
 
@@ -202,7 +202,7 @@ ale_obj <- interpret(
 plot(ale_obj)
 ```
 
-<img src="README_files/figure-gfm/ale-plot-1.png" alt="" style="display: block; margin: auto;" />
+![](README_files/figure-gfm/ale-plot-1.png)<!-- -->
 
 ``` r
 shap_obj <- interpret(
@@ -220,7 +220,7 @@ shap_obj <- interpret(
 plot(shap_obj, kind = "waterfall")
 ```
 
-<img src="README_files/figure-gfm/shap-plot-1.png" alt="" style="display: block; margin: auto;" />
+![](README_files/figure-gfm/shap-plot-1.png)<!-- -->
 
 The interpretation layer also supports permutation importance, PDP, ICE,
 local surrogate explanations, global surrogates, interaction strength,
@@ -263,7 +263,7 @@ calibration_obj <- interpret(
 plot(calibration_obj)
 ```
 
-<img src="README_files/figure-gfm/calibration-plot-1.png" alt="" style="display: block; margin: auto;" />
+![](README_files/figure-gfm/calibration-plot-1.png)<!-- -->
 
 ### 5. Estimate causal effects with the same learner interface
 
@@ -290,7 +290,7 @@ summary(est_obj)
 plot(est_obj)
 ```
 
-<img src="README_files/figure-gfm/estimate-plot-1.png" alt="" style="display: block; margin: auto;" />
+![](README_files/figure-gfm/estimate-plot-1.png)<!-- -->
 
 ## Ensembles are first-class learners
 
