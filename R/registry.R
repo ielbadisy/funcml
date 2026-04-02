@@ -114,41 +114,114 @@
   out
 }
 
-.ensemble_fit_meta <- function(meta_x, y, task, levels = NULL) {
-  x <- cbind(`(Intercept)` = 1, as.matrix(meta_x))
+.ensemble_fit_meta <- function(meta_x, y, task, levels = NULL, meta_model = "native") {
+  meta_x <- as.matrix(meta_x)
+  if (task == "classification") {
+    meta_x <- pmin(pmax(meta_x, 1e-6), 1 - 1e-6)
+  }
+  if (identical(task, "classification") && length(levels) > 2L && identical(meta_model, "native")) {
+    meta_model <- "glmnet"
+  }
+
+  if (identical(meta_model, "glmnet")) {
+    assert_package("glmnet", "stacking")
+    lambda <- 1e-3
+    if (identical(task, "regression")) {
+      fit <- glmnet::glmnet(
+        x = meta_x,
+        y = as.numeric(y),
+        family = "gaussian",
+        alpha = 0,
+        lambda = lambda,
+        standardize = FALSE
+      )
+      return(list(task = task, engine = "glmnet_gaussian", fit = fit, lambda = lambda))
+    }
+    if (length(levels) == 2L) {
+      y_bin <- as.numeric(y == levels[2L])
+      fit <- glmnet::glmnet(
+        x = meta_x,
+        y = y_bin,
+        family = "binomial",
+        alpha = 0,
+        lambda = lambda,
+        standardize = FALSE
+      )
+      return(list(task = task, levels = levels, engine = "glmnet_binomial", fit = fit, lambda = lambda))
+    }
+    fit <- glmnet::glmnet(
+      x = meta_x,
+      y = factor(y, levels = levels),
+      family = "multinomial",
+      alpha = 0,
+      lambda = lambda,
+      standardize = FALSE
+    )
+    return(list(task = task, levels = levels, engine = "glmnet_multinomial", fit = fit, lambda = lambda))
+  }
+
+  x <- cbind(`(Intercept)` = 1, meta_x)
   if (task == "regression") {
     fit <- stats::lm.fit(x = x, y = as.numeric(y))
-    return(list(task = task, coef = fit$coefficients))
+    return(list(task = task, engine = "native_lm", coef = fit$coefficients))
   }
 
   if (length(levels) == 2L) {
     y_bin <- as.numeric(y == levels[2L])
     fit <- stats::glm.fit(x = x, y = y_bin, family = stats::binomial())
-    return(list(task = task, levels = levels, coef = fit$coefficients))
+    coef <- fit$coefficients
+    coef[!is.finite(coef)] <- 0
+    return(list(task = task, levels = levels, engine = "native_binomial", coef = coef))
   }
 
   coef_mat <- matrix(0, nrow = ncol(x), ncol = length(levels), dimnames = list(colnames(x), levels))
   for (lvl in levels) {
     y_bin <- as.numeric(y == lvl)
     fit <- stats::glm.fit(x = x, y = y_bin, family = stats::binomial())
-    coef_mat[, lvl] <- fit$coefficients
+    coef <- fit$coefficients
+    coef[!is.finite(coef)] <- 0
+    coef_mat[, lvl] <- coef
   }
-  list(task = task, levels = levels, coef = coef_mat)
+  list(task = task, levels = levels, engine = "native_multinomial_ovr", coef = coef_mat)
 }
 
 .ensemble_predict_meta <- function(meta_fit, meta_x) {
-  x <- cbind(`(Intercept)` = 1, as.matrix(meta_x))
+  meta_x <- as.matrix(meta_x)
+  if (meta_fit$task == "classification") {
+    meta_x <- pmin(pmax(meta_x, 1e-6), 1 - 1e-6)
+  }
+  if (identical(meta_fit$engine, "glmnet_gaussian")) {
+    pred <- stats::predict(meta_fit$fit, newx = meta_x, s = meta_fit$lambda, type = "response")
+    return(as.numeric(pred))
+  }
+  if (identical(meta_fit$engine, "glmnet_binomial")) {
+    prob <- as.numeric(stats::predict(meta_fit$fit, newx = meta_x, s = meta_fit$lambda, type = "response"))
+    prob <- pmin(pmax(prob, 1e-6), 1 - 1e-6)
+    out <- cbind(1 - prob, prob)
+    colnames(out) <- meta_fit$levels
+    return(out)
+  }
+  if (identical(meta_fit$engine, "glmnet_multinomial")) {
+    prob <- stats::predict(meta_fit$fit, newx = meta_x, s = meta_fit$lambda, type = "response")[, , 1, drop = TRUE]
+    prob <- as.matrix(prob)
+    prob <- prob[, meta_fit$levels, drop = FALSE]
+    colnames(prob) <- meta_fit$levels
+    return(prob)
+  }
+  x <- cbind(`(Intercept)` = 1, meta_x)
   if (meta_fit$task == "regression") {
     return(drop(x %*% meta_fit$coef))
   }
   if (length(meta_fit$levels) == 2L) {
     eta <- drop(x %*% meta_fit$coef)
+    eta[!is.finite(eta)] <- 0
     prob <- stats::plogis(eta)
     out <- cbind(1 - prob, prob)
     colnames(out) <- meta_fit$levels
     return(out)
   }
   eta <- x %*% meta_fit$coef
+  eta[!is.finite(eta)] <- 0
   eta <- sweep(eta, 1, apply(eta, 1, max), FUN = "-")
   prob <- exp(eta)
   prob <- prob / rowSums(prob)
@@ -224,8 +297,7 @@ build_registry <- function() {
         list(state = fit, family = family)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
-        pred_type <- if (type %in% c("prob", "response")) "response" else "link"
-        p <- stats::predict(state$state, newdata = data.frame(Xnew), type = pred_type)
+        p <- stats::predict(state$state, newdata = data.frame(Xnew), type = "response")
         if (is.null(levels)) return(as.numeric(p))
         if (type == "prob") {
           prob <- cbind(1 - p, p)
@@ -292,7 +364,7 @@ build_registry <- function() {
           if (!is.matrix(prob)) prob <- as.matrix(prob)
           prob <- prob[, levels, drop = FALSE]
           if (type == "class") {
-            cls <- levels[max.col(prob)]
+            cls <- levels[max.col(prob, ties.method = "first")]
             return(factor(cls, levels = levels))
           }
           return(prob)
@@ -393,10 +465,11 @@ build_registry <- function() {
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("e1071", "e1071_svm")
+        gamma <- spec$gamma %||% (1 / max(1, ncol(X)))
         df <- data.frame(y = y, X)
         fit <- e1071::svm(
           y ~ ., data = df,
-          cost = spec$cost, gamma = spec$gamma, kernel = spec$kernel,
+          cost = spec$cost, gamma = gamma, kernel = spec$kernel,
           type = if (task == "regression") "eps-regression" else "C-classification",
           probability = task == "classification"
         )
@@ -426,14 +499,15 @@ build_registry <- function() {
       supports = list(prob = TRUE, multiclass = TRUE, importance = TRUE),
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("randomForest", "randomForest")
-        df <- data.frame(y = y, X)
-        fit <- randomForest::randomForest(
-          y ~ ., data = df,
+        args <- list(
+          x = X,
+          y = y,
           ntree = spec$ntree,
-          mtry = spec$mtry,
-          nodesize = spec$nodesize,
           importance = TRUE
         )
+        if (!is.null(spec$mtry)) args$mtry <- spec$mtry
+        if (!is.null(spec$nodesize)) args$nodesize <- spec$nodesize
+        fit <- do.call(randomForest::randomForest, args)
         list(state = fit)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
@@ -465,11 +539,12 @@ build_registry <- function() {
       package = "gbm",
       tasks = c("regression", "classification"),
       defaults = list(n.trees = 200, interaction.depth = 3, shrinkage = 0.05, n.minobsinnode = 10),
-      supports = list(prob = TRUE, multiclass = TRUE, importance = TRUE),
+      supports = list(prob = TRUE, multiclass = FALSE, importance = TRUE),
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("gbm", "gbm")
         distribution <- if (task == "regression") "gaussian" else if (length(unique(y)) > 2) "multinomial" else "bernoulli"
-        df <- data.frame(y = y, X)
+        y_fit <- if (task == "classification" && distribution == "bernoulli") as.numeric(y == levels(y)[2]) else y
+        df <- data.frame(y = y_fit, X)
         fit <- gbm::gbm(
           y ~ ., data = df,
           distribution = distribution,
@@ -491,11 +566,11 @@ build_registry <- function() {
           if (is.list(prob)) {
             prob <- do.call(cbind, lapply(prob, as.numeric))
           } else if (length(dim(prob)) == 3) {
-            prob <- matrix(prob, ncol = dim(prob)[3], byrow = FALSE)
+            prob <- prob[, , 1, drop = TRUE]
           }
           colnames(prob) <- levels
           if (type == "class") {
-            cls <- levels[max.col(prob)]
+            cls <- levels[max.col(prob, ties.method = "first")]
             return(factor(cls, levels = levels))
           }
           return(prob)
@@ -562,7 +637,7 @@ build_registry <- function() {
           prob <- as.matrix(prob)[, levels, drop = FALSE]
           return(prob)
         }
-        cls <- stats::predict(state$state, newdata = data.frame(Xnew), type = "response")
+        cls <- stats::predict(state$state, newdata = data.frame(Xnew), type = "raw")
         factor(cls, levels = levels)
       }
     ),
@@ -625,8 +700,7 @@ build_registry <- function() {
         list(state = fit, task = task)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
-        pred_type <- if (is.null(levels)) "response" else if (type == "prob") "response" else "link"
-        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE), type = pred_type)
+        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE), type = "response")
         if (is.null(levels)) return(as.numeric(pred))
         prob <- pmin(pmax(as.numeric(pred), 1e-6), 1 - 1e-6)
         if (type == "class") {
@@ -677,19 +751,14 @@ build_registry <- function() {
         list(state = fit)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE))
         if (type == "prob") {
-          prob <- tryCatch(
-            stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE), type = "posterior"),
-            error = function(e) NULL
-          )
-          if (is.null(prob)) {
-            stop("fda does not provide probability predictions in this build.", call. = FALSE)
-          }
+          prob <- if (is.list(pred) && !is.null(pred$posterior)) pred$posterior else pred
           prob <- as.matrix(prob)[, levels, drop = FALSE]
           return(prob)
         }
-        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE))
-        factor(pred, levels = levels)
+        cls <- if (is.list(pred) && !is.null(pred$class)) pred$class else pred
+        factor(cls, levels = levels)
       }
     ),
     adaboost = list(
@@ -710,7 +779,8 @@ build_registry <- function() {
           loss = spec$loss,
           type = spec$type
         )
-        list(state = fit)
+        backend_levels <- colnames(fit$confusion) %||% levels(y)
+        list(state = fit, backend_levels = backend_levels)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
         new_df <- data.frame(Xnew, check.names = FALSE)
@@ -719,8 +789,12 @@ build_registry <- function() {
           prob <- as.matrix(prob)
           if (ncol(prob) == 1L) {
             prob <- cbind(1 - prob[, 1], prob[, 1])
+            colnames(prob) <- state$backend_levels %||% levels
+          } else if (!is.null(colnames(prob))) {
+            prob <- prob[, levels, drop = FALSE]
+          } else {
+            colnames(prob) <- state$backend_levels %||% levels
           }
-          colnames(prob) <- levels
           return(prob[, levels, drop = FALSE])
         }
         pred <- stats::predict(state$state, newdata = new_df, type = "vector")
@@ -879,13 +953,13 @@ build_registry <- function() {
         list(state = fit, objective = objective, levels = levels, num_class = num_class, feature_names = colnames(X))
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
-        pred <- stats::predict(state$state, data = Xnew)
+        pred <- stats::predict(state$state, newdata = Xnew)
         if (state$objective == "regression" || is.null(levels)) return(as.numeric(pred))
         if (state$objective == "multiclass") {
           prob <- matrix(pred, ncol = state$num_class, byrow = TRUE)
           colnames(prob) <- levels
           if (type == "class") {
-            cls <- levels[max.col(prob)]
+            cls <- levels[max.col(prob, ties.method = "first")]
             return(factor(cls, levels = levels))
           }
           return(prob[, levels, drop = FALSE])
@@ -928,7 +1002,9 @@ build_registry <- function() {
           depth = spec$depth,
           learning_rate = spec$learning_rate,
           l2_leaf_reg = spec$l2_leaf_reg,
-          verbose = FALSE
+          logging_level = "Silent",
+          train_dir = tempfile("funcml-catboost-"),
+          allow_writing_files = FALSE
         )
         fit <- catboost::catboost.train(pool, params = params)
         list(state = fit, levels = levels, loss_function = loss)
@@ -944,20 +1020,27 @@ build_registry <- function() {
           prob <- matrix(prob, ncol = length(levels), byrow = TRUE)
           colnames(prob) <- levels
           if (type == "class") {
-            cls <- levels[max.col(prob)]
+            cls <- levels[max.col(prob, ties.method = "first")]
             return(factor(cls, levels = levels))
           }
           return(prob[, levels, drop = FALSE])
         }
-        prob <- as.numeric(catboost::catboost.predict(state$state, pool_new, prediction_type = "Probability"))
-        prob <- pmin(pmax(prob, 1e-6), 1 - 1e-6)
+        prob <- as.matrix(catboost::catboost.predict(state$state, pool_new, prediction_type = "Probability"))
+        if (ncol(prob) == 1L) {
+          prob <- as.numeric(prob[, 1])
+          prob <- pmin(pmax(prob, 1e-6), 1 - 1e-6)
+          prob <- cbind(1 - prob, prob)
+        } else if (!is.null(colnames(prob))) {
+          prob <- prob[, levels, drop = FALSE]
+        } else {
+          colnames(prob) <- levels
+        }
         if (type == "class") {
-          cls <- ifelse(prob >= 0.5, levels[2], levels[1])
+          cls <- levels[max.col(prob, ties.method = "first")]
           return(factor(cls, levels = levels))
         }
-        out <- cbind(1 - prob, prob)
-        colnames(out) <- levels
-        out
+        colnames(prob) <- levels
+        prob[, levels, drop = FALSE]
       },
       importance = function(state, X, y, feature_names, task, levels, ...) {
         pool <- catboost::catboost.load_pool(data = X, label = NULL)
@@ -1040,7 +1123,7 @@ build_registry <- function() {
           prob <- matrix(pred, ncol = length(levels), byrow = TRUE)
           colnames(prob) <- levels
           if (type == "class") {
-            cls <- levels[max.col(prob)]
+            cls <- levels[max.col(prob, ties.method = "first")]
             return(factor(cls, levels = levels))
           }
           return(prob)
@@ -1065,7 +1148,7 @@ build_registry <- function() {
     stacking = list(
       package = "stats",
       tasks = c("regression", "classification"),
-      defaults = list(learners = NULL, learner_specs = list(), meta_model = "native"),
+      defaults = list(learners = NULL, learner_specs = list(), meta_model = "glmnet"),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, levels, ...) {
         learners <- spec$learners %||% .ensemble_default_learners(task)
@@ -1074,7 +1157,7 @@ build_registry <- function() {
         base_models <- .ensemble_fit_base_models(X, y, learners, learner_specs, task, levels)
         base_preds <- .ensemble_predict_base_models(base_models, X, task, levels)
         meta_x <- .ensemble_meta_matrix(base_preds, learners, levels)
-        meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels)
+        meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels, meta_model = spec$meta_model %||% "glmnet")
         list(
           ensemble = "stacking",
           learners = learners,
@@ -1095,7 +1178,7 @@ build_registry <- function() {
         }
         prob <- .ensemble_prob_matrix(pred, state$levels)
         if (type == "class") {
-          cls <- state$levels[max.col(prob)]
+          cls <- state$levels[max.col(prob, ties.method = "first")]
           return(factor(cls, levels = state$levels))
         }
         prob
@@ -1104,7 +1187,7 @@ build_registry <- function() {
     superlearner = list(
       package = "stats",
       tasks = c("regression", "classification"),
-      defaults = list(learners = NULL, learner_specs = list(), meta_model = "native", resampling = cv(5, seed = 1)),
+      defaults = list(learners = NULL, learner_specs = list(), meta_model = "glmnet", resampling = cv(5, seed = 1)),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, levels, ...) {
         learners <- spec$learners %||% .ensemble_default_learners(task)
@@ -1112,7 +1195,7 @@ build_registry <- function() {
         learner_specs <- .ensemble_prepare_specs(learners, spec$learner_specs %||% list())
         resampling <- spec$resampling %||% cv(5, seed = 1)
         meta_x <- .ensemble_oof_meta_matrix(X, y, learners, learner_specs, task, levels, resampling)
-        meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels)
+        meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels, meta_model = spec$meta_model %||% "glmnet")
         base_models <- .ensemble_fit_base_models(X, y, learners, learner_specs, task, levels)
         list(
           ensemble = "superlearner",
@@ -1135,7 +1218,7 @@ build_registry <- function() {
         }
         prob <- .ensemble_prob_matrix(pred, state$levels)
         if (type == "class") {
-          cls <- state$levels[max.col(prob)]
+          cls <- state$levels[max.col(prob, ties.method = "first")]
           return(factor(cls, levels = state$levels))
         }
         prob
