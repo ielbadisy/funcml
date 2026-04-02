@@ -1,11 +1,5 @@
 library(funcml)
 
-if (requireNamespace("pkgload", quietly = TRUE)) {
-  pkgload::load_all(".", quiet = TRUE, export_all = FALSE)
-}
-
-source(testthat::test_path("..", "..", "work", "audit", "audit_helpers.R"), local = FALSE)
-
 audit_regression_data <- function() {
   make_split <- function(seed, n) {
     set.seed(seed)
