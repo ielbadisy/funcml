@@ -12,77 +12,278 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.align = "center",
-  dpi = 120
+  dpi = 120,
+  warning = FALSE,
+  message = FALSE
 )
 pkgload::load_all(".", export_all = FALSE, helpers = FALSE, quiet = TRUE)
+ggplot2::theme_set(theme_funcml())
 set.seed(42)
 ```
 
 # funcml
 
-`funcml` is a formula-first functional machine learning package for building
-end-to-end modeling workflows with a compact S3 interface.
+`funcml` is a formula-first machine learning toolkit for people who want one
+compact interface for fitting models, validating them, tuning them, comparing
+learners, interpreting predictions, and estimating causal effects.
 
-The package is intentionally opinionated. It is not meant to compete feature
-for feature with more established and more complete frameworks such as
-`tidymodels`, `mlr3`, or `caret`. The goal is narrower: provide a compact,
-explicit, formula-first pipeline for users who want to fit, compare, tune,
-interpret, and estimate machine learning models without adopting a large
-workflow system.
+The package is intentionally opinionated: preprocessing happens before `fit()`,
+the modeling input stays explicit, and the workflow remains compact instead of
+expanding into a large orchestration framework.
 
-The package is centered on one workflow:
+## Why `funcml`?
 
-- `fit()`
-- `predict()`
-- `learners()`
-- `compare_learners()`
-- `cv()`
-- `evaluate()`
-- `tune()`
-- `estimate()`
-- `interpret()`
+- One consistent surface: `fit()`, `predict()`, `evaluate()`, `tune()`,
+  `compare_learners()`, `interpret()`, and `estimate()`.
+- Plot-ready outputs: evaluation, tuning, comparison, explanation,
+  calibration, and treatment-effect objects all have native plot methods.
+- Broad learner coverage: tree models, penalized GLMs, kernel methods,
+  gradient boosting, Bayesian trees, and native ensemble learners.
+- Audited learner layer: unsupported modes are blocked explicitly, and the
+  repository includes the learner audit artifacts under
+  [`work/audit/`](work/audit/).
 
-Interpretability is included as one part of the package, not the main purpose.
+## Installation
 
-## Design philosophy
+```r
+install.packages("remotes")
+remotes::install_github("ielbadisy/funcml")
+```
 
-`funcml` is built around a deliberate tradeoff: less framework machinery in
-exchange for a more compact, explicit workflow.
+`funcml` imports the supported learner backends directly, so a standard install
+brings the learner registry into the package without extra registration steps.
 
-- Preprocessing is intentionally outside the package. Data modifications should
-  happen before `fit()` so the modeling input is explicit and the training step
-  does not hide transformation state.
-- The package favors functional composition and clear inputs over implicit
-  workflow objects that mutate or learn preprocessing steps inside training.
-- Cross-validation is still the default scientific baseline, but the package
-  now also supports holdout splits, grouped CV, and time-aware rolling
-  evaluation through the same resampling interface.
-- This is a tradeoff, not a universal claim. Users who need richer
-  preprocessing orchestration, broader resampling strategies, or larger ML
-  ecosystems should use more complete frameworks.
+## What the package covers
 
-In short, `funcml` is for users who want the most compact pipeline that still
-keeps model fitting, evaluation, tuning, interpretability, and causal
-estimation in one coherent interface.
+| Workflow | Main functions | Typical output |
+| --- | --- | --- |
+| Fit + predict | `fit()`, `predict()` | compact `funcml_fit` object with formula-aware prediction |
+| Resampled validation | `cv()`, `holdout()`, `group_cv()`, `time_cv()`, `evaluate()` | fold-level metrics, uncertainty summaries, performance plots |
+| Model selection | `tune()`, `compare_learners()` | search traces, tuned summaries, side-by-side learner comparison |
+| Interpretation | `interpret()` | permutation importance, PDP, ICE, ALE, SHAP, surrogate, interaction, calibration |
+| Causal estimation | `estimate()` | plug-in g-computation for `ATE`, `ATT`, `CATE`, and `IATE` |
 
-## Package context
+## Quick start
 
-`funcml` is organized around a single learner registry and a shared S3 modeling
-surface.
+```{r demo-data}
+demo_reg <- transform(
+  mtcars,
+  car = rownames(mtcars)
+)
 
-- `fit()` encodes a formula/data pair, dispatches to a learner adapter, and
-  returns a `funcml_fit` object with a stored prediction closure.
-- `predict()` reuses the stored design-matrix metadata so new data must match
-  the fitted feature space exactly.
-- `evaluate()` and `tune()` build on the same `fit()` interface.
-- `compare_learners()` compares several learners on a shared resampling scheme,
-  with optional tuning inside the comparison step.
-- `estimate()` performs plug-in g-computation for causal estimands.
-- `interpret()` provides native model-agnostic explanations and plot methods.
+demo_cls <- transform(
+  mtcars,
+  heavy = factor(ifelse(wt > median(wt), "heavy", "light"),
+    levels = c("light", "heavy")
+  )
+)
 
-Current learner ids exposed through `learners()` include:
+demo_causal <- transform(
+  demo_reg,
+  trt = as.integer(wt > median(wt))
+)
 
-| Task support | Learners |
+xgb_spec <- list(
+  nrounds = 30,
+  max_depth = 3,
+  eta = 0.1,
+  subsample = 1,
+  colsample_bytree = 1
+)
+```
+
+```{r quick-start}
+fit_obj <- fit(
+  mpg ~ wt + hp + qsec + drat,
+  data = demo_reg,
+  model = "xgboost",
+  spec = xgb_spec,
+  seed = 42
+)
+
+round(predict(fit_obj, demo_reg[1:5, , drop = FALSE]), 2)
+```
+
+The same fitted object can immediately feed evaluation, tuning,
+interpretability, and causal workflows.
+
+## Workflow gallery
+
+### 1. Cross-validated model performance
+
+```{r evaluate}
+eval_obj <- evaluate(
+  demo_reg,
+  mpg ~ wt + hp + qsec + drat,
+  model = "xgboost",
+  spec = xgb_spec,
+  resampling = cv(v = 4, seed = 42)
+)
+
+summary(eval_obj)
+```
+
+```{r eval-plot, fig.cap="Cross-validated regression performance from the same formula-first workflow."}
+plot(eval_obj)
+```
+
+### 2. Tune a learner, then compare it against alternatives
+
+```{r tune}
+tune_grid <- expand.grid(
+  max_depth = c(2, 3),
+  eta = c(0.05, 0.1),
+  nrounds = c(20, 30)
+)
+
+tune_obj <- tune(
+  demo_reg,
+  mpg ~ wt + hp + qsec + drat,
+  model = "xgboost",
+  grid = tune_grid,
+  resampling = cv(v = 3, seed = 42),
+  metric = "rmse",
+  subsample = 1,
+  colsample_bytree = 1,
+  seed = 42
+)
+
+tune_obj$best
+```
+
+```{r tune-plot, fig.cap="Tuning trace for the xgboost workflow."}
+plot(tune_obj)
+```
+
+```{r compare}
+compare_obj <- compare_learners(
+  demo_reg,
+  mpg ~ wt + hp + qsec,
+  models = c("glm", "rpart", "xgboost"),
+  metrics = c("rmse", "mae"),
+  resampling = cv(v = 4, seed = 42),
+  specs = list(xgboost = xgb_spec)
+)
+
+summary(compare_obj)
+```
+
+```{r compare-plot, fig.cap="Direct learner comparison with uncertainty intervals."}
+plot(compare_obj)
+```
+
+### 3. Build explanations from the same fitted model
+
+```{r ale}
+ale_obj <- interpret(
+  fit_obj,
+  demo_reg,
+  method = "ale",
+  features = c("wt", "hp")
+)
+```
+
+```{r ale-plot, fig.cap="Accumulated local effects for two important predictors."}
+plot(ale_obj)
+```
+
+```{r shap}
+shap_obj <- interpret(
+  fit_obj,
+  demo_reg,
+  method = "shap",
+  newdata = demo_reg[1, , drop = FALSE],
+  nsim = 30,
+  nsamples = 20,
+  seed = 42
+)
+```
+
+```{r shap-plot, fig.cap="Local SHAP-style decomposition for one prediction."}
+plot(shap_obj, kind = "waterfall")
+```
+
+The interpretation layer also supports permutation importance, PDP, ICE,
+local surrogate explanations, global surrogates, interaction strength,
+ceteris paribus profiles, and calibration diagnostics.
+
+### 4. Inspect classification probabilities directly
+
+```{r classification}
+cls_fit <- fit(
+  heavy ~ mpg + hp + qsec + drat,
+  data = demo_cls,
+  model = "glm",
+  seed = 42
+)
+
+round(
+  predict(cls_fit, demo_cls[1:6, , drop = FALSE], type = "prob"),
+  3
+)
+```
+
+```{r calibration}
+calibration_obj <- interpret(
+  cls_fit,
+  demo_cls,
+  method = "calibration",
+  type = "prob",
+  bins = 6
+)
+```
+
+```{r calibration-plot, fig.cap="Probability calibration for a binary classification workflow."}
+plot(calibration_obj)
+```
+
+### 5. Estimate causal effects with the same learner interface
+
+```{r estimate}
+est_obj <- estimate(
+  demo_causal,
+  mpg ~ trt + hp + qsec + drat,
+  model = "rpart",
+  estimand = "ATE",
+  spec = list(cp = 0.01, minsplit = 5),
+  interval = "bootstrap",
+  n_boot = 20,
+  seed = 42
+)
+
+summary(est_obj)
+```
+
+```{r estimate-plot, fig.cap="Estimated distribution of unit-level treatment effects from plug-in g-computation."}
+plot(est_obj)
+```
+
+## Ensembles are first-class learners
+
+`stacking` and `superlearner` live in the same registry as the base learners,
+so you fit them through the same `fit()` interface.
+
+```{r ensemble}
+stack_fit <- fit(
+  mpg ~ wt + hp + qsec + drat,
+  data = demo_reg,
+  model = "stacking",
+  spec = list(
+    learners = c("glm", "rpart", "xgboost"),
+    learner_specs = list(xgboost = xgb_spec),
+    meta_model = "glmnet"
+  ),
+  seed = 42
+)
+
+round(predict(stack_fit, demo_reg[1:5, , drop = FALSE]), 2)
+```
+
+## Learner coverage
+
+The current registry covers 26 learner ids. Broadly:
+
+| Support | Learners |
 | --- | --- |
 | Regression + classification | `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner` |
 | Regression + binary classification | `earth`, `gam`, `bart` |
@@ -90,434 +291,12 @@ Current learner ids exposed through `learners()` include:
 | Binary classification only | `adaboost` |
 | Regression only | `pls` |
 
-## Current local package status
-
-In this workspace, the source tree is ahead of the older installed package that
-`library(funcml)` may pick up from a user library. The source version includes
-the expanded learner registry for `gam`, `bart`, `ctree`, `cforest`,
-`naivebayes`, `fda`, `adaboost`, and `pls`. This README is rendered from the
-current source tree, not the stale installed copy.
-
-## Full API demonstration with `xgboost`
-
-The example below uses one learner, `xgboost`, across the full exported API.
-
-```{r demo-data}
-demo_data <- transform(
-  mtcars,
-  trt = as.integer(wt > median(wt)),
-  car = rownames(mtcars)
-)
-
-xgb_spec <- list(
-  nrounds = 40,
-  max_depth = 3,
-  eta = 0.1,
-  subsample = 1,
-  colsample_bytree = 1
-)
-
-learners()[grepl("xgboost", learners())]
-```
-
-### Fit, predict, and basic metrics
-
-```{r fit-predict}
-fit_obj <- fit(
-  mpg ~ wt + hp + qsec + drat,
-  data = demo_data,
-  model = "xgboost",
-  spec = xgb_spec,
-  seed = 42
-)
-
-fit_obj
-summary(fit_obj)
-```
-
-```{r predictions}
-pred <- predict(fit_obj, demo_data[1:5, , drop = FALSE])
-round(pred, 3)
-```
-
-```{r metrics}
-fitted_pred <- predict(fit_obj, demo_data)
-
-data.frame(
-  metric = c("rmse", "mae", "rsq"),
-  value = c(
-    rmse(demo_data$mpg, fitted_pred),
-    mae(demo_data$mpg, fitted_pred),
-    rsq(demo_data$mpg, fitted_pred)
-  )
-)
-```
-
-### Cross-validation and evaluation
-
-```{r evaluate}
-resampling <- cv(v = 4, repeats = 2, seed = 42)
-
-eval_obj <- evaluate(
-  demo_data,
-  mpg ~ wt + hp + qsec + drat,
-  model = "xgboost",
-  spec = xgb_spec,
-  resampling = resampling
-)
-
-eval_obj
-summary(eval_obj)
-```
-
-The summary now includes fold-level standard errors and confidence intervals.
-
-```{r evaluate-other-resampling}
-holdout_obj <- evaluate(
-  demo_data,
-  mpg ~ wt + hp + qsec + drat,
-  model = "glm",
-  resampling = holdout(prop = 0.8, seed = 42)
-)
-
-time_obj <- evaluate(
-  transform(demo_data, order_id = seq_len(nrow(demo_data))),
-  mpg ~ wt + hp + qsec + drat,
-  model = "glm",
-  resampling = time_cv(initial = 16, assess = 4, time = "order_id")
-)
-
-holdout_obj$summary
-time_obj$summary
-```
-
-```{r eval-plot, fig.cap="Cross-validated performance for the xgboost regression workflow."}
-plot(eval_obj)
-```
-
-### Hyperparameter tuning
-
-```{r tune}
-tune_grid <- expand.grid(
-  max_depth = c(2, 3),
-  eta = c(0.05, 0.1),
-  nrounds = c(20, 40)
-)
-
-tune_obj <- tune(
-  demo_data,
-  mpg ~ wt + hp + qsec + drat,
-  model = "xgboost",
-  grid = tune_grid,
-  resampling = cv(v = 4, seed = 42),
-  metric = "rmse",
-  subsample = 1,
-  colsample_bytree = 1
-)
-
-tune_obj
-summary(tune_obj)
-```
-
-Budgeted random search is also supported for larger grids.
-
-```{r tune-random}
-random_tune_obj <- tune(
-  demo_data,
-  mpg ~ wt + hp + qsec + drat,
-  model = "xgboost",
-  grid = tune_grid,
-  search = "random",
-  n_evals = 3,
-  resampling = cv(v = 4, seed = 42),
-  metric = "rmse",
-  subsample = 1,
-  colsample_bytree = 1,
-  seed = 42
-)
-
-random_tune_obj$best
-```
-
-Nested CV is available by supplying an outer resampling object. The inner
-`resampling` argument still drives model selection, while `outer_resampling`
-provides an unbiased performance estimate for the tuned workflow.
-
-```{r tune-nested}
-nested_tune_obj <- tune(
-  demo_data,
-  mpg ~ wt + hp + qsec + drat,
-  model = "xgboost",
-  grid = tune_grid,
-  resampling = cv(v = 3, seed = 42),
-  outer_resampling = cv(v = 4, seed = 99),
-  metric = "rmse",
-  subsample = 1,
-  colsample_bytree = 1,
-  seed = 42
-)
-
-nested_tune_obj$nested$summary
-```
-
-```{r tune-plot, fig.cap="Grid-search trace for xgboost."}
-plot(tune_obj)
-```
-
-### Causal effect estimation
-
-`estimate()` uses the same learner interface. Here the treatment is the binary
-indicator `trt`.
-
-```{r estimate}
-est_obj <- estimate(
-  demo_data,
-  mpg ~ trt + hp + qsec + drat,
-  model = "xgboost",
-  estimand = "ATE",
-  spec = xgb_spec,
-  interval = "bootstrap",
-  n_boot = 30,
-  seed = 42
-)
-
-est_obj
-summary(est_obj)
-```
-
-```{r estimate-plot, fig.cap="Distribution of estimated unit-level treatment effects from plug-in g-computation."}
-plot(est_obj)
-```
-
-### Native interpretability workflow
-
-#### Permutation importance
-
-```{r permute}
-permute_obj <- interpret(
-  fit_obj,
-  demo_data,
-  method = "permute",
-  metric = "rmse",
-  nsim = 10,
-  seed = 42
-)
-
-permute_obj
-summary(permute_obj)
-```
-
-```{r permute-plot, fig.cap="Permutation importance for the xgboost model."}
-plot(permute_obj)
-```
-
-#### Partial dependence
-
-```{r pdp}
-pdp_obj <- interpret(
-  fit_obj,
-  demo_data,
-  method = "pdp",
-  features = c("wt", "hp")
-)
-
-pdp_obj
-summary(pdp_obj)
-```
-
-```{r pdp-plot, fig.cap="Partial dependence profiles for `wt` and `hp`."}
-plot(pdp_obj)
-```
-
-#### ICE curves
-
-```{r ice}
-ice_obj <- interpret(
-  fit_obj,
-  demo_data,
-  method = "ice",
-  features = "wt",
-  nsamples = 20
-)
-
-ice_obj
-summary(ice_obj)
-```
-
-```{r ice-plot, fig.cap="ICE curves for `wt`."}
-plot(ice_obj)
-```
-
-#### ALE
-
-```{r ale}
-ale_obj <- interpret(
-  fit_obj,
-  demo_data,
-  method = "ale",
-  features = c("wt", "hp")
-)
-
-ale_obj
-summary(ale_obj)
-```
-
-```{r ale-plot, fig.cap="Accumulated local effects for `wt` and `hp`."}
-plot(ale_obj)
-```
-
-#### Local surrogate explanation
-
-```{r local-model}
-local_obj <- interpret(
-  fit_obj,
-  demo_data,
-  method = "local_model",
-  newdata = demo_data[1, , drop = FALSE],
-  nsamples = 20,
-  k = 3
-)
-
-local_obj
-summary(local_obj)
-```
-
-```{r local-plot, fig.cap="Top local surrogate contributions for the first row."}
-plot(local_obj)
-```
-
-#### SHAP approximation
-
-```{r shap}
-shap_obj <- interpret(
-  fit_obj,
-  demo_data,
-  method = "shap",
-  newdata = demo_data[1, , drop = FALSE],
-  nsim = 30,
-  nsamples = 20,
-  seed = 42
-)
-
-shap_obj
-summary(shap_obj)
-```
-
-```{r shap-plot, fig.cap="SHAP waterfall plot for the first row."}
-plot(shap_obj, kind = "waterfall")
-```
-
-The SHAP interface also supports additional plot kinds:
-
-- `plot(shap_obj, kind = "summary")` for a SHAP summary / beeswarm view
-  when explanations are computed for multiple rows
-- `plot(shap_obj, kind = "importance")` or `kind = "bar"` for mean absolute
-  SHAP importance
-- `plot(shap_obj, kind = "auto")` to choose waterfall for one row and summary
-  for multiple rows
-
-```{r shap-other-types, eval=FALSE}
-shap_multi <- interpret(
-  fit_obj,
-  demo_data,
-  method = "shap",
-  newdata = demo_data[1:10, , drop = FALSE],
-  nsim = 30,
-  nsamples = 20,
-  seed = 42
-)
-
-plot(shap_multi, kind = "summary")
-plot(shap_multi, kind = "importance")
-plot(shap_multi, kind = "auto")
-```
-
-#### Global surrogate
-
-```{r surrogate}
-surrogate_obj <- interpret(
-  fit_obj,
-  demo_data,
-  method = "surrogate",
-  maxdepth = 2
-)
-
-surrogate_obj
-summary(surrogate_obj)
-```
-
-```{r surrogate-plot, fig.cap="Global surrogate model view."}
-plot(surrogate_obj)
-```
-
-#### Interaction strength
-
-```{r interaction}
-interaction_obj <- interpret(
-  fit_obj,
-  demo_data,
-  method = "interaction",
-  nsamples = 20,
-  grid_size = 8
-)
-
-interaction_obj
-summary(interaction_obj)
-```
-
-```{r interaction-plot, fig.cap="Estimated interaction strength by feature."}
-plot(interaction_obj)
-```
-
-## Comparing multiple learners
-
-`compare_learners()` compares several models directly, or tunes each one first
-and then compares the tuned best configurations on one or more metrics. The
-result summaries also include uncertainty intervals around the resampled means.
-
-```{r compare-learners}
-compare_obj <- compare_learners(
-  demo_data,
-  mpg ~ wt + hp + qsec,
-  models = c("glm", "rpart", "xgboost"),
-  metrics = c("rmse", "mae"),
-  resampling = cv(v = 4, seed = 42),
-  specs = list(
-    xgboost = list(nrounds = 20, max_depth = 3, eta = 0.1, subsample = 1, colsample_bytree = 1)
-  )
-)
-
-compare_obj
-summary(compare_obj)
-```
-
-```{r compare-learners-plot, fig.cap="Side-by-side learner comparison across multiple metrics."}
-plot(compare_obj)
-```
-
-```{r compare-learners-tuned}
-compare_tuned_obj <- compare_learners(
-  demo_data,
-  mpg ~ wt + hp + qsec,
-  models = c("rpart", "xgboost"),
-  tune = TRUE,
-  metric = "rmse",
-  metrics = c("rmse", "mae"),
-  grids = list(
-    rpart = expand.grid(cp = c(0.001, 0.01), minsplit = c(5, 10)),
-    xgboost = expand.grid(max_depth = c(2, 3), eta = c(0.05, 0.1), nrounds = c(10, 20))
-  ),
-  resampling = cv(v = 4, seed = 42),
-  subsample = 1,
-  colsample_bytree = 1
-)
-
-compare_tuned_obj
-summary(compare_tuned_obj)
-```
-
-## Notes on local development
-
-- `testthat::test_local(".")` passes against the source tree.
-- A direct `library(funcml)` call may still resolve to an older installed copy
-  until the package is reinstalled from this source checkout.
+The learner adapter layer was audited package-wide. Unsupported combinations
+are now rejected early instead of failing later in evaluation or
+interpretation code.
+
+## Local development note
+
+- `README.md` is generated from `README.Rmd`.
+- The audit-backed learner status artifacts live under [`work/audit/`](work/audit/).
+- The full `tests/testthat` suite currently passes against the source tree.
