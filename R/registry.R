@@ -956,7 +956,7 @@ build_registry <- function() {
         pred <- stats::predict(state$state, newdata = Xnew)
         if (state$objective == "regression" || is.null(levels)) return(as.numeric(pred))
         if (state$objective == "multiclass") {
-          prob <- matrix(pred, ncol = state$num_class, byrow = TRUE)
+          prob <- matrix(pred, ncol = state$num_class, byrow = FALSE)
           colnames(prob) <- levels
           if (type == "class") {
             cls <- levels[max.col(prob, ties.method = "first")]
@@ -1120,7 +1120,7 @@ build_registry <- function() {
         pred <- stats::predict(state$state, dnew)
         if (is.null(levels)) return(as.numeric(pred))
         if (state$task == "classification" && length(levels) > 2) {
-          prob <- matrix(pred, ncol = length(levels), byrow = TRUE)
+          prob <- matrix(pred, ncol = length(levels), byrow = FALSE)
           colnames(prob) <- levels
           if (type == "class") {
             cls <- levels[max.col(prob, ties.method = "first")]
