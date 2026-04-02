@@ -70,17 +70,56 @@ demo_reg <- transform(
   car = rownames(mtcars)
 )
 
-demo_cls <- transform(
-  mtcars,
-  heavy = factor(ifelse(wt > median(wt), "heavy", "light"),
-    levels = c("light", "heavy")
+demo_cls <- local({
+  x1 <- rnorm(500)
+  x2 <- rnorm(500)
+  x3 <- runif(500, -1, 1)
+  eta <- -0.4 + 1.0 * x1 - 0.8 * x2 + 0.7 * x3
+  data.frame(
+    outcome = factor(
+      ifelse(runif(500) < stats::plogis(eta), "yes", "no"),
+      levels = c("no", "yes")
+    ),
+    x1 = x1,
+    x2 = x2,
+    x3 = x3
   )
-)
+})
 
-demo_causal <- transform(
-  demo_reg,
-  trt = as.integer(wt > median(wt))
-)
+demo_cls_test <- local({
+  x1 <- rnorm(250)
+  x2 <- rnorm(250)
+  x3 <- runif(250, -1, 1)
+  eta <- -0.4 + 1.0 * x1 - 0.8 * x2 + 0.7 * x3
+  data.frame(
+    outcome = factor(
+      ifelse(runif(250) < stats::plogis(eta), "yes", "no"),
+      levels = c("no", "yes")
+    ),
+    x1 = x1,
+    x2 = x2,
+    x3 = x3
+  )
+})
+
+demo_causal <- local({
+  x1 <- rnorm(600)
+  x2 <- rnorm(600)
+  x3 <- runif(600, -1, 1)
+  p_trt <- stats::plogis(-0.2 + 0.7 * x1 - 0.5 * x2 + 0.4 * x3)
+  trt <- rbinom(600, 1, p_trt)
+  true_effect <- 1.2 + 0.6 * x3
+  outcome <- 3 + true_effect * trt + 0.8 * x1 - 0.7 * x2 + 0.5 * x3 +
+    rnorm(600, sd = 0.4)
+  data.frame(
+    outcome = outcome,
+    trt = trt,
+    x1 = x1,
+    x2 = x2,
+    x3 = x3,
+    true_effect = true_effect
+  )
+})
 
 xgb_spec <- list(
   nrounds = 30,
@@ -147,7 +186,12 @@ tune_obj <- tune(
   seed = 42
 )
 
-tune_obj$best
+tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")]
+```
+
+```{r tune-table}
+tune_table <- tune_obj$results[order(tune_obj$results$mean), c(names(tune_grid), "mean", "conf_low", "conf_high")]
+tune_table
 ```
 
 ```{r tune-plot}
@@ -206,29 +250,36 @@ The interpretation layer also supports permutation importance, PDP, ICE,
 local surrogate explanations, global surrogates, interaction strength,
 ceteris paribus profiles, and calibration diagnostics.
 
-### 4. Inspect classification probabilities directly
+### 4. Inspect class-probability columns directly
 
 ```{r classification}
 cls_fit <- fit(
-  heavy ~ mpg + hp + qsec + drat,
+  outcome ~ x1 + x2 + x3,
   data = demo_cls,
   model = "glm",
   seed = 42
 )
 
-round(
-  predict(cls_fit, demo_cls[1:6, , drop = FALSE], type = "prob"),
+cls_prob <- round(
+  predict(cls_fit, demo_cls_test[1:6, , drop = FALSE], type = "prob"),
   3
+)
+
+data.frame(
+  prob_no = cls_prob[, "no"],
+  prob_yes = cls_prob[, "yes"],
+  row.names = NULL
 )
 ```
 
 ```{r calibration}
 calibration_obj <- interpret(
   cls_fit,
-  demo_cls,
+  demo_cls_test,
   method = "calibration",
   type = "prob",
-  bins = 6
+  bins = 8,
+  strategy = "quantile"
 )
 ```
 
@@ -238,15 +289,18 @@ plot(calibration_obj)
 
 ### 5. Estimate causal effects with the same learner interface
 
+This synthetic causal example has measured confounding and a known treatment
+effect centered near `1.2`, so the ATE output has a meaningful target.
+
 ```{r estimate}
 est_obj <- estimate(
   demo_causal,
-  mpg ~ trt + hp + qsec + drat,
-  model = "rpart",
+  outcome ~ trt + x1 + x2 + x3 + trt:x3,
+  model = "glm",
   estimand = "ATE",
-  spec = list(cp = 0.01, minsplit = 5),
-  interval = "bootstrap",
-  n_boot = 20,
+  treatment_level = 1,
+  control_level = 0,
+  interval = "normal",
   seed = 42
 )
 
@@ -289,7 +343,3 @@ The current registry covers 26 learner ids. Broadly:
 | Classification only | `C50`, `naivebayes`, `fda`, `lda`, `qda` |
 | Binary classification only | `adaboost` |
 | Regression only | `pls` |
-
-The learner adapter layer was audited package-wide. Unsupported combinations
-are now rejected early instead of failing later in evaluation or
-interpretation code.

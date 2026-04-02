@@ -290,8 +290,11 @@
   plot_obj
 }
 
-.format_tune_config <- function(df, exclude = c("mean", "sd")) {
+.format_tune_config <- function(df, exclude = c("mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high")) {
   cols <- setdiff(names(df), exclude)
+  if (!length(cols)) {
+    return(rep("", nrow(df)))
+  }
   apply(df[, cols, drop = FALSE], 1, function(row) {
     paste(sprintf("%s=%s", cols, unname(row)), collapse = ", ")
   })

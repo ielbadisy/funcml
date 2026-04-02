@@ -54,17 +54,56 @@ demo_reg <- transform(
   car = rownames(mtcars)
 )
 
-demo_cls <- transform(
-  mtcars,
-  heavy = factor(ifelse(wt > median(wt), "heavy", "light"),
-    levels = c("light", "heavy")
+demo_cls <- local({
+  x1 <- rnorm(500)
+  x2 <- rnorm(500)
+  x3 <- runif(500, -1, 1)
+  eta <- -0.4 + 1.0 * x1 - 0.8 * x2 + 0.7 * x3
+  data.frame(
+    outcome = factor(
+      ifelse(runif(500) < stats::plogis(eta), "yes", "no"),
+      levels = c("no", "yes")
+    ),
+    x1 = x1,
+    x2 = x2,
+    x3 = x3
   )
-)
+})
 
-demo_causal <- transform(
-  demo_reg,
-  trt = as.integer(wt > median(wt))
-)
+demo_cls_test <- local({
+  x1 <- rnorm(250)
+  x2 <- rnorm(250)
+  x3 <- runif(250, -1, 1)
+  eta <- -0.4 + 1.0 * x1 - 0.8 * x2 + 0.7 * x3
+  data.frame(
+    outcome = factor(
+      ifelse(runif(250) < stats::plogis(eta), "yes", "no"),
+      levels = c("no", "yes")
+    ),
+    x1 = x1,
+    x2 = x2,
+    x3 = x3
+  )
+})
+
+demo_causal <- local({
+  x1 <- rnorm(600)
+  x2 <- rnorm(600)
+  x3 <- runif(600, -1, 1)
+  p_trt <- stats::plogis(-0.2 + 0.7 * x1 - 0.5 * x2 + 0.4 * x3)
+  trt <- rbinom(600, 1, p_trt)
+  true_effect <- 1.2 + 0.6 * x3
+  outcome <- 3 + true_effect * trt + 0.8 * x1 - 0.7 * x2 + 0.5 * x3 +
+    rnorm(600, sd = 0.4)
+  data.frame(
+    outcome = outcome,
+    trt = trt,
+    x1 = x1,
+    x2 = x2,
+    x3 = x3,
+    true_effect = true_effect
+  )
+})
 
 xgb_spec <- list(
   nrounds = 30,
@@ -141,11 +180,23 @@ tune_obj <- tune(
   seed = 42
 )
 
-tune_obj$best
-#>   max_depth eta nrounds     mean       sd n std_error conf_level    conf_low
-#> 7         2 0.1      30 2.938398 1.205848 3 0.6961968       0.95 -0.05709457
-#>   conf_high
-#> 7  5.933891
+tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")]
+#>   max_depth eta nrounds     mean    conf_low conf_high
+#> 7         2 0.1      30 2.938398 -0.05709457  5.933891
+```
+
+``` r
+tune_table <- tune_obj$results[order(tune_obj$results$mean), c(names(tune_grid), "mean", "conf_low", "conf_high")]
+tune_table
+#>   max_depth  eta nrounds     mean    conf_low conf_high
+#> 7         2 0.10      30 2.938398 -0.05709457  5.933891
+#> 3         2 0.10      20 3.105323 -0.55410645  6.764753
+#> 8         3 0.10      30 3.134498  0.13583466  6.133162
+#> 4         3 0.10      20 3.234155 -0.34665172  6.814961
+#> 5         2 0.05      30 3.348797 -0.32544499  7.023039
+#> 6         3 0.05      30 3.433179 -0.31782192  7.184180
+#> 2         3 0.05      20 3.838658  0.09467180  7.582643
+#> 1         2 0.05      20 3.909885  0.56273243  7.257037
 ```
 
 ``` r
@@ -226,36 +277,43 @@ The interpretation layer also supports permutation importance, PDP, ICE,
 local surrogate explanations, global surrogates, interaction strength,
 ceteris paribus profiles, and calibration diagnostics.
 
-### 4. Inspect classification probabilities directly
+### 4. Inspect class-probability columns directly
 
 ``` r
 cls_fit <- fit(
-  heavy ~ mpg + hp + qsec + drat,
+  outcome ~ x1 + x2 + x3,
   data = demo_cls,
   model = "glm",
   seed = 42
 )
 
-round(
-  predict(cls_fit, demo_cls[1:6, , drop = FALSE], type = "prob"),
+cls_prob <- round(
+  predict(cls_fit, demo_cls_test[1:6, , drop = FALSE], type = "prob"),
   3
 )
-#>                   light heavy
-#> Mazda RX4             1     0
-#> Mazda RX4 Wag         1     0
-#> Datsun 710            1     0
-#> Hornet 4 Drive        1     0
-#> Hornet Sportabout     0     1
-#> Valiant               0     1
+
+data.frame(
+  prob_no = cls_prob[, "no"],
+  prob_yes = cls_prob[, "yes"],
+  row.names = NULL
+)
+#>   prob_no prob_yes
+#> 1   0.578    0.422
+#> 2   0.323    0.677
+#> 3   0.840    0.160
+#> 4   0.492    0.508
+#> 5   0.762    0.238
+#> 6   0.567    0.433
 ```
 
 ``` r
 calibration_obj <- interpret(
   cls_fit,
-  demo_cls,
+  demo_cls_test,
   method = "calibration",
   type = "prob",
-  bins = 6
+  bins = 8,
+  strategy = "quantile"
 )
 ```
 
@@ -267,23 +325,27 @@ plot(calibration_obj)
 
 ### 5. Estimate causal effects with the same learner interface
 
+This synthetic causal example has measured confounding and a known
+treatment effect centered near `1.2`, so the ATE output has a meaningful
+target.
+
 ``` r
 est_obj <- estimate(
   demo_causal,
-  mpg ~ trt + hp + qsec + drat,
-  model = "rpart",
+  outcome ~ trt + x1 + x2 + x3 + trt:x3,
+  model = "glm",
   estimand = "ATE",
-  spec = list(cp = 0.01, minsplit = 5),
-  interval = "bootstrap",
-  n_boot = 20,
+  treatment_level = 1,
+  control_level = 0,
+  interval = "normal",
   seed = 42
 )
 
 summary(est_obj)
 #>       estimand treatment treatment_level control_level estimate std_error
-#> lower      ATE       trt               1             0        0         0
-#>       interval_method conf_level  conf_low conf_high
-#> lower       bootstrap       0.95 -9.346892         0
+#> lower      ATE       trt               1             0 1.214864 0.0123336
+#>       interval_method conf_level conf_low conf_high
+#> lower          normal       0.95 1.190691  1.239038
 ```
 
 ``` r
@@ -325,7 +387,3 @@ The current registry covers 26 learner ids. Broadly:
 | Classification only                | `C50`, `naivebayes`, `fda`, `lda`, `qda`                                                                                                                                  |
 | Binary classification only         | `adaboost`                                                                                                                                                                |
 | Regression only                    | `pls`                                                                                                                                                                     |
-
-The learner adapter layer was audited package-wide. Unsupported
-combinations are now rejected early instead of failing later in
-evaluation or interpretation code.
