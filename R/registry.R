@@ -1218,7 +1218,7 @@ build_registry <- function() {
         }
         prob <- .ensemble_prob_matrix(pred, state$levels)
         if (type == "class") {
-          cls <- state$levels[max.col(prob)]
+          cls <- state$levels[max.col(prob, ties.method = "first")]
           return(factor(cls, levels = state$levels))
         }
         prob
