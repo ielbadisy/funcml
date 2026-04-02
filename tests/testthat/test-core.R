@@ -289,6 +289,56 @@ test_that("xgboost supports regression and classification", {
   expect_s3_class(cls_pred, "factor")
 })
 
+test_that("xgboost and lightgbm reconstruct multiclass probabilities column-wise", {
+  skip_if_not_installed("xgboost")
+  skip_if_not_installed("lightgbm")
+
+  set.seed(99)
+  x1 <- c(rnorm(40, -3, 0.6), rnorm(40, 0, 0.6), rnorm(40, 3, 0.6))
+  x2 <- c(rnorm(40, -3, 0.6), rnorm(40, 3, 0.6), rnorm(40, 0, 0.6))
+  dat <- data.frame(
+    Activity = factor(rep(c("A", "B", "C"), each = 40), levels = c("A", "B", "C")),
+    x1 = x1,
+    x2 = x2
+  )
+
+  fit_xgb <- fit(
+    Activity ~ .,
+    data = dat,
+    model = "xgboost",
+    spec = list(nrounds = 100, max_depth = 4, eta = 0.1, subsample = 1, colsample_bytree = 1),
+    seed = 1
+  )
+  prob_xgb <- predict(fit_xgb, newdata = dat, type = "prob")
+  pred_xgb <- predict(fit_xgb, newdata = dat, type = "class")
+
+  expect_identical(colnames(prob_xgb), levels(dat$Activity))
+  expect_true(all(abs(rowSums(prob_xgb) - 1) < 1e-6))
+  expect_gt(mean(pred_xgb == dat$Activity), 0.95)
+
+  fit_lgb <- fit(
+    Activity ~ .,
+    data = dat,
+    model = "lightgbm",
+    spec = list(
+      nrounds = 100,
+      num_leaves = 31,
+      learning_rate = 0.05,
+      feature_fraction = 1,
+      bagging_fraction = 1,
+      bagging_freq = 0,
+      max_depth = -1
+    ),
+    seed = 1
+  )
+  prob_lgb <- predict(fit_lgb, newdata = dat, type = "prob")
+  pred_lgb <- predict(fit_lgb, newdata = dat, type = "class")
+
+  expect_identical(colnames(prob_lgb), levels(dat$Activity))
+  expect_true(all(abs(rowSums(prob_lgb) - 1) < 1e-6))
+  expect_gt(mean(pred_lgb == dat$Activity), 0.95)
+})
+
 test_that("compare_learners compares multiple models across metrics", {
   skip_if_not_installed("rpart")
 
