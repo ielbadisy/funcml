@@ -297,8 +297,7 @@ build_registry <- function() {
         list(state = fit, family = family)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
-        pred_type <- if (type %in% c("prob", "response")) "response" else "link"
-        p <- stats::predict(state$state, newdata = data.frame(Xnew), type = pred_type)
+        p <- stats::predict(state$state, newdata = data.frame(Xnew), type = "response")
         if (is.null(levels)) return(as.numeric(p))
         if (type == "prob") {
           prob <- cbind(1 - p, p)
@@ -365,7 +364,7 @@ build_registry <- function() {
           if (!is.matrix(prob)) prob <- as.matrix(prob)
           prob <- prob[, levels, drop = FALSE]
           if (type == "class") {
-            cls <- levels[max.col(prob)]
+            cls <- levels[max.col(prob, ties.method = "first")]
             return(factor(cls, levels = levels))
           }
           return(prob)
@@ -466,10 +465,11 @@ build_registry <- function() {
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("e1071", "e1071_svm")
+        gamma <- spec$gamma %||% (1 / max(1, ncol(X)))
         df <- data.frame(y = y, X)
         fit <- e1071::svm(
           y ~ ., data = df,
-          cost = spec$cost, gamma = spec$gamma, kernel = spec$kernel,
+          cost = spec$cost, gamma = gamma, kernel = spec$kernel,
           type = if (task == "regression") "eps-regression" else "C-classification",
           probability = task == "classification"
         )
@@ -564,11 +564,11 @@ build_registry <- function() {
           if (is.list(prob)) {
             prob <- do.call(cbind, lapply(prob, as.numeric))
           } else if (length(dim(prob)) == 3) {
-            prob <- matrix(prob, ncol = dim(prob)[3], byrow = FALSE)
+            prob <- prob[, , 1, drop = TRUE]
           }
           colnames(prob) <- levels
           if (type == "class") {
-            cls <- levels[max.col(prob)]
+            cls <- levels[max.col(prob, ties.method = "first")]
             return(factor(cls, levels = levels))
           }
           return(prob)
@@ -635,7 +635,7 @@ build_registry <- function() {
           prob <- as.matrix(prob)[, levels, drop = FALSE]
           return(prob)
         }
-        cls <- stats::predict(state$state, newdata = data.frame(Xnew), type = "response")
+        cls <- stats::predict(state$state, newdata = data.frame(Xnew), type = "raw")
         factor(cls, levels = levels)
       }
     ),
@@ -698,8 +698,7 @@ build_registry <- function() {
         list(state = fit, task = task)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
-        pred_type <- if (is.null(levels)) "response" else if (type == "prob") "response" else "link"
-        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE), type = pred_type)
+        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE), type = "response")
         if (is.null(levels)) return(as.numeric(pred))
         prob <- pmin(pmax(as.numeric(pred), 1e-6), 1 - 1e-6)
         if (type == "class") {
@@ -750,19 +749,14 @@ build_registry <- function() {
         list(state = fit)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE))
         if (type == "prob") {
-          prob <- tryCatch(
-            stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE), type = "posterior"),
-            error = function(e) NULL
-          )
-          if (is.null(prob)) {
-            stop("fda does not provide probability predictions in this build.", call. = FALSE)
-          }
+          prob <- if (is.list(pred) && !is.null(pred$posterior)) pred$posterior else pred
           prob <- as.matrix(prob)[, levels, drop = FALSE]
           return(prob)
         }
-        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE))
-        factor(pred, levels = levels)
+        cls <- if (is.list(pred) && !is.null(pred$class)) pred$class else pred
+        factor(cls, levels = levels)
       }
     ),
     adaboost = list(
@@ -783,7 +777,8 @@ build_registry <- function() {
           loss = spec$loss,
           type = spec$type
         )
-        list(state = fit)
+        backend_levels <- colnames(fit$confusion) %||% levels(y)
+        list(state = fit, backend_levels = backend_levels)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
         new_df <- data.frame(Xnew, check.names = FALSE)
@@ -792,8 +787,12 @@ build_registry <- function() {
           prob <- as.matrix(prob)
           if (ncol(prob) == 1L) {
             prob <- cbind(1 - prob[, 1], prob[, 1])
+            colnames(prob) <- state$backend_levels %||% levels
+          } else if (!is.null(colnames(prob))) {
+            prob <- prob[, levels, drop = FALSE]
+          } else {
+            colnames(prob) <- state$backend_levels %||% levels
           }
-          colnames(prob) <- levels
           return(prob[, levels, drop = FALSE])
         }
         pred <- stats::predict(state$state, newdata = new_df, type = "vector")
@@ -1017,20 +1016,27 @@ build_registry <- function() {
           prob <- matrix(prob, ncol = length(levels), byrow = TRUE)
           colnames(prob) <- levels
           if (type == "class") {
-            cls <- levels[max.col(prob)]
+            cls <- levels[max.col(prob, ties.method = "first")]
             return(factor(cls, levels = levels))
           }
           return(prob[, levels, drop = FALSE])
         }
-        prob <- as.numeric(catboost::catboost.predict(state$state, pool_new, prediction_type = "Probability"))
-        prob <- pmin(pmax(prob, 1e-6), 1 - 1e-6)
+        prob <- as.matrix(catboost::catboost.predict(state$state, pool_new, prediction_type = "Probability"))
+        if (ncol(prob) == 1L) {
+          prob <- as.numeric(prob[, 1])
+          prob <- pmin(pmax(prob, 1e-6), 1 - 1e-6)
+          prob <- cbind(1 - prob, prob)
+        } else if (!is.null(colnames(prob))) {
+          prob <- prob[, levels, drop = FALSE]
+        } else {
+          colnames(prob) <- levels
+        }
         if (type == "class") {
-          cls <- ifelse(prob >= 0.5, levels[2], levels[1])
+          cls <- levels[max.col(prob, ties.method = "first")]
           return(factor(cls, levels = levels))
         }
-        out <- cbind(1 - prob, prob)
-        colnames(out) <- levels
-        out
+        colnames(prob) <- levels
+        prob[, levels, drop = FALSE]
       },
       importance = function(state, X, y, feature_names, task, levels, ...) {
         pool <- catboost::catboost.load_pool(data = X, label = NULL)
