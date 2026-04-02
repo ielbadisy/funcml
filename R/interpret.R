@@ -59,7 +59,7 @@
   if (metric == "accuracy") {
     pred_class <- if (is.matrix(pred) || is.data.frame(pred)) {
       prob <- .normalize_prob_matrix(pred, levels)
-      factor(levels[max.col(prob)], levels = levels)
+      factor(levels[max.col(prob, ties.method = "first")], levels = levels)
     } else {
       factor(pred, levels = levels)
     }
@@ -68,7 +68,7 @@
   if (metric %in% c("precision", "recall", "specificity", "f1", "balanced_accuracy")) {
     pred_class <- if (is.matrix(pred) || is.data.frame(pred)) {
       prob <- .normalize_prob_matrix(pred, levels)
-      factor(levels[max.col(prob)], levels = levels)
+      factor(levels[max.col(prob, ties.method = "first")], levels = levels)
     } else {
       factor(pred, levels = levels)
     }

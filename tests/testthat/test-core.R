@@ -111,7 +111,7 @@ test_that("gam supports binary classification probabilities and rejects multicla
 
   expect_error(
     fit(Species ~ ., data = iris, model = "gam"),
-    "supports only binary classification"
+    "does not support multiclass classification|supports only binary classification"
   )
 })
 
@@ -166,7 +166,15 @@ test_that("bart rejects multiclass classification", {
   skip_if_not_installed("dbarts")
   expect_error(
     fit(Species ~ ., data = iris, model = "bart", spec = list(ndpost = 20, nskip = 5)),
-    "supports only binary classification"
+    "does not support multiclass classification|supports only binary classification"
+  )
+})
+
+test_that("gbm rejects multiclass classification", {
+  skip_if_not_installed("gbm")
+  expect_error(
+    fit(Species ~ ., data = iris, model = "gbm", spec = list(n.trees = 20, interaction.depth = 2)),
+    "does not support multiclass classification"
   )
 })
 

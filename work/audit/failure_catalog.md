@@ -1,0 +1,6 @@
+# Failure Catalog
+
+Only rows with `final_status` equal to `fail` or `warning` are included.
+
+issue_id | learner | backend | task | prediction_type | reproducible_context | exact_error_warning | symptom | root_cause_category | suspected_file_function | severity | proposed_action | action_taken | tests_added | final_resolution_status
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
