@@ -114,41 +114,114 @@
   out
 }
 
-.ensemble_fit_meta <- function(meta_x, y, task, levels = NULL) {
-  x <- cbind(`(Intercept)` = 1, as.matrix(meta_x))
+.ensemble_fit_meta <- function(meta_x, y, task, levels = NULL, meta_model = "native") {
+  meta_x <- as.matrix(meta_x)
+  if (task == "classification") {
+    meta_x <- pmin(pmax(meta_x, 1e-6), 1 - 1e-6)
+  }
+  if (identical(task, "classification") && length(levels) > 2L && identical(meta_model, "native")) {
+    meta_model <- "glmnet"
+  }
+
+  if (identical(meta_model, "glmnet")) {
+    assert_package("glmnet", "stacking")
+    lambda <- 1e-3
+    if (identical(task, "regression")) {
+      fit <- glmnet::glmnet(
+        x = meta_x,
+        y = as.numeric(y),
+        family = "gaussian",
+        alpha = 0,
+        lambda = lambda,
+        standardize = FALSE
+      )
+      return(list(task = task, engine = "glmnet_gaussian", fit = fit, lambda = lambda))
+    }
+    if (length(levels) == 2L) {
+      y_bin <- as.numeric(y == levels[2L])
+      fit <- glmnet::glmnet(
+        x = meta_x,
+        y = y_bin,
+        family = "binomial",
+        alpha = 0,
+        lambda = lambda,
+        standardize = FALSE
+      )
+      return(list(task = task, levels = levels, engine = "glmnet_binomial", fit = fit, lambda = lambda))
+    }
+    fit <- glmnet::glmnet(
+      x = meta_x,
+      y = factor(y, levels = levels),
+      family = "multinomial",
+      alpha = 0,
+      lambda = lambda,
+      standardize = FALSE
+    )
+    return(list(task = task, levels = levels, engine = "glmnet_multinomial", fit = fit, lambda = lambda))
+  }
+
+  x <- cbind(`(Intercept)` = 1, meta_x)
   if (task == "regression") {
     fit <- stats::lm.fit(x = x, y = as.numeric(y))
-    return(list(task = task, coef = fit$coefficients))
+    return(list(task = task, engine = "native_lm", coef = fit$coefficients))
   }
 
   if (length(levels) == 2L) {
     y_bin <- as.numeric(y == levels[2L])
     fit <- stats::glm.fit(x = x, y = y_bin, family = stats::binomial())
-    return(list(task = task, levels = levels, coef = fit$coefficients))
+    coef <- fit$coefficients
+    coef[!is.finite(coef)] <- 0
+    return(list(task = task, levels = levels, engine = "native_binomial", coef = coef))
   }
 
   coef_mat <- matrix(0, nrow = ncol(x), ncol = length(levels), dimnames = list(colnames(x), levels))
   for (lvl in levels) {
     y_bin <- as.numeric(y == lvl)
     fit <- stats::glm.fit(x = x, y = y_bin, family = stats::binomial())
-    coef_mat[, lvl] <- fit$coefficients
+    coef <- fit$coefficients
+    coef[!is.finite(coef)] <- 0
+    coef_mat[, lvl] <- coef
   }
-  list(task = task, levels = levels, coef = coef_mat)
+  list(task = task, levels = levels, engine = "native_multinomial_ovr", coef = coef_mat)
 }
 
 .ensemble_predict_meta <- function(meta_fit, meta_x) {
-  x <- cbind(`(Intercept)` = 1, as.matrix(meta_x))
+  meta_x <- as.matrix(meta_x)
+  if (meta_fit$task == "classification") {
+    meta_x <- pmin(pmax(meta_x, 1e-6), 1 - 1e-6)
+  }
+  if (identical(meta_fit$engine, "glmnet_gaussian")) {
+    pred <- stats::predict(meta_fit$fit, newx = meta_x, s = meta_fit$lambda, type = "response")
+    return(as.numeric(pred))
+  }
+  if (identical(meta_fit$engine, "glmnet_binomial")) {
+    prob <- as.numeric(stats::predict(meta_fit$fit, newx = meta_x, s = meta_fit$lambda, type = "response"))
+    prob <- pmin(pmax(prob, 1e-6), 1 - 1e-6)
+    out <- cbind(1 - prob, prob)
+    colnames(out) <- meta_fit$levels
+    return(out)
+  }
+  if (identical(meta_fit$engine, "glmnet_multinomial")) {
+    prob <- stats::predict(meta_fit$fit, newx = meta_x, s = meta_fit$lambda, type = "response")[, , 1, drop = TRUE]
+    prob <- as.matrix(prob)
+    prob <- prob[, meta_fit$levels, drop = FALSE]
+    colnames(prob) <- meta_fit$levels
+    return(prob)
+  }
+  x <- cbind(`(Intercept)` = 1, meta_x)
   if (meta_fit$task == "regression") {
     return(drop(x %*% meta_fit$coef))
   }
   if (length(meta_fit$levels) == 2L) {
     eta <- drop(x %*% meta_fit$coef)
+    eta[!is.finite(eta)] <- 0
     prob <- stats::plogis(eta)
     out <- cbind(1 - prob, prob)
     colnames(out) <- meta_fit$levels
     return(out)
   }
   eta <- x %*% meta_fit$coef
+  eta[!is.finite(eta)] <- 0
   eta <- sweep(eta, 1, apply(eta, 1, max), FUN = "-")
   prob <- exp(eta)
   prob <- prob / rowSums(prob)
@@ -1040,7 +1113,7 @@ build_registry <- function() {
           prob <- matrix(pred, ncol = length(levels), byrow = TRUE)
           colnames(prob) <- levels
           if (type == "class") {
-            cls <- levels[max.col(prob)]
+            cls <- levels[max.col(prob, ties.method = "first")]
             return(factor(cls, levels = levels))
           }
           return(prob)
@@ -1065,7 +1138,7 @@ build_registry <- function() {
     stacking = list(
       package = "stats",
       tasks = c("regression", "classification"),
-      defaults = list(learners = NULL, learner_specs = list(), meta_model = "native"),
+      defaults = list(learners = NULL, learner_specs = list(), meta_model = "glmnet"),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, levels, ...) {
         learners <- spec$learners %||% .ensemble_default_learners(task)
@@ -1074,7 +1147,7 @@ build_registry <- function() {
         base_models <- .ensemble_fit_base_models(X, y, learners, learner_specs, task, levels)
         base_preds <- .ensemble_predict_base_models(base_models, X, task, levels)
         meta_x <- .ensemble_meta_matrix(base_preds, learners, levels)
-        meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels)
+        meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels, meta_model = spec$meta_model %||% "glmnet")
         list(
           ensemble = "stacking",
           learners = learners,
@@ -1095,7 +1168,7 @@ build_registry <- function() {
         }
         prob <- .ensemble_prob_matrix(pred, state$levels)
         if (type == "class") {
-          cls <- state$levels[max.col(prob)]
+          cls <- state$levels[max.col(prob, ties.method = "first")]
           return(factor(cls, levels = state$levels))
         }
         prob
@@ -1104,7 +1177,7 @@ build_registry <- function() {
     superlearner = list(
       package = "stats",
       tasks = c("regression", "classification"),
-      defaults = list(learners = NULL, learner_specs = list(), meta_model = "native", resampling = cv(5, seed = 1)),
+      defaults = list(learners = NULL, learner_specs = list(), meta_model = "glmnet", resampling = cv(5, seed = 1)),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, levels, ...) {
         learners <- spec$learners %||% .ensemble_default_learners(task)
@@ -1112,7 +1185,7 @@ build_registry <- function() {
         learner_specs <- .ensemble_prepare_specs(learners, spec$learner_specs %||% list())
         resampling <- spec$resampling %||% cv(5, seed = 1)
         meta_x <- .ensemble_oof_meta_matrix(X, y, learners, learner_specs, task, levels, resampling)
-        meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels)
+        meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels, meta_model = spec$meta_model %||% "glmnet")
         base_models <- .ensemble_fit_base_models(X, y, learners, learner_specs, task, levels)
         list(
           ensemble = "superlearner",
