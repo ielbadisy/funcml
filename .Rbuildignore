@@ -28,3 +28,9 @@
 ^inst/reference_src/.*/man$
 ^inst/reference_src/.*/tests$
 ^inst/reference_src/.*/vignettes$
+^README[.]Rmd$
+^README[.]html$
+^README_files$
+^dev$
+^work$
+^[.]codex$
