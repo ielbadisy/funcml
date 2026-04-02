@@ -499,14 +499,15 @@ build_registry <- function() {
       supports = list(prob = TRUE, multiclass = TRUE, importance = TRUE),
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("randomForest", "randomForest")
-        df <- data.frame(y = y, X)
-        fit <- randomForest::randomForest(
-          y ~ ., data = df,
+        args <- list(
+          x = X,
+          y = y,
           ntree = spec$ntree,
-          mtry = spec$mtry,
-          nodesize = spec$nodesize,
           importance = TRUE
         )
+        if (!is.null(spec$mtry)) args$mtry <- spec$mtry
+        if (!is.null(spec$nodesize)) args$nodesize <- spec$nodesize
+        fit <- do.call(randomForest::randomForest, args)
         list(state = fit)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
@@ -951,13 +952,13 @@ build_registry <- function() {
         list(state = fit, objective = objective, levels = levels, num_class = num_class, feature_names = colnames(X))
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
-        pred <- stats::predict(state$state, data = Xnew)
+        pred <- stats::predict(state$state, newdata = Xnew)
         if (state$objective == "regression" || is.null(levels)) return(as.numeric(pred))
         if (state$objective == "multiclass") {
           prob <- matrix(pred, ncol = state$num_class, byrow = TRUE)
           colnames(prob) <- levels
           if (type == "class") {
-            cls <- levels[max.col(prob)]
+            cls <- levels[max.col(prob, ties.method = "first")]
             return(factor(cls, levels = levels))
           }
           return(prob[, levels, drop = FALSE])
