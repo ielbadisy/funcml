@@ -102,6 +102,95 @@ learners <- function() {
   names(funcml_registry())
 }
 
+.learner_engine_packages <- function() {
+  c(
+    glm = "stats",
+    rpart = "rpart",
+    glmnet = "glmnet",
+    ranger = "ranger",
+    nnet = "nnet",
+    e1071_svm = "e1071",
+    randomForest = "randomForest",
+    gbm = "gbm",
+    C50 = "C50",
+    kknn = "kknn",
+    earth = "earth",
+    gam = "mgcv",
+    naivebayes = "naivebayes",
+    fda = "mda",
+    adaboost = "ada",
+    pls = "pls",
+    ctree = "partykit",
+    cforest = "partykit",
+    lda = "MASS",
+    qda = "MASS",
+    lightgbm = "lightgbm",
+    catboost = "catboost",
+    bart = "dbarts",
+    xgboost = "xgboost",
+    stacking = "funcml",
+    superlearner = "funcml"
+  )
+}
+
+.interpret_methods_for <- function(adapter) {
+  methods <- c("vip", "permute", "pdp", "ice", "ale", "local", "lime", "shap", "interaction", "surrogate")
+  if ("classification" %in% adapter$tasks) {
+    methods <- c(methods, "calibration")
+  }
+  paste(methods, collapse = ", ")
+}
+
+#' Learner inventory table with capabilities.
+#'
+#' `list_learners()` returns one row per learner id with task support,
+#' probability/multiclass/importance flags, and availability of the engine
+#' package in the current R session.
+#'
+#' This mirrors a "catalog view" API style useful for quickly seeing what can
+#' be fit, tuned, and interpreted in `funcml`.
+#'
+#' @return Data frame with learner metadata and capability columns.
+#' @examples
+#' list_learners()
+#' @export
+list_learners <- function() {
+  reg <- funcml_registry()
+  ids <- names(reg)
+  pkg_map <- .learner_engine_packages()
+
+  rows <- lapply(ids, function(id) {
+    adapter <- reg[[id]]
+    engine_pkg <- unname(pkg_map[[id]] %||% NA_character_)
+    available <- if (is.na(engine_pkg)) TRUE else requireNamespace(engine_pkg, quietly = TRUE)
+
+    data.frame(
+      learner = id,
+      fit = "fit()",
+      predict = "predict()",
+      tune = "tune()",
+      interpret = "interpret()",
+      interpret_methods = .interpret_methods_for(adapter),
+      has_fit = TRUE,
+      has_predict = TRUE,
+      has_tune = TRUE,
+      has_interpret = TRUE,
+      supports_regression = "regression" %in% adapter$tasks,
+      supports_classification = "classification" %in% adapter$tasks,
+      supports_prob = isTRUE(adapter$supports$prob),
+      supports_multiclass = isTRUE(adapter$supports$multiclass),
+      supports_importance = isTRUE(adapter$supports$importance),
+      engine_package = engine_pkg,
+      available = available,
+      stringsAsFactors = FALSE
+    )
+  })
+
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out[order(out$learner), , drop = FALSE]
+}
+
 #' @export
 print.funcml_fit <- function(x, ...) {
   cat(sprintf("<funcml_fit> %s model: %s\n", x$task, x$model))

@@ -2,6 +2,7 @@
 
 export(fit)
 export(learners)
+export(list_learners)
 export(compare_learners)
 export(cv)
 export(evaluate)
