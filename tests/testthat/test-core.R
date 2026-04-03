@@ -81,6 +81,29 @@ test_that("learners include newly added backends", {
   expect_true(all(c("fda", "adaboost", "pls", "ctree", "cforest", "gam", "naivebayes", "bart") %in% ids))
 })
 
+test_that("list_learners returns a capability catalog", {
+  catalog <- list_learners()
+  expect_s3_class(catalog, "data.frame")
+  expect_true(nrow(catalog) >= length(learners()))
+  expect_true(all(learners() %in% catalog$learner))
+  expect_true(all(c(
+    "learner", "fit", "predict", "tune", "interpret", "interpret_methods",
+    "has_fit", "has_predict", "has_tune", "has_interpret",
+    "supports_regression", "supports_classification", "supports_prob",
+    "supports_multiclass", "supports_importance",
+    "engine_package", "available"
+  ) %in% names(catalog)))
+  expect_true(is.logical(catalog$has_fit))
+  expect_true(is.logical(catalog$has_predict))
+  expect_true(is.logical(catalog$has_tune))
+  expect_true(is.logical(catalog$has_interpret))
+  expect_true(is.logical(catalog$supports_prob))
+  expect_true(is.logical(catalog$supports_multiclass))
+  expect_true(is.logical(catalog$supports_importance))
+  expect_true(is.logical(catalog$available))
+  expect_true(any(grepl("calibration", catalog$interpret_methods)))
+})
+
 test_that("new learner task support is registered correctly", {
   expect_equal(sort(funcml:::funcml_registry("gam")$tasks), c("classification", "regression"))
   expect_equal(sort(funcml:::funcml_registry("bart")$tasks), c("classification", "regression"))
