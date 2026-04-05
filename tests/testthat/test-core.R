@@ -46,6 +46,7 @@ test_that("metrics are sane", {
   prob <- matrix(c(0.9,0.1, 0.2,0.8, 0.8,0.2, 0.1,0.9), ncol = 2, byrow = TRUE)
   colnames(prob) <- levels(truth_cls) <- c("a","b")
   expect_equal(auc(truth_cls, prob[,2]), 1)
+  expect_equal(auc_weighted(truth_cls, prob[,2]), 1)
   expect_equal(accuracy(truth_cls, pred_cls), 0.75)
   expect_equal(precision(truth_cls, pred_cls), 5 / 6)
   expect_equal(recall(truth_cls, pred_cls), 0.75)
@@ -56,6 +57,38 @@ test_that("metrics are sane", {
   expect_equal(nrow(curve), 2)
   expect_true(is.finite(ece(truth_cls, prob[, 2], bins = 2, strategy = "uniform")))
   expect_true(is.finite(mce(truth_cls, prob[, 2], bins = 2, strategy = "uniform")))
+
+  truth_multi <- factor(c("a", "b", "c", "a", "b", "c"), levels = c("a", "b", "c"))
+  prob_multi <- rbind(
+    c(0.90, 0.05, 0.05),
+    c(0.05, 0.90, 0.05),
+    c(0.05, 0.05, 0.90),
+    c(0.85, 0.10, 0.05),
+    c(0.10, 0.80, 0.10),
+    c(0.05, 0.10, 0.85)
+  )
+  colnames(prob_multi) <- levels(truth_multi)
+  expect_equal(auc(truth_multi, prob_multi), 1, tolerance = 1e-12)
+  expect_equal(auc_weighted(truth_multi, prob_multi), 1, tolerance = 1e-12)
+
+  expect_error(
+    evaluate(mtcars, mpg ~ wt + hp, model = "glm", metrics = "auc"),
+    "classification-only"
+  )
+})
+
+test_that("evaluate supports multiclass auc and auc_weighted", {
+  skip_if_not_installed("rpart")
+  ev <- evaluate(
+    data = iris,
+    formula = Species ~ .,
+    model = "rpart",
+    resampling = cv(3, seed = 3),
+    metrics = c("auc", "auc_weighted")
+  )
+  expect_true(all(c("auc", "auc_weighted") %in% ev$summary$metric))
+  auc_vals <- ev$summary$mean[ev$summary$metric %in% c("auc", "auc_weighted")]
+  expect_true(all(is.finite(auc_vals)))
 })
 
 test_that("permutation importance ranks signal", {

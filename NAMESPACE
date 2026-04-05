@@ -20,6 +20,7 @@ export(logloss)
 export(brier)
 export(accuracy)
 export(auc)
+export(auc_weighted)
 
 S3method(print,funcml_fit)
 S3method(summary,funcml_fit)

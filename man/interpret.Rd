@@ -46,7 +46,7 @@ interpret(
 
 \item{type}{Prediction scale: regression -> "response"; classification -> "prob" or "class".}
 
-\item{metric}{Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc).}
+\item{metric}{Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc/auc_weighted).}
 
 \item{importance_type}{Importance engine for \code{method = "vip"}: \code{"permute"},
 \code{"model"}, or \code{"auto"}.}

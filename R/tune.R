@@ -224,7 +224,7 @@ plot.funcml_tune <- function(x, ...) {
 
   type_use <- type %||% if (fit_obj$task == "regression") {
     "response"
-  } else if (metric %in% c("logloss", "brier", "auc", "ece", "mce")) {
+  } else if (metric %in% c("logloss", "brier", "auc", "auc_weighted", "ece", "mce")) {
     "prob"
   } else {
     "class"
