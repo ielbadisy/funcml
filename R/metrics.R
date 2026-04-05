@@ -6,7 +6,11 @@
 #' @param pred Predicted numeric values or class labels.
 #' @param prob_matrix Matrix or vector of predicted probabilities (classification).
 #' @param pred_class Predicted class labels (classification).
-#' @param prob Probability vector for binary classification metrics.
+#' @param prob Probability vector (binary) or probability matrix with one column
+#'   per class (multiclass).
+#' @param average For multiclass AUC, aggregation mode: `"macro"` or
+#'   `"weighted"` (class-frequency weighted one-vs-rest AUC). Ignored for
+#'   binary AUC.
 #' @param bins Number of bins for calibration summaries.
 #' @param strategy Binning strategy: `"quantile"` or `"uniform"`.
 #' @param positive Optional positive/event class for binary classification.
@@ -37,6 +41,19 @@
 #' f1(truth_cls, pred_cls)
 #' balanced_accuracy(truth_cls, pred_cls)
 #' auc(truth_cls, prob_cls[, "yes"])
+#'
+#' truth_multi <- factor(c("a", "b", "c", "a", "b", "c"), levels = c("a", "b", "c"))
+#' prob_multi <- rbind(
+#'   c(0.90, 0.05, 0.05),
+#'   c(0.05, 0.90, 0.05),
+#'   c(0.05, 0.05, 0.90),
+#'   c(0.85, 0.10, 0.05),
+#'   c(0.10, 0.80, 0.10),
+#'   c(0.05, 0.10, 0.85)
+#' )
+#' colnames(prob_multi) <- levels(truth_multi)
+#' auc(truth_multi, prob_multi)
+#' auc_weighted(truth_multi, prob_multi)
 #' calibration_curve(truth_cls, prob_cls[, "yes"])
 #' ece(truth_cls, prob_cls[, "yes"])
 #' mce(truth_cls, prob_cls[, "yes"])
@@ -140,20 +157,57 @@ balanced_accuracy <- function(truth, pred_class) {
   recall(truth, pred_class)
 }
 
+.binary_auc <- function(truth_binary, prob) {
+  truth_binary <- as.integer(truth_binary)
+  ranks <- rank(prob)
+  pos_ranks <- ranks[truth_binary == 1L]
+  m <- sum(truth_binary == 0L)
+  n <- sum(truth_binary == 1L)
+  if (m == 0L || n == 0L) {
+    return(NA_real_)
+  }
+  (sum(pos_ranks) - n * (n + 1) / 2) / (m * n)
+}
+
 #' @rdname metrics
 #' @export
-auc <- function(truth, prob) {
-  if (!is.factor(truth)) truth <- factor(truth)
-  if (length(levels(truth)) != 2) stop("AUC defined for binary classification only.", call. = FALSE)
-  pos <- levels(truth)[2]
-  truth_binary <- as.integer(truth == pos)
-  ord <- order(prob)
-  ranks <- rank(prob)
-  pos_ranks <- ranks[truth_binary == 1]
-  m <- sum(truth_binary == 0)
-  n <- sum(truth_binary == 1)
-  if (m == 0 || n == 0) return(NA_real_)
-  (sum(pos_ranks) - n * (n + 1) / 2) / (m * n)
+auc <- function(truth, prob, average = c("macro", "weighted")) {
+  if (!is.factor(truth)) {
+    truth <- factor(truth)
+  }
+  levels_truth <- levels(truth)
+  average <- match.arg(average)
+  if (is.null(dim(prob))) {
+    if (length(levels_truth) != 2L) {
+      stop("For multiclass AUC, provide a probability matrix with one column per class level.", call. = FALSE)
+    }
+    truth_binary <- as.integer(truth == levels_truth[2L])
+    return(.binary_auc(truth_binary, as.numeric(prob)))
+  }
+
+  prob_matrix <- .normalize_prob_matrix(prob, levels_truth)
+  if (length(levels_truth) == 2L) {
+    truth_binary <- as.integer(truth == levels_truth[2L])
+    return(.binary_auc(truth_binary, prob_matrix[, levels_truth[2L]]))
+  }
+
+  auc_by_class <- vapply(levels_truth, function(level) {
+    .binary_auc(as.integer(truth == level), prob_matrix[, level])
+  }, numeric(1))
+  if (all(!is.finite(auc_by_class))) {
+    return(NA_real_)
+  }
+  if (average == "macro") {
+    return(mean(auc_by_class, na.rm = TRUE))
+  }
+  class_weights <- as.numeric(table(truth)[levels_truth]) / length(truth)
+  stats::weighted.mean(auc_by_class, w = class_weights, na.rm = TRUE)
+}
+
+#' @rdname metrics
+#' @export
+auc_weighted <- function(truth, prob) {
+  auc(truth, prob, average = "weighted")
 }
 
 .macro_class_metric <- function(truth, pred_class, numerator, denominator) {
@@ -287,9 +341,9 @@ mce <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), pos
   metric <- match.arg(metric, c(
     "rmse", "mae", "mse", "medae", "mape", "rsq",
     "logloss", "brier", "accuracy", "precision", "recall",
-    "specificity", "f1", "balanced_accuracy", "auc", "ece", "mce"
+    "specificity", "f1", "balanced_accuracy", "auc", "auc_weighted", "ece", "mce"
   ))
-  if (task == "regression" && metric %in% c("logloss", "brier", "accuracy", "precision", "recall", "specificity", "f1", "balanced_accuracy", "auc", "ece", "mce")) {
+  if (task == "regression" && metric %in% c("logloss", "brier", "accuracy", "precision", "recall", "specificity", "f1", "balanced_accuracy", "auc", "auc_weighted", "ece", "mce")) {
     stop(sprintf("Metric '%s' is classification-only.", metric), call. = FALSE)
   }
   if (task == "classification" && metric %in% c("rmse", "mae", "mse", "medae", "mape", "rsq")) {
@@ -308,7 +362,7 @@ mce <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), pos
 
   truth <- factor(truth)
   pred_class <- if (is.null(pred)) NULL else factor(pred, levels = levels(truth))
-  if (metric %in% c("logloss", "brier", "auc", "ece", "mce")) {
+  if (metric %in% c("logloss", "brier", "auc", "auc_weighted", "ece", "mce")) {
     if (is.null(prob_matrix)) stop(sprintf("Metric '%s' requires probabilities.", metric), call. = FALSE)
     prob_matrix <- .normalize_prob_matrix(prob_matrix, levels(truth))
   }
@@ -325,9 +379,7 @@ mce <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), pos
     brier = brier(truth, prob_matrix),
     ece = ece(truth, prob_matrix),
     mce = mce(truth, prob_matrix),
-    auc = {
-      if (length(levels(truth)) != 2) stop("AUC defined for binary classification only.", call. = FALSE)
-      auc(truth, prob_matrix[, levels(truth)[2]])
-    }
+    auc = auc(truth, prob_matrix),
+    auc_weighted = auc_weighted(truth, prob_matrix)
   )
 }

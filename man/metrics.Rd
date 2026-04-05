@@ -17,6 +17,7 @@
 \alias{f1}
 \alias{balanced_accuracy}
 \alias{auc}
+\alias{auc_weighted}
 \alias{calibration_curve}
 \alias{ece}
 \alias{mce}
@@ -50,7 +51,9 @@ f1(truth, pred_class)
 
 balanced_accuracy(truth, pred_class)
 
-auc(truth, prob)
+auc(truth, prob, average = c("macro", "weighted"))
+
+auc_weighted(truth, prob)
 
 calibration_curve(
   truth,
@@ -85,7 +88,12 @@ mce(
 
 \item{pred_class}{Predicted class labels (classification).}
 
-\item{prob}{Probability vector for binary classification metrics.}
+\item{prob}{Probability vector (binary) or probability matrix with one column
+per class (multiclass).}
+
+\item{average}{For multiclass AUC, aggregation mode: \code{"macro"} or
+\code{"weighted"} (class-frequency weighted one-vs-rest AUC). Ignored for
+binary AUC.}
 
 \item{bins}{Number of bins for calibration summaries.}
 
@@ -124,6 +132,19 @@ specificity(truth_cls, pred_cls)
 f1(truth_cls, pred_cls)
 balanced_accuracy(truth_cls, pred_cls)
 auc(truth_cls, prob_cls[, "yes"])
+
+truth_multi <- factor(c("a", "b", "c", "a", "b", "c"), levels = c("a", "b", "c"))
+prob_multi <- rbind(
+  c(0.90, 0.05, 0.05),
+  c(0.05, 0.90, 0.05),
+  c(0.05, 0.05, 0.90),
+  c(0.85, 0.10, 0.05),
+  c(0.10, 0.80, 0.10),
+  c(0.05, 0.10, 0.85)
+)
+colnames(prob_multi) <- levels(truth_multi)
+auc(truth_multi, prob_multi)
+auc_weighted(truth_multi, prob_multi)
 calibration_curve(truth_cls, prob_cls[, "yes"])
 ece(truth_cls, prob_cls[, "yes"])
 mce(truth_cls, prob_cls[, "yes"])
