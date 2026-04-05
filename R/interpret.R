@@ -46,6 +46,7 @@
     ece = TRUE,
     mce = TRUE,
     auc = FALSE,
+    auc_weighted = FALSE,
     stop("Unsupported metric: ", metric, call. = FALSE)
   )
 }
@@ -95,13 +96,19 @@
   if (metric == "mce") {
     return(mce(truth, prob, positive = event_level))
   }
-  if (metric == "auc") {
-    if (length(levels) != 2) {
-      stop("AUC is defined for binary classification only.", call. = FALSE)
+  if (metric %in% c("auc", "auc_weighted")) {
+    if (length(levels) == 2) {
+      event_level <- event_level %||% levels[2]
+      truth_auc <- factor(truth, levels = c(setdiff(levels, event_level), event_level))
+      if (metric == "auc") {
+        return(auc(truth_auc, prob[, event_level]))
+      }
+      return(auc_weighted(truth_auc, prob[, event_level]))
     }
-    event_level <- event_level %||% levels[2]
-    truth_auc <- factor(truth, levels = c(setdiff(levels, event_level), event_level))
-    return(auc(truth_auc, prob[, event_level]))
+    if (metric == "auc") {
+      return(auc(truth, prob))
+    }
+    return(auc_weighted(truth, prob))
   }
   stop("Unsupported metric: ", metric, call. = FALSE)
 }
@@ -111,12 +118,12 @@
     return("response")
   }
   if (!type_missing && !is.null(type)) {
-    if (metric %in% c("logloss", "brier", "auc", "ece", "mce") && type != "prob") {
-      stop("Metrics logloss, brier, auc, ece, and mce require `type = \"prob\"`.", call. = FALSE)
+    if (metric %in% c("logloss", "brier", "auc", "auc_weighted", "ece", "mce") && type != "prob") {
+      stop("Metrics logloss, brier, auc, auc_weighted, ece, and mce require `type = \"prob\"`.", call. = FALSE)
     }
     return(type)
   }
-  if (metric %in% c("logloss", "brier", "auc", "ece", "mce")) "prob" else "class"
+  if (metric %in% c("logloss", "brier", "auc", "auc_weighted", "ece", "mce")) "prob" else "class"
 }
 
 .grid_values <- function(vec, grid = NULL, grid.resolution = NULL,
@@ -373,7 +380,7 @@
 #'   "ceteris_paribus", or "calibration".
 #' @param features Optional subset of features; defaults to all predictors.
 #' @param type Prediction scale: regression -> "response"; classification -> "prob" or "class".
-#' @param metric Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc).
+#' @param metric Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc/auc_weighted).
 #' @param importance_type Importance engine for `method = "vip"`: `"permute"`,
 #'   `"model"`, or `"auto"`.
 #' @param compare How to compare baseline and perturbed performance for
