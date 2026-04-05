@@ -343,3 +343,20 @@ The current registry covers 26 learner ids. Broadly:
 | Classification only | `C50`, `naivebayes`, `fda`, `lda`, `qda` |
 | Binary classification only | `adaboost` |
 | Regression only | `pls` |
+
+Use `list_learners()` to inspect the full learner catalog and capabilities in
+your current session:
+
+```{r list-learners}
+catalog <- list_learners()
+
+catalog[, c(
+  "learner",
+  "supports_regression",
+  "supports_classification",
+  "supports_prob",
+  "supports_multiclass",
+  "engine_package",
+  "available"
+)]
+```

@@ -387,3 +387,74 @@ The current registry covers 26 learner ids. Broadly:
 | Classification only                | `C50`, `naivebayes`, `fda`, `lda`, `qda`                                                                                                                                  |
 | Binary classification only         | `adaboost`                                                                                                                                                                |
 | Regression only                    | `pls`                                                                                                                                                                     |
+
+Use `list_learners()` to inspect the full learner catalog and
+capabilities in your current session:
+
+``` r
+catalog <- list_learners()
+
+catalog[, c(
+  "learner",
+  "supports_regression",
+  "supports_classification",
+  "supports_prob",
+  "supports_multiclass",
+  "engine_package",
+  "available"
+)]
+#>         learner supports_regression supports_classification supports_prob
+#> 15     adaboost               FALSE                    TRUE          TRUE
+#> 23         bart                TRUE                    TRUE          TRUE
+#> 9           C50               FALSE                    TRUE          TRUE
+#> 22     catboost                TRUE                    TRUE          TRUE
+#> 18      cforest                TRUE                    TRUE          TRUE
+#> 17        ctree                TRUE                    TRUE          TRUE
+#> 6     e1071_svm                TRUE                    TRUE          TRUE
+#> 11        earth                TRUE                    TRUE          TRUE
+#> 14          fda               FALSE                    TRUE         FALSE
+#> 12          gam                TRUE                    TRUE          TRUE
+#> 8           gbm                TRUE                    TRUE          TRUE
+#> 1           glm                TRUE                    TRUE          TRUE
+#> 3        glmnet                TRUE                    TRUE          TRUE
+#> 10         kknn                TRUE                    TRUE          TRUE
+#> 19          lda               FALSE                    TRUE          TRUE
+#> 21     lightgbm                TRUE                    TRUE          TRUE
+#> 13   naivebayes               FALSE                    TRUE          TRUE
+#> 5          nnet                TRUE                    TRUE          TRUE
+#> 16          pls                TRUE                   FALSE         FALSE
+#> 20          qda               FALSE                    TRUE          TRUE
+#> 7  randomForest                TRUE                    TRUE          TRUE
+#> 4        ranger                TRUE                    TRUE          TRUE
+#> 2         rpart                TRUE                    TRUE          TRUE
+#> 25     stacking                TRUE                    TRUE          TRUE
+#> 26 superlearner                TRUE                    TRUE          TRUE
+#> 24      xgboost                TRUE                    TRUE          TRUE
+#>    supports_multiclass engine_package available
+#> 15               FALSE            ada      TRUE
+#> 23               FALSE         dbarts      TRUE
+#> 9                 TRUE            C50      TRUE
+#> 22                TRUE       catboost      TRUE
+#> 18                TRUE       partykit      TRUE
+#> 17                TRUE       partykit      TRUE
+#> 6                 TRUE          e1071      TRUE
+#> 11               FALSE          earth      TRUE
+#> 14                TRUE            mda      TRUE
+#> 12               FALSE           mgcv      TRUE
+#> 8                FALSE            gbm      TRUE
+#> 1                FALSE          stats      TRUE
+#> 3                 TRUE         glmnet      TRUE
+#> 10                TRUE           kknn      TRUE
+#> 19                TRUE           MASS      TRUE
+#> 21                TRUE       lightgbm      TRUE
+#> 13                TRUE     naivebayes      TRUE
+#> 5                 TRUE           nnet      TRUE
+#> 16               FALSE            pls      TRUE
+#> 20                TRUE           MASS      TRUE
+#> 7                 TRUE   randomForest      TRUE
+#> 4                 TRUE         ranger      TRUE
+#> 2                 TRUE          rpart      TRUE
+#> 25                TRUE         funcml      TRUE
+#> 26                TRUE         funcml      TRUE
+#> 24                TRUE        xgboost      TRUE
+```
