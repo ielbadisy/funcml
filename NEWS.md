@@ -1,3 +1,15 @@
+# funcml 0.7.0
+
+- Consolidated `funcml` as a machine learning framework for R with stable S3 interfaces for fitting, prediction, evaluation, tuning, learner comparison, interpretation, and plug-in g-computation.
+- Added richer resampling support through plain holdout, grouped cross-validation, and time-aware rolling splits.
+- Added uncertainty summaries to `evaluate()` and `compare_learners()`, including fold-level standard errors and confidence intervals in summaries and plots.
+- Added random-search tuning with `search = "random"` and `n_evals`, plus nested resampling support in `tune()` for outer-fold performance estimates of the model-selection procedure.
+- Hardened the fit/predict contract with clearer errors for missing predictor columns and unseen factor levels, stricter probability-output normalization, and broader learner contract coverage across the registry.
+- Added multiclass and weighted AUC support and clarified default evaluation behavior for binary versus multiclass classification.
+- Added `list_learners()` as a learner capability catalog and improved package metadata, citation, and repository scaffolding for release and paper preparation.
+- Removed the `catboost` learner backend from the registry and package metadata.
+- Kept `lightgbm` as a separately installed learner engine.
+
 # funcml 0.2.0
 
 - Added richer evaluation-centered resampling with plain holdout, grouped cross-validation, and time-aware rolling splits.
