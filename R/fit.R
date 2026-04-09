@@ -1,4 +1,4 @@
-#' Fit a model using a formula-first functional interface.
+#' Fit a model using the funcml interface.
 #'
 #' Registered learner ids currently include:
 #' regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`,
@@ -10,9 +10,9 @@
 #' regression plus binary classification: `earth`;
 #' regression only: `pls`.
 #'
-#' These learner backends are declared as package dependencies so the advertised
-#' registry is meant to be available after a standard `install.packages("funcml")`
-#' installation.
+#' Core learner backends are installed with `funcml`, while some optional
+#' engines may require separate installation before those learner ids can be
+#' used.
 #'
 #' @param formula Model formula.
 #' @param data Data frame.
@@ -92,8 +92,9 @@ create_predict <- function(obj, adapter, state) {
 #' binary classification only: `adaboost`;
 #' regression only: `pls`.
 #'
-#' The learner engine packages are declared in `Imports`, so these ids are
-#' intended to be available immediately after installing `funcml`.
+#' Most learner engine packages are installed with `funcml`. Optional engines
+#' such as `lightgbm` and `catboost` may require separate installation before
+#' those learner ids become available.
 #' @return Character vector of learner ids.
 #' @examples
 #' learners()

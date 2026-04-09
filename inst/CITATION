@@ -1,0 +1,16 @@
+citHeader("To cite funcml in publications use:")
+
+citEntry(
+  entry = "Manual",
+  title = "funcml: Machine Learning Framework for R",
+  author = personList(
+    person(given = "Imad", family = "El Badisy")
+  ),
+  year = "2026",
+  note = "R package version 0.2.0",
+  textVersion = paste(
+    "El Badisy, I. (2026).",
+    "funcml: Machine Learning Framework for R.",
+    "R package version 0.2.0."
+  )
+)
