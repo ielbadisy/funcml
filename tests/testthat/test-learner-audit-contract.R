@@ -87,7 +87,6 @@ audit_spec_for_test <- function(model, scenario) {
     ctree = list(mincriterion = 0.8),
     cforest = list(ntree = 80L, mincriterion = 0),
     lightgbm = list(nrounds = 40L, num_leaves = 15L, learning_rate = 0.1),
-    catboost = list(iterations = 40L, depth = 4L, learning_rate = 0.1),
     bart = list(ntree = 40L, ndpost = 40L, nskip = 10L, keeptrees = TRUE, verbose = FALSE),
     xgboost = list(nrounds = 40L, max_depth = 4L, eta = 0.1, subsample = 1, colsample_bytree = 1),
     stacking = list(
@@ -127,7 +126,7 @@ audit_datasets <- list(
 test_that("learner registry support metadata is coherent", {
   reg <- funcml:::funcml_registry()
 
-  expect_equal(length(reg), 26L)
+  expect_equal(length(reg), 25L)
   expect_true(all(vapply(reg, function(x) is.character(x$package) && nzchar(x$package), logical(1))))
   expect_true(all(vapply(reg, function(x) is.list(x$supports), logical(1))))
   expect_true(all(vapply(reg, function(x) is.function(x$fit_xy), logical(1))))
@@ -267,25 +266,4 @@ test_that("interpretability contract holds for supported learner paths", {
   }
 
   expect_equal(length(failures), 0L, info = paste(failures, collapse = "\n"))
-})
-
-test_that("catboost fitting does not create repo-local output files", {
-  skip_if_not_installed("catboost")
-
-  ds <- audit_binary_data()
-  tmp <- tempfile("funcml-catboost-clean-")
-  dir.create(tmp)
-  old <- setwd(tmp)
-  on.exit(setwd(old), add = TRUE)
-
-  fit_res <- safe_fit(
-    ds$formula,
-    ds$train,
-    "catboost",
-    spec = audit_spec_for_test("catboost", "binary_classification"),
-    seed = 1L
-  )
-
-  expect_identical(fit_res$status, "pass")
-  expect_identical(list.files(tmp, all.files = TRUE, no.. = TRUE), character())
 })

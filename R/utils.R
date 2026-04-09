@@ -22,7 +22,6 @@ assert_package <- function(pkg, model_id) {
   switch(
     pkg,
     lightgbm = "Install it separately from the official LightGBM R package instructions.",
-    catboost = "Install it separately from the official CatBoost R package instructions.",
     sprintf("Install it with install.packages('%s').", pkg)
   )
 }
