@@ -10,9 +10,8 @@
 #' regression plus binary classification: `earth`;
 #' regression only: `pls`.
 #'
-#' Core learner backends are installed with `funcml`, while some optional
-#' engines may require separate installation before those learner ids can be
-#' used.
+#' The learner engine packages are installed with `funcml`, so the advertised
+#' registry is intended to be available after a standard installation.
 #'
 #' @param formula Model formula.
 #' @param data Data frame.
@@ -92,9 +91,8 @@ create_predict <- function(obj, adapter, state) {
 #' binary classification only: `adaboost`;
 #' regression only: `pls`.
 #'
-#' Most learner engine packages are installed with `funcml`. Optional engines
-#' such as `lightgbm` may require separate installation before
-#' those learner ids become available.
+#' The learner engine packages are installed with `funcml`, so the advertised
+#' registry is intended to be available after a standard installation.
 #' @return Character vector of learner ids.
 #' @examples
 #' learners()

@@ -8,7 +8,7 @@ assert_package <- function(pkg, model_id) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
     stop(
       sprintf(
-        "Model '%s' requires optional package '%s'. %s",
+        "Model '%s' requires package '%s'. %s",
         model_id,
         pkg,
         .package_install_hint(pkg)
@@ -21,7 +21,6 @@ assert_package <- function(pkg, model_id) {
 .package_install_hint <- function(pkg) {
   switch(
     pkg,
-    lightgbm = "Install it separately from the official LightGBM R package instructions.",
     sprintf("Install it with install.packages('%s').", pkg)
   )
 }

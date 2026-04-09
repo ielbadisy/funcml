@@ -44,9 +44,8 @@ regression plus binary classification: \code{earth};
 regression only: \code{pls}.
 }
 \details{
-Core learner backends are installed with \code{funcml}, while some optional
-engines may require separate installation before those learner ids can be
-used.
+The learner engine packages are installed with \code{funcml}, so the advertised
+registry is intended to be available after a standard installation.
 }
 \examples{
 fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
