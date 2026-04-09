@@ -11,6 +11,7 @@
 ^\.\.Rcheck$
 ^funcml\.Rcheck$
 ^\.git$
+^\.github$
 ^\.gitignore$
 ^\.local-lib$
 ^lib$
@@ -31,6 +32,8 @@
 ^README[.]Rmd$
 ^README[.]html$
 ^README_files$
+^vignettes/.*[.]html$
+^vignettes/.*[.]R$
 ^dev$
 ^work$
 ^[.]codex$

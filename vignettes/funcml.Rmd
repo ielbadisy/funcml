@@ -12,8 +12,8 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(funcml)
 ```
 
-`funcml` provides a formula-first workflow for fitting and evaluating models.
-The package also includes native interpretability helpers for permutation
+`funcml` provides a machine learning framework for R. The package also includes native
+interpretability helpers for permutation
 importance, partial dependence, ICE, ALE, local surrogate explanations, SHAP,
 interaction strength, greedy breakdown profiles, and global surrogate models.
 It also exposes native ensemble learners through `model = "stacking"` and
@@ -21,16 +21,17 @@ It also exposes native ensemble learners through `model = "stacking"` and
 
 The package is intentionally opinionated. It is not designed to compete
 feature for feature with broader frameworks such as `tidymodels`, `mlr3`, or
-`caret`. Instead, `funcml` focuses on a compact, explicit, formula-first
-workflow for users who want to fit, compare, tune, interpret, and estimate
-models through one coherent interface.
+`caret`. Instead, `funcml` focuses on a compact and explicit framework for
+users who want to fit, compare, tune, interpret, and estimate models through
+one coherent interface, with formula syntax as the main model-specification
+surface.
 
 This design comes with a deliberate tradeoff:
 
 - preprocessing is expected to happen outside `funcml`, so the data passed to
   `fit()` is the exact data being modeled
-- the package favors functional composition and explicit inputs over hidden
-  preprocessing state inside training workflows
+- the package favors explicit inputs and direct model specification over hidden
+  preprocessing state inside training pipelines
 - cross-validation is still the default, but the package also supports holdout
   splits, grouped CV, and time-aware rolling evaluation through the same
   resampling interface
@@ -71,7 +72,7 @@ tune_obj$best
 
 Nested CV is available through `outer_resampling`. The inner `resampling`
 argument still selects the best configuration, and the outer resampling loop
-provides an unbiased estimate of tuned workflow performance.
+provides an unbiased estimate of tuned model-selection performance.
 
 ```{r}
 nested_tune_obj <- tune(

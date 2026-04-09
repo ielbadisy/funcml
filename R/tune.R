@@ -12,7 +12,7 @@
 #'   `search = "random"`.
 #' @param outer_resampling Optional outer resampling object. When supplied,
 #'   `tune()` performs nested resampling and reports outer-fold performance
-#'   estimates for the tuned workflow.
+#'   estimates for the tuned model-selection procedure.
 #' @param seed Optional seed.
 #' @param ... Passed to `fit()`.
 #' @return A `funcml_tune` object.
