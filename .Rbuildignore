@@ -35,5 +35,4 @@
 ^vignettes/.*[.]html$
 ^vignettes/.*[.]R$
 ^dev$
-^work$
 ^[.]codex$
