@@ -41,7 +41,7 @@ designs should use a more complete framework.
 
 Learner coverage currently includes:
 
-- regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner`
+- regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `xgboost`, `stacking`, `superlearner`
 - regression and binary classification: `earth`, `gam`, `bart`
 - classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`
 - binary classification only: `adaboost`

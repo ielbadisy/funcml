@@ -28,8 +28,7 @@ Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools,
         randomForest, gbm, C50, kknn, earth, naivebayes, mda, ada,
         pls, partykit, dbarts, xgboost
 Suggests: testthat (>= 3.1.0), knitr, rmarkdown, roxygen2, gggenes,
-        ggfittext, shapviz, patchwork, lightgbm, catboost
+        ggfittext, shapviz, patchwork, lightgbm
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2026-03-04 05:06:17 UTC; imad-el-badisy

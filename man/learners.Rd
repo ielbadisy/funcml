@@ -13,7 +13,7 @@ Character vector of learner ids.
 \code{learners()} returns the registry keys accepted by \code{\link[=fit]{fit()}}. Task support is:
 regression and classification: \code{glm}, \code{rpart}, \code{glmnet}, \code{ranger}, \code{nnet},
 \code{e1071_svm}, \code{randomForest}, \code{gbm}, \code{kknn}, \code{ctree}, \code{cforest},
-\code{lightgbm}, \code{catboost}, \code{xgboost}, \code{stacking}, \code{superlearner};
+\code{lightgbm}, \code{xgboost}, \code{stacking}, \code{superlearner};
 regression plus binary classification: \code{gam}, \code{bart}, \code{earth};
 classification only: \code{C50}, \code{naivebayes}, \code{fda}, \code{lda}, \code{qda};
 binary classification only: \code{adaboost};
@@ -21,7 +21,7 @@ regression only: \code{pls}.
 }
 \details{
 Most learner engine packages are installed with \code{funcml}. Optional engines
-such as \code{lightgbm} and \code{catboost} may require separate installation before
+such as \code{lightgbm} may require separate installation before
 those learner ids become available.
 }
 \examples{

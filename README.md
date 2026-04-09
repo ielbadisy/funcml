@@ -30,9 +30,18 @@ remotes::install_github("ielbadisy/funcml")
 ```
 
 Installing `funcml` makes the core learner registry available without
-extra registration steps. Some optional engines, including `lightgbm`
-and `catboost`, may need to be installed separately before those learner
-ids are available.
+extra registration steps. The `lightgbm` learner may need to be
+installed separately before that learner id is available.
+
+Examples:
+
+``` r
+install.packages("xgboost")
+```
+
+``` r
+# see the official LightGBM R installation guide
+```
 
 ## What the package covers
 
@@ -376,11 +385,11 @@ round(predict(stack_fit, demo_reg[1:5, , drop = FALSE]), 2)
 
 ## Learner coverage
 
-The current registry covers 26 learner ids. Broadly:
+The current registry covers 25 learner ids. Broadly:
 
 | Support                            | Learners                                                                                                                                                                  |
 |------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Regression + classification        | `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner` |
+| Regression + classification        | `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `xgboost`, `stacking`, `superlearner` |
 | Regression + binary classification | `earth`, `gam`, `bart`                                                                                                                                                    |
 | Classification only                | `C50`, `naivebayes`, `fda`, `lda`, `qda`                                                                                                                                  |
 | Binary classification only         | `adaboost`                                                                                                                                                                |
@@ -405,7 +414,6 @@ catalog[, c(
 #> 15     adaboost               FALSE                    TRUE          TRUE
 #> 23         bart                TRUE                    TRUE          TRUE
 #> 9           C50               FALSE                    TRUE          TRUE
-#> 22     catboost                TRUE                    TRUE          TRUE
 #> 18      cforest                TRUE                    TRUE          TRUE
 #> 17        ctree                TRUE                    TRUE          TRUE
 #> 6     e1071_svm                TRUE                    TRUE          TRUE
@@ -425,14 +433,13 @@ catalog[, c(
 #> 7  randomForest                TRUE                    TRUE          TRUE
 #> 4        ranger                TRUE                    TRUE          TRUE
 #> 2         rpart                TRUE                    TRUE          TRUE
-#> 25     stacking                TRUE                    TRUE          TRUE
-#> 26 superlearner                TRUE                    TRUE          TRUE
-#> 24      xgboost                TRUE                    TRUE          TRUE
+#> 24     stacking                TRUE                    TRUE          TRUE
+#> 25 superlearner                TRUE                    TRUE          TRUE
+#> 23      xgboost                TRUE                    TRUE          TRUE
 #>    supports_multiclass engine_package available
 #> 15               FALSE            ada      TRUE
 #> 23               FALSE         dbarts      TRUE
 #> 9                 TRUE            C50      TRUE
-#> 22                TRUE       catboost      TRUE
 #> 18                TRUE       partykit      TRUE
 #> 17                TRUE       partykit      TRUE
 #> 6                 TRUE          e1071      TRUE
