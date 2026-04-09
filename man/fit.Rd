@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit.R
 \name{fit}
 \alias{fit}
-\title{Fit a model using a formula-first functional interface.}
+\title{Fit a model using the funcml interface.}
 \usage{
 fit(
   formula,
@@ -44,9 +44,9 @@ regression plus binary classification: \code{earth};
 regression only: \code{pls}.
 }
 \details{
-These learner backends are declared as package dependencies so the advertised
-registry is meant to be available after a standard \code{install.packages("funcml")}
-installation.
+Core learner backends are installed with \code{funcml}, while some optional
+engines may require separate installation before those learner ids can be
+used.
 }
 \examples{
 fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
