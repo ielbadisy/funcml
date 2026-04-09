@@ -20,9 +20,7 @@ compact instead of expanding into a large orchestration framework.
   methods.
 - Broad learner coverage: tree models, penalized GLMs, kernel methods,
   gradient boosting, Bayesian trees, and native ensemble learners.
-- Audited learner layer: unsupported modes are blocked explicitly, and
-  the repository includes the learner audit artifacts under
-  [`work/audit/`](work/audit/).
+- Audited learner layer: unsupported modes are blocked explicitly.
 
 ## Installation
 
