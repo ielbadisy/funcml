@@ -36,8 +36,8 @@ expanding into a large orchestration framework.
   `compare_learners()`, `interpret()`, and `estimate()`.
 - Plot-ready outputs: evaluation, tuning, comparison, explanation,
   calibration, and treatment-effect objects all have native plot methods.
-- Broad learner coverage: tree models, penalized GLMs, kernel methods,
-  gradient boosting, Bayesian trees, and native ensemble learners.
+- Broad learner coverage: classical statistical models, trees, kernel methods,
+  boosting systems, Bayesian trees, and native ensemble learners.
 - Audited learner layer: unsupported modes are blocked explicitly.
 
 ## Installation
@@ -47,31 +47,24 @@ install.packages("remotes")
 remotes::install_github("ielbadisy/funcml")
 ```
 
-Installing `funcml` makes the core learner registry available without extra
-registration steps. The `lightgbm` learner may need to be installed separately
-before that learner id is available.
+Installing `funcml` makes the learner registry available without extra
+registration steps.
 
-Examples:
+## API overview
 
-```r
-install.packages("xgboost")
-```
+| Task | Main functions | Returned object | Typical use |
+| --- | --- | --- | --- |
+| Model fitting | `fit()`, `predict()` | `funcml_fit` | Train one learner and generate predictions |
+| Resampled validation | `cv()`, `holdout()`, `group_cv()`, `time_cv()`, `evaluate()` | `funcml_eval` | Estimate out-of-sample performance with uncertainty |
+| Model selection | `tune()`, `compare_learners()` | `funcml_tune`, `funcml_compare` | Search hyperparameters and compare learners under common resampling |
+| Interpretation | `interpret()` | method-specific interpretation classes | Explain fitted models with global and local diagnostics |
+| Causal estimation | `estimate()` | `funcml_estimand` | Estimate plug-in g-computation estimands |
 
-```r
-# see the official LightGBM R installation guide
-```
+## Demo data used below
 
-## What the package covers
-
-| Workflow | Main functions | Typical output |
-| --- | --- | --- |
-| Fit + predict | `fit()`, `predict()` | compact `funcml_fit` object with formula-aware prediction |
-| Resampled validation | `cv()`, `holdout()`, `group_cv()`, `time_cv()`, `evaluate()` | fold-level metrics, uncertainty summaries, performance plots |
-| Model selection | `tune()`, `compare_learners()` | search traces, tuned summaries, side-by-side learner comparison |
-| Interpretation | `interpret()` | permutation importance, PDP, ICE, ALE, SHAP, surrogate, interaction, calibration |
-| Causal estimation | `estimate()` | plug-in g-computation for `ATE`, `ATT`, `CATE`, and `IATE` |
-
-## Quick start
+The README uses one regression problem, one binary classification problem, and
+one synthetic causal example so the same API can be shown across the package
+surface.
 
 ```{r demo-data}
 demo_reg <- transform(
@@ -139,7 +132,56 @@ xgb_spec <- list(
 )
 ```
 
-```{r quick-start}
+## 1. Start by inspecting the learner catalog
+
+`list_learners()` gives a session-aware inventory of the registry, including
+task support, probability support, multiclass support, engine packages, and
+whether each engine is currently available.
+
+```{r learner-catalog}
+catalog <- list_learners()
+
+catalog_summary <- data.frame(
+  quantity = c(
+    "Total learners",
+    "Regression support",
+    "Classification support",
+    "Probability support",
+    "Multiclass support",
+    "Engines currently available"
+  ),
+  value = c(
+    nrow(catalog),
+    sum(catalog$supports_regression),
+    sum(catalog$supports_classification),
+    sum(catalog$supports_prob),
+    sum(catalog$supports_multiclass),
+    sum(catalog$available)
+  )
+)
+
+catalog_summary
+```
+
+```{r learner-catalog-preview}
+catalog[, c(
+  "learner",
+  "supports_regression",
+  "supports_classification",
+  "supports_prob",
+  "supports_multiclass",
+  "engine_package",
+  "available"
+)]
+```
+
+## 2. Fit one model and inspect the fitted object
+
+The entry point is `fit()`. It returns a compact `funcml_fit` object that
+stores the learner id, formula, encoded feature layout, and prediction
+machinery.
+
+```{r fit-model}
 fit_obj <- fit(
   mpg ~ wt + hp + qsec + drat,
   data = demo_reg,
@@ -148,15 +190,25 @@ fit_obj <- fit(
   seed = 42
 )
 
-round(predict(fit_obj, demo_reg[1:5, , drop = FALSE]), 2)
+fit_obj
 ```
 
-The same fitted object can immediately feed evaluation, tuning,
-interpretability, and causal estimation tasks.
+```{r fit-summary}
+summary(fit_obj)
+```
 
-## Workflow gallery
+```{r fit-predict}
+data.frame(
+  car = demo_reg$car[1:6],
+  observed = demo_reg$mpg[1:6],
+  predicted = round(predict(fit_obj, demo_reg[1:6, , drop = FALSE]), 2)
+)
+```
 
-### 1. Cross-validated model performance
+## 3. Validate performance with resampling
+
+`evaluate()` applies the same learner interface under a resampling plan and
+returns fold-level results plus uncertainty summaries.
 
 ```{r evaluate}
 eval_obj <- evaluate(
@@ -174,7 +226,14 @@ summary(eval_obj)
 plot(eval_obj)
 ```
 
-### 2. Tune a learner, then compare it against alternatives
+The same resampling interface can also handle grouped CV, rolling time splits,
+or plain holdout validation through `group_cv()`, `time_cv()`, and `holdout()`.
+
+## 4. Tune hyperparameters, then compare learners
+
+`tune()` searches a grid or random sample of hyperparameters using the same
+evaluation machinery. `compare_learners()` then places multiple learners under
+the same resampling design for an apples-to-apples comparison.
 
 ```{r tune}
 tune_grid <- expand.grid(
@@ -199,8 +258,10 @@ tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")]
 ```
 
 ```{r tune-table}
-tune_table <- tune_obj$results[order(tune_obj$results$mean), c(names(tune_grid), "mean", "conf_low", "conf_high")]
-tune_table
+tune_obj$results[
+  order(tune_obj$results$mean),
+  c(names(tune_grid), "mean", "conf_low", "conf_high")
+]
 ```
 
 ```{r tune-plot}
@@ -224,7 +285,26 @@ summary(compare_obj)
 plot(compare_obj)
 ```
 
-### 3. Build explanations from the same fitted model
+## 5. Interpret a fitted model with the same object
+
+The interpretation layer operates on fitted `funcml_fit` objects, so you do not
+need a second modeling interface for explanation tasks.
+
+```{r permute}
+permute_obj <- interpret(
+  fit_obj,
+  demo_reg,
+  method = "permute",
+  nsim = 20,
+  seed = 42
+)
+
+summary(permute_obj)
+```
+
+```{r permute-plot}
+plot(permute_obj)
+```
 
 ```{r ale}
 ale_obj <- interpret(
@@ -255,11 +335,14 @@ shap_obj <- interpret(
 plot(shap_obj, kind = "waterfall")
 ```
 
-The interpretation layer also supports permutation importance, PDP, ICE,
-local surrogate explanations, global surrogates, interaction strength,
-ceteris paribus profiles, and calibration diagnostics.
+Other supported methods include PDP, ICE, local surrogate explanations, global
+surrogates, interaction strength, ceteris paribus profiles, and calibration
+diagnostics.
 
-### 4. Inspect class-probability columns directly
+## 6. Inspect class probabilities and calibration
+
+For classification, the same `fit()` object can produce class predictions or
+class-probability matrices with aligned columns.
 
 ```{r classification}
 cls_fit <- fit(
@@ -296,7 +379,10 @@ calibration_obj <- interpret(
 plot(calibration_obj)
 ```
 
-### 5. Estimate causal effects with the same learner interface
+## 7. Estimate causal effects with the same learner interface
+
+`estimate()` extends the same framework into plug-in g-computation for common
+binary-treatment estimands.
 
 This synthetic causal example has measured confounding and a known treatment
 effect centered near `1.2`, so the ATE output has a meaningful target.
@@ -320,10 +406,13 @@ summary(est_obj)
 plot(est_obj)
 ```
 
-## Ensembles are first-class learners
+The same API also supports `ATT`, `CATE`, and `IATE`.
 
-`stacking` and `superlearner` live in the same registry as the base learners,
-so you fit them through the same `fit()` interface.
+## 8. Use ensembles as first-class learners
+
+`stacking` and `superlearner` live in the same learner registry as the base
+models, so ensembles are fit through the same API rather than a separate
+pipeline.
 
 ```{r ensemble}
 stack_fit <- fit(
@@ -341,9 +430,9 @@ stack_fit <- fit(
 round(predict(stack_fit, demo_reg[1:5, , drop = FALSE]), 2)
 ```
 
-## Learner coverage
+## 9. Learner coverage at a glance
 
-The current registry covers 26 learner ids. Broadly:
+The current registry covers `r nrow(catalog)` learner ids. Broadly:
 
 | Support | Learners |
 | --- | --- |
@@ -353,19 +442,18 @@ The current registry covers 26 learner ids. Broadly:
 | Binary classification only | `adaboost` |
 | Regression only | `pls` |
 
-Use `list_learners()` to inspect the full learner catalog and capabilities in
-your current session:
+## 10. Summary
 
-```{r list-learners}
-catalog <- list_learners()
+`funcml` is designed so the same fitted object and the same learner registry can
+support:
 
-catalog[, c(
-  "learner",
-  "supports_regression",
-  "supports_classification",
-  "supports_prob",
-  "supports_multiclass",
-  "engine_package",
-  "available"
-)]
-```
+- one-model training with `fit()`
+- prediction with `predict()`
+- resampled validation with `evaluate()`
+- hyperparameter search with `tune()`
+- learner benchmarking with `compare_learners()`
+- model explanation with `interpret()`
+- plug-in g-computation with `estimate()`
+
+That is the central idea of the package: one explicit API surface for tabular
+machine learning in R, rather than a stack of disconnected modeling wrappers.

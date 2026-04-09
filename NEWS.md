@@ -8,7 +8,7 @@
 - Added multiclass and weighted AUC support and clarified default evaluation behavior for binary versus multiclass classification.
 - Added `list_learners()` as a learner capability catalog and improved package metadata, citation, and repository scaffolding for release and paper preparation.
 - Removed the `catboost` learner backend from the registry and package metadata.
-- Kept `lightgbm` as a separately installed learner engine.
+- Kept `lightgbm` as a standard learner dependency available with `funcml`.
 
 # funcml 0.2.0
 
