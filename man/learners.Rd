@@ -20,8 +20,9 @@ binary classification only: \code{adaboost};
 regression only: \code{pls}.
 }
 \details{
-The learner engine packages are declared in \code{Imports}, so these ids are
-intended to be available immediately after installing \code{funcml}.
+Most learner engine packages are installed with \code{funcml}. Optional engines
+such as \code{lightgbm} and \code{catboost} may require separate installation before
+those learner ids become available.
 }
 \examples{
 learners()

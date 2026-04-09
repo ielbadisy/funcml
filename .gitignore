@@ -6,6 +6,7 @@
 R/.Rhistory
 ..Rcheck/
 *.Rcheck/
+README.html
 lib/
 .local-lib/
 Rplots.pdf

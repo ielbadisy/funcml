@@ -6,9 +6,25 @@
 
 assert_package <- function(pkg, model_id) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
-    stop(sprintf("Model '%s' requires package '%s'. Install it with install.packages('%s').",
-                 model_id, pkg, pkg), call. = FALSE)
+    stop(
+      sprintf(
+        "Model '%s' requires optional package '%s'. %s",
+        model_id,
+        pkg,
+        .package_install_hint(pkg)
+      ),
+      call. = FALSE
+    )
   }
+}
+
+.package_install_hint <- function(pkg) {
+  switch(
+    pkg,
+    lightgbm = "Install it separately from the official LightGBM R package instructions.",
+    catboost = "Install it separately from the official CatBoost R package instructions.",
+    sprintf("Install it with install.packages('%s').", pkg)
+  )
 }
 
 infer_task <- function(y) {

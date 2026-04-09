@@ -41,7 +41,7 @@ tune(
 
 \item{outer_resampling}{Optional outer resampling object. When supplied,
 \code{tune()} performs nested resampling and reports outer-fold performance
-estimates for the tuned workflow.}
+estimates for the tuned model-selection procedure.}
 
 \item{seed}{Optional seed.}
 
