@@ -48,9 +48,18 @@ remotes::install_github("ielbadisy/funcml")
 ```
 
 Installing `funcml` makes the core learner registry available without extra
-registration steps. Some optional engines, including `lightgbm` and
-`catboost`, may need to be installed separately before those learner ids are
-available.
+registration steps. The `lightgbm` learner may need to be installed separately
+before that learner id is available.
+
+Examples:
+
+```r
+install.packages("xgboost")
+```
+
+```r
+# see the official LightGBM R installation guide
+```
 
 ## What the package covers
 
@@ -338,7 +347,7 @@ The current registry covers 26 learner ids. Broadly:
 
 | Support | Learners |
 | --- | --- |
-| Regression + classification | `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner` |
+| Regression + classification | `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `xgboost`, `stacking`, `superlearner` |
 | Regression + binary classification | `earth`, `gam`, `bart` |
 | Classification only | `C50`, `naivebayes`, `fda`, `lda`, `qda` |
 | Binary classification only | `adaboost` |

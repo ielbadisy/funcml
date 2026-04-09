@@ -7,6 +7,8 @@ R/.Rhistory
 ..Rcheck/
 *.Rcheck/
 README.html
+vignettes/*.html
+vignettes/*.R
 lib/
 .local-lib/
 Rplots.pdf

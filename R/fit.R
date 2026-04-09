@@ -3,7 +3,7 @@
 #' Registered learner ids currently include:
 #' regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`,
 #' `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
-#' `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner`;
+#' `lightgbm`, `xgboost`, `stacking`, `superlearner`;
 #' regression plus binary classification: `gam`, `bart`;
 #' classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`;
 #' binary classification only: `adaboost`;
@@ -86,14 +86,14 @@ create_predict <- function(obj, adapter, state) {
 #' `learners()` returns the registry keys accepted by [fit()]. Task support is:
 #' regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`,
 #' `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
-#' `lightgbm`, `catboost`, `xgboost`, `stacking`, `superlearner`;
+#' `lightgbm`, `xgboost`, `stacking`, `superlearner`;
 #' regression plus binary classification: `gam`, `bart`, `earth`;
 #' classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`;
 #' binary classification only: `adaboost`;
 #' regression only: `pls`.
 #'
 #' Most learner engine packages are installed with `funcml`. Optional engines
-#' such as `lightgbm` and `catboost` may require separate installation before
+#' such as `lightgbm` may require separate installation before
 #' those learner ids become available.
 #' @return Character vector of learner ids.
 #' @examples
@@ -126,7 +126,6 @@ learners <- function() {
     lda = "MASS",
     qda = "MASS",
     lightgbm = "lightgbm",
-    catboost = "catboost",
     bart = "dbarts",
     xgboost = "xgboost",
     stacking = "funcml",
