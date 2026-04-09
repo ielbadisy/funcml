@@ -1,3 +1,9 @@
+# funcml 0.7.1
+
+- Refined the README into a more detailed progressive API walkthrough with
+  additional tables, figures, and staged examples covering the full package
+  surface.
+
 # funcml 0.7.0
 
 - Consolidated `funcml` as a machine learning framework for R with stable S3 interfaces for fitting, prediction, evaluation, tuning, learner comparison, interpretation, and plug-in g-computation.
