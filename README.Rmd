@@ -22,12 +22,12 @@ set.seed(42)
 
 # funcml
 
-`funcml` is a formula-first machine learning toolkit for people who want one
-compact interface for fitting models, validating them, tuning them, comparing
-learners, interpreting predictions, and estimating causal effects.
+`funcml` is a machine learning framework for R with one compact interface for
+fitting models, validating them, tuning them, comparing learners,
+interpreting predictions, and estimating causal effects.
 
 The package is intentionally opinionated: preprocessing happens before `fit()`,
-the modeling input stays explicit, and the workflow remains compact instead of
+the modeling input stays explicit, and the framework stays compact instead of
 expanding into a large orchestration framework.
 
 ## Why `funcml`?
@@ -49,8 +49,10 @@ install.packages("remotes")
 remotes::install_github("ielbadisy/funcml")
 ```
 
-`funcml` imports the supported learner backends directly, so a standard install
-brings the learner registry into the package without extra registration steps.
+Installing `funcml` makes the core learner registry available without extra
+registration steps. Some optional engines, including `lightgbm` and
+`catboost`, may need to be installed separately before those learner ids are
+available.
 
 ## What the package covers
 
@@ -143,7 +145,7 @@ round(predict(fit_obj, demo_reg[1:5, , drop = FALSE]), 2)
 ```
 
 The same fitted object can immediately feed evaluation, tuning,
-interpretability, and causal workflows.
+interpretability, and causal estimation tasks.
 
 ## Workflow gallery
 
