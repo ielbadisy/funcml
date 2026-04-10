@@ -5,22 +5,34 @@
 \title{Learner inventory table with capabilities.}
 \usage{
 list_learners(
+  has_fit = NULL,
+  has_predict = NULL,
+  has_tune = NULL,
+  available = NULL,
+  columns = NULL,
   regression = NULL,
   classification = NULL,
-  tune = NULL,
   prob = NULL,
   multiclass = NULL,
   importance = NULL,
-  available = NULL,
-  columns = NULL
+  tune = NULL
 )
 }
 \arguments{
+\item{has_fit}{Optional logical filter for fit support.}
+
+\item{has_predict}{Optional logical filter for predict support.}
+
+\item{has_tune}{Optional logical filter for tuning support.}
+
+\item{available}{Optional logical filter for engine availability in the
+current session.}
+
+\item{columns}{Optional character vector of columns to return.}
+
 \item{regression}{Optional logical filter for regression support.}
 
 \item{classification}{Optional logical filter for classification support.}
-
-\item{tune}{Optional logical filter for tuning support.}
 
 \item{prob}{Optional logical filter for probability support.}
 
@@ -28,26 +40,24 @@ list_learners(
 
 \item{importance}{Optional logical filter for feature-importance support.}
 
-\item{available}{Optional logical filter for engine availability in the
-current session.}
-
-\item{columns}{Optional character vector of columns to return.}
+\item{tune}{Deprecated alias for \code{has_tune}.}
 }
 \value{
 Data frame with learner metadata and capability columns.
 }
 \description{
-\code{list_learners()} returns one row per learner id with task support,
-probability/multiclass/importance flags, and availability of the engine
-package in the current R session. Optional filters and column selection make
-it easier to request a compact catalog view directly.
+\code{list_learners()} returns a compact learner registry in the style of a
+catalog table. By default it focuses on the most user-visible columns:
+learner id, generic fit/predict/tune entry points, and availability in the
+current session.
 }
 \details{
-This mirrors a "catalog view" API style useful for quickly seeing what can
-be fit, tuned, and interpreted in \code{funcml}.
+Additional capability metadata remains available through \verb{columns =}.
 }
 \examples{
 list_learners()
-list_learners(classification = TRUE, prob = TRUE, available = TRUE,
-              columns = c("learner", "supports_prob", "engine_package"))
+list_learners(has_tune = TRUE)
+list_tunable_learners()
+list_learners(classification = TRUE, prob = TRUE,
+              columns = c("learner", "has_tune", "supports_prob", "engine_package"))
 }
