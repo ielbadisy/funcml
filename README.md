@@ -122,23 +122,7 @@ xgb_spec <- list(
 `list_learners()` now follows a compact registry style by default.
 
 ``` r
-detailed_catalog <- list_learners(
-  columns = c(
-    "learner",
-    "has_tune",
-    "supports_regression",
-    "supports_classification",
-    "supports_prob",
-    "supports_multiclass",
-    "supports_importance",
-    "engine_package",
-    "available"
-  )
-)
-
-catalog <- list_learners()
-
-catalog
+list_learners()
 #>         learner   fit   predict   tune has_fit has_predict has_tune available
 #> 15     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 22         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
@@ -165,21 +149,6 @@ catalog
 #> 24     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 25 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 23      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-```
-
-``` r
-data.frame(
-  learners = nrow(detailed_catalog),
-  tune = sum(detailed_catalog$has_tune),
-  regression = sum(detailed_catalog$supports_regression),
-  classification = sum(detailed_catalog$supports_classification),
-  prob = sum(detailed_catalog$supports_prob),
-  multiclass = sum(detailed_catalog$supports_multiclass),
-  importance = sum(detailed_catalog$supports_importance),
-  available = sum(detailed_catalog$available)
-)
-#>   learners tune regression classification prob multiclass importance available
-#> 1       25   25         19             24   23         18          7        25
 ```
 
 ``` r
@@ -213,18 +182,34 @@ list_tunable_learners()
 ```
 
 ``` r
-head(list_learners(
+list_learners(
   classification = TRUE,
   prob = TRUE,
-  columns = c("learner", "has_tune", "supports_prob", "supports_multiclass", "engine_package")
-), 6)
-#>      learner has_tune supports_prob supports_multiclass engine_package
-#> 15  adaboost     TRUE          TRUE               FALSE            ada
-#> 22      bart     TRUE          TRUE               FALSE         dbarts
-#> 9        C50     TRUE          TRUE                TRUE            C50
-#> 18   cforest     TRUE          TRUE                TRUE       partykit
-#> 17     ctree     TRUE          TRUE                TRUE       partykit
-#> 6  e1071_svm     TRUE          TRUE                TRUE          e1071
+  )
+#>         learner   fit   predict   tune has_fit has_predict has_tune available
+#> 15     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 22         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 9           C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 18      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 17        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 6     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 11        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 12          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 8           gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 1           glm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 3        glmnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 10         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 19          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 21     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 13   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 5          nnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 20          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 7  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 4        ranger fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 2         rpart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 24     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 25 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 23      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 ```
 
 ``` r
@@ -310,18 +295,8 @@ fit_obj
 ```
 
 ``` r
-head(data.frame(
-  car = demo_reg$car[1:6],
-  observed = demo_reg$mpg[1:6],
-  pred = round(predict(fit_obj, demo_reg[1:6, , drop = FALSE]), 2)
-), 6)
-#>                 car observed  pred
-#> 1         Mazda RX4     21.0 21.21
-#> 2     Mazda RX4 Wag     21.0 21.21
-#> 3        Datsun 710     22.8 22.52
-#> 4    Hornet 4 Drive     21.4 21.27
-#> 5 Hornet Sportabout     18.7 17.83
-#> 6           Valiant     18.1 18.35
+predict(fit_obj, demo_reg[1:6, ])
+#> [1] 21.20948 21.20948 22.52156 21.27151 17.83478 18.34501
 ```
 
 ## 3. Validate performance with resampling
@@ -338,19 +313,15 @@ eval_obj <- evaluate(
   resampling = cv(v = 4, seed = 42)
 )
 
-eval_tbl <- eval_obj$summary[, c("metric", "mean", "conf_low", "conf_high")]
-eval_tbl[, c("mean", "conf_low", "conf_high")] <- round(
-  eval_tbl[, c("mean", "conf_low", "conf_high")],
-  3
-)
-eval_tbl
-#>   metric   mean conf_low conf_high
-#> 1   rmse  3.310    0.885     5.734
-#> 2    mae  2.667    0.682     4.651
-#> 3    mse 12.696   -3.049    28.442
-#> 4  medae  2.368    0.187     4.550
-#> 5   mape  0.138    0.046     0.229
-#> 6    rsq  0.412   -0.871     1.695
+eval_obj
+#> <funcml_eval> model: xgboost | task: regression
+#>   metric       mean         sd n  std_error conf_level    conf_low  conf_high
+#> 1   rmse  3.3098266 1.52367053 4 0.76183527       0.95  0.88532681  5.7343265
+#> 2    mae  2.6666687 1.24734293 4 0.62367146       0.95  0.68186772  4.6514696
+#> 3    mse 12.6961313 9.89521740 4 4.94760870       0.95 -3.04936773 28.4416303
+#> 4  medae  2.3683064 1.37102015 4 0.68551008       0.95  0.18670736  4.5499054
+#> 5   mape  0.1375875 0.05773173 4 0.02886587       0.95  0.04572342  0.2294516
+#> 6    rsq  0.4117001 0.80640932 4 0.40320466       0.95 -0.87147708  1.6948773
 ```
 
 ``` r
@@ -389,29 +360,13 @@ tune_obj <- tune(
   seed = 42
 )
 
-round(tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")], 3)
-#>   max_depth eta nrounds  mean conf_low conf_high
-#> 7         2 0.1      30 2.938   -0.057     5.934
-```
-
-``` r
-tune_tbl <- head(
-  tune_obj$results[
-    order(tune_obj$results$mean),
-    c(names(tune_grid), "mean", "conf_low", "conf_high")
-  ],
-  4
-)
-tune_tbl[, c("mean", "conf_low", "conf_high")] <- round(
-  tune_tbl[, c("mean", "conf_low", "conf_high")],
-  3
-)
-tune_tbl
-#>   max_depth eta nrounds  mean conf_low conf_high
-#> 7         2 0.1      30 2.938   -0.057     5.934
-#> 3         2 0.1      20 3.105   -0.554     6.765
-#> 8         3 0.1      30 3.134    0.136     6.133
-#> 4         3 0.1      20 3.234   -0.347     6.815
+tune_obj
+#> <funcml_tune> metric=rmse direction=min search=grid
+#> Best:
+#>   max_depth eta nrounds     mean       sd n std_error conf_level    conf_low
+#> 7         2 0.1      30 2.938398 1.205848 3 0.6961968       0.95 -0.05709457
+#>   conf_high
+#> 7  5.933891
 ```
 
 ``` r
@@ -430,19 +385,22 @@ compare_obj <- compare_learners(
   specs = list(xgboost = xgb_spec)
 )
 
-compare_tbl <- compare_obj$results[, c("model", "metric", "mean", "conf_low", "conf_high", "rank")]
-compare_tbl[, c("mean", "conf_low", "conf_high")] <- round(
-  compare_tbl[, c("mean", "conf_low", "conf_high")],
-  3
-)
-compare_tbl
-#>     model metric  mean conf_low conf_high rank
-#> 1     glm   rmse 2.823    1.488     4.159    1
-#> 2     glm    mae 2.325    1.215     3.435    1
-#> 3   rpart   rmse 4.590    3.776     5.404    3
-#> 4   rpart    mae 3.781    3.297     4.265    3
-#> 5 xgboost   rmse 3.375    1.058     5.692    2
-#> 6 xgboost    mae 2.735    0.849     4.620    2
+compare_obj
+#> <funcml_compare> task: regression | tuned: FALSE
+#>     model metric     mean        sd n std_error conf_level  conf_low conf_high
+#> 1     glm   rmse 2.823282 0.8391539 4 0.4195769       0.95 1.4880008  4.158563
+#> 2     glm    mae 2.324837 0.6977166 4 0.3488583       0.95 1.2146141  3.435060
+#> 3   rpart   rmse 4.589988 0.5112815 4 0.2556408       0.95 3.7764255  5.403552
+#> 4   rpart    mae 3.781101 0.3039781 4 0.1519891       0.95 3.2974042  4.264798
+#> 5 xgboost   rmse 3.374909 1.4559200 4 0.7279600       0.95 1.0582155  5.691603
+#> 6 xgboost    mae 2.734509 1.1846891 4 0.5923445       0.95 0.8494044  4.619614
+#>   tuned rank
+#> 1 FALSE    1
+#> 2 FALSE    1
+#> 3 FALSE    3
+#> 4 FALSE    3
+#> 5 FALSE    2
+#> 6 FALSE    2
 ```
 
 ``` r
@@ -500,7 +458,7 @@ shap_obj <- interpret(
   fit = fit_obj,
   data = demo_reg,
   method = "shap",
-  newdata = demo_reg[1, , drop = FALSE],
+  newdata = demo_reg[1,],
   nsim = 30,
   nsamples = 20,
   seed = 42
@@ -530,23 +488,20 @@ cls_fit <- fit(
   seed = 42
 )
 
-cls_prob <- round(
-  predict(cls_fit, demo_cls_test[1:6, , drop = FALSE], type = "prob"),
-  3
-)
+cls_prob <- predict(cls_fit, demo_cls_test[1:6, , drop = FALSE], type = "prob")
 
 data.frame(
   prob_no = cls_prob[, "no"],
   prob_yes = cls_prob[, "yes"],
   row.names = NULL
 )
-#>   prob_no prob_yes
-#> 1   0.578    0.422
-#> 2   0.323    0.677
-#> 3   0.840    0.160
-#> 4   0.492    0.508
-#> 5   0.762    0.238
-#> 6   0.567    0.433
+#>     prob_no  prob_yes
+#> 1 0.5783619 0.4216381
+#> 2 0.3225988 0.6774012
+#> 3 0.8395363 0.1604637
+#> 4 0.4916897 0.5083103
+#> 5 0.7620232 0.2379768
+#> 6 0.5671560 0.4328440
 ```
 
 ``` r
@@ -587,16 +542,10 @@ est_obj <- estimate(
   seed = 42
 )
 
-data.frame(
-  estimand = est_obj$estimand,
-  treatment_level = est_obj$treatment_level,
-  control_level = est_obj$control_level,
-  estimate = round(est_obj$estimate, 3),
-  conf_low = round(est_obj$conf_int[1], 3),
-  conf_high = round(est_obj$conf_int[2], 3)
-)
-#>       estimand treatment_level control_level estimate conf_low conf_high
-#> lower      ATE               1             0    1.215    1.191     1.239
+est_obj
+#> <funcml_estimand> ATE via g-computation
+#> Treatment: trt (1 vs 0)
+#> Estimate: 1.2149 | SE: 0.0123 | 95% normal CI [1.1907, 1.2390]
 ```
 
 ``` r
@@ -626,59 +575,14 @@ stack_fit <- fit(
   seed = 42
 )
 
-round(predict(stack_fit, demo_reg[1:5, , drop = FALSE]), 2)
-#> [1] 21.33 21.40 22.18 21.60 17.51
+predict(stack_fit, demo_reg[1:5, ])
+#> [1] 21.33335 21.39537 22.18028 21.60285 17.50703
 ```
 
-## 9. Capability summary from the live catalog
+## 9. Summary
 
-Rather than hardcoding learner names, you can summarize the current
-registry directly from `list_learners()`.
+`funcml` is designed around these core functions:
 
-``` r
-catalog_summary <- data.frame(
-  capability = c(
-    "Supports regression",
-    "Supports classification",
-    "Supports probabilities",
-    "Supports multiclass",
-    "Supports feature importance",
-    "Currently available"
-  ),
-  learners = c(
-    paste(detailed_catalog$learner[detailed_catalog$supports_regression], collapse = ", "),
-    paste(detailed_catalog$learner[detailed_catalog$supports_classification], collapse = ", "),
-    paste(detailed_catalog$learner[detailed_catalog$supports_prob], collapse = ", "),
-    paste(detailed_catalog$learner[detailed_catalog$supports_multiclass], collapse = ", "),
-    paste(detailed_catalog$learner[detailed_catalog$supports_importance], collapse = ", "),
-    paste(detailed_catalog$learner[detailed_catalog$available], collapse = ", ")
-  ),
-  row.names = NULL
-)
-
-catalog_summary
-#>                    capability
-#> 1         Supports regression
-#> 2     Supports classification
-#> 3      Supports probabilities
-#> 4         Supports multiclass
-#> 5 Supports feature importance
-#> 6         Currently available
-#>                                                                                                                                                                                           learners
-#> 1                                           bart, cforest, ctree, e1071_svm, earth, gam, gbm, glm, glmnet, kknn, lightgbm, nnet, pls, randomForest, ranger, rpart, stacking, superlearner, xgboost
-#> 2      adaboost, bart, C50, cforest, ctree, e1071_svm, earth, fda, gam, gbm, glm, glmnet, kknn, lda, lightgbm, naivebayes, nnet, qda, randomForest, ranger, rpart, stacking, superlearner, xgboost
-#> 3           adaboost, bart, C50, cforest, ctree, e1071_svm, earth, gam, gbm, glm, glmnet, kknn, lda, lightgbm, naivebayes, nnet, qda, randomForest, ranger, rpart, stacking, superlearner, xgboost
-#> 4                                            C50, cforest, ctree, e1071_svm, fda, glmnet, kknn, lda, lightgbm, naivebayes, nnet, qda, randomForest, ranger, rpart, stacking, superlearner, xgboost
-#> 5                                                                                                                                       earth, gbm, lightgbm, randomForest, ranger, rpart, xgboost
-#> 6 adaboost, bart, C50, cforest, ctree, e1071_svm, earth, fda, gam, gbm, glm, glmnet, kknn, lda, lightgbm, naivebayes, nnet, pls, qda, randomForest, ranger, rpart, stacking, superlearner, xgboost
-```
-
-## 10. Summary
-
-`funcml` is designed so the same fitted object model and the same
-learner catalog can support:
-
-- learner discovery with `list_learners()`
 - one-model training with `fit()`
 - prediction with `predict()`
 - resampled validation with `evaluate()`
