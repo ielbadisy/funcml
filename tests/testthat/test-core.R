@@ -120,42 +120,81 @@ test_that("list_learners returns a capability catalog", {
   expect_true(nrow(catalog) >= length(learners()))
   expect_true(all(learners() %in% catalog$learner))
   expect_true(all(c(
-    "learner", "fit", "predict", "tune", "interpret", "interpret_methods",
-    "has_fit", "has_predict", "has_tune", "has_interpret",
-    "supports_regression", "supports_classification", "supports_prob",
-    "supports_multiclass", "supports_importance",
-    "engine_package", "available"
+    "learner", "fit", "predict", "tune",
+    "has_fit", "has_predict", "has_tune", "available"
   ) %in% names(catalog)))
   expect_true(is.logical(catalog$has_fit))
   expect_true(is.logical(catalog$has_predict))
   expect_true(is.logical(catalog$has_tune))
-  expect_true(is.logical(catalog$has_interpret))
-  expect_true(is.logical(catalog$supports_prob))
-  expect_true(is.logical(catalog$supports_multiclass))
-  expect_true(is.logical(catalog$supports_importance))
   expect_true(is.logical(catalog$available))
+})
+
+test_that("list_learners still exposes capability metadata on request", {
+  catalog <- list_learners(
+    columns = c(
+      "learner", "has_tune", "supports_regression", "supports_classification",
+      "supports_prob", "supports_multiclass", "supports_importance",
+      "interpret_methods", "engine_package"
+    )
+  )
+
+  expect_true(all(c(
+    "supports_regression", "supports_classification", "supports_prob",
+    "supports_multiclass", "supports_importance",
+    "interpret_methods", "engine_package"
+  ) %in% names(catalog)))
   expect_true(any(grepl("calibration", catalog$interpret_methods)))
 })
 
 test_that("list_learners supports task, capability, availability, and column filters", {
   compact <- list_learners(
+    has_tune = TRUE,
     classification = TRUE,
     prob = TRUE,
     available = TRUE,
-    columns = c("learner", "supports_prob", "supports_multiclass", "available")
+    columns = c("learner", "has_tune", "supports_prob", "supports_multiclass", "available")
   )
 
   expect_s3_class(compact, "data.frame")
-  expect_named(compact, c("learner", "supports_prob", "supports_multiclass", "available"))
+  expect_named(compact, c("learner", "has_tune", "supports_prob", "supports_multiclass", "available"))
   expect_true(nrow(compact) > 0)
+  expect_true(all(compact$has_tune))
   expect_true(all(compact$supports_prob))
   expect_true(all(compact$available))
   expect_true(all(!is.na(compact$learner)))
 
-  regression_with_importance <- list_learners(regression = TRUE, importance = TRUE, tune = TRUE)
+  regression_with_importance <- list_learners(regression = TRUE, importance = TRUE, has_tune = TRUE)
   expect_true(all(regression_with_importance$supports_regression))
   expect_true(all(regression_with_importance$supports_importance))
   expect_true(all(regression_with_importance$has_tune))
+})
+
+test_that("list_tunable_learners is a shortcut for tunable learners", {
+  expect_identical(
+    list_tunable_learners(),
+    list_learners(has_tune = TRUE)
+  )
+})
+
+test_that("list_interpretability_methods returns compute and plot catalog", {
+  methods <- list_interpretability_methods()
+
+  expect_s3_class(methods, "data.frame")
+  expect_named(methods, c("compute", "plot", "has_compute", "has_plot"))
+  expect_true(any(grepl("shap", methods$compute, fixed = TRUE)))
+  expect_true(all(methods$has_compute))
+  expect_true(all(methods$has_plot))
+})
+
+test_that("list_metrics returns metric metadata", {
+  metrics_tbl <- list_metrics()
+
+  expect_s3_class(metrics_tbl, "data.frame")
+  expect_named(metrics_tbl, c("metric", "direction", "summary", "range"))
+  expect_true(all(c("rmse", "mae", "accuracy", "auc", "ece") %in% metrics_tbl$metric))
+  expect_true(all(metrics_tbl$direction %in% c("maximize", "minimize")))
+  expect_true(all(nzchar(metrics_tbl$summary)))
+  expect_true(all(nzchar(metrics_tbl$range)))
 })
 
 test_that("list_learners validates filter arguments", {
