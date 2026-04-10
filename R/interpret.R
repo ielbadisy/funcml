@@ -1,5 +1,70 @@
 # Native model-agnostic interpretability for funcml
 
+.interpretability_catalog <- function() {
+  data.frame(
+    compute = c(
+      "interpret(method = \"vip\")",
+      "interpret(method = \"permute\")",
+      "interpret(method = \"pdp\")",
+      "interpret(method = \"ice\")",
+      "interpret(method = \"ale\")",
+      "interpret(method = \"local\")",
+      "interpret(method = \"lime\")",
+      "interpret(method = \"shap\")",
+      "interpret(method = \"local_model\")",
+      "interpret(method = \"interaction\")",
+      "interpret(method = \"surrogate\")",
+      "interpret(method = \"profile\")",
+      "interpret(method = \"ceteris_paribus\")",
+      "interpret(method = \"calibration\")"
+    ),
+    plot = c(
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()",
+      "plot()"
+    ),
+    has_compute = rep(TRUE, 14L),
+    has_plot = rep(TRUE, 14L),
+    stringsAsFactors = FALSE
+  )
+}
+
+#' List available interpretability methods.
+#'
+#' Returns a compact catalog of `interpret()` entry points and whether each
+#' method has a corresponding `plot()` method.
+#'
+#' @param has_plot Optional logical filter for methods with plot support.
+#' @param columns Optional character vector of columns to return.
+#' @return Data frame of interpretability methods.
+#' @examples
+#' list_interpretability_methods()
+#' subset(list_interpretability_methods(), has_plot)
+#' @export
+list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
+  has_plot <- .validate_list_learners_flag(has_plot, "has_plot")
+  out <- .interpretability_catalog()
+  if (!is.null(has_plot)) {
+    out <- out[out$has_plot == has_plot, , drop = FALSE]
+  }
+  if (!is.null(columns)) {
+    columns <- .validate_list_learners_columns(columns, names(out))
+    out <- out[, columns, drop = FALSE]
+  }
+  out
+}
+
 .target_pred <- function(fit, Xnew, task, type = NULL, class_level = NULL, pos_level = NULL) {
   type <- type %||% if (task == "regression") "response" else "prob"
   if (task == "regression") {

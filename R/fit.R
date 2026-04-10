@@ -139,42 +139,7 @@ learners <- function() {
   paste(methods, collapse = ", ")
 }
 
-#' Learner inventory table with capabilities.
-#'
-#' `list_learners()` returns one row per learner id with task support,
-#' probability/multiclass/importance flags, and availability of the engine
-#' package in the current R session. Optional filters and column selection make
-#' it easier to request a compact catalog view directly.
-#'
-#' This mirrors a "catalog view" API style useful for quickly seeing what can
-#' be fit, tuned, and interpreted in `funcml`.
-#'
-#' @param regression Optional logical filter for regression support.
-#' @param classification Optional logical filter for classification support.
-#' @param tune Optional logical filter for tuning support.
-#' @param prob Optional logical filter for probability support.
-#' @param multiclass Optional logical filter for multiclass support.
-#' @param importance Optional logical filter for feature-importance support.
-#' @param available Optional logical filter for engine availability in the
-#'   current session.
-#' @param columns Optional character vector of columns to return.
-#' @return Data frame with learner metadata and capability columns.
-#' @examples
-#' list_learners()
-#' list_learners(classification = TRUE, prob = TRUE, available = TRUE,
-#'               columns = c("learner", "supports_prob", "engine_package"))
-#' @export
-list_learners <- function(regression = NULL, classification = NULL,
-                          tune = NULL, prob = NULL, multiclass = NULL,
-                          importance = NULL, available = NULL,
-                          columns = NULL) {
-  regression <- .validate_list_learners_flag(regression, "regression")
-  classification <- .validate_list_learners_flag(classification, "classification")
-  tune <- .validate_list_learners_flag(tune, "tune")
-  prob <- .validate_list_learners_flag(prob, "prob")
-  multiclass <- .validate_list_learners_flag(multiclass, "multiclass")
-  importance <- .validate_list_learners_flag(importance, "importance")
-  available <- .validate_list_learners_flag(available, "available")
+.learner_catalog <- function() {
   reg <- funcml_registry()
   ids <- names(reg)
   pkg_map <- .learner_engine_packages()
@@ -182,33 +147,84 @@ list_learners <- function(regression = NULL, classification = NULL,
   rows <- lapply(ids, function(id) {
     adapter <- reg[[id]]
     engine_pkg <- unname(pkg_map[[id]] %||% NA_character_)
+    has_tune <- TRUE
     available <- if (is.na(engine_pkg)) TRUE else requireNamespace(engine_pkg, quietly = TRUE)
 
     data.frame(
       learner = id,
       fit = "fit()",
       predict = "predict()",
-      tune = "tune()",
-      interpret = "interpret()",
-      interpret_methods = .interpret_methods_for(adapter),
+      tune = if (has_tune) "tune()" else NA_character_,
       has_fit = TRUE,
       has_predict = TRUE,
-      has_tune = TRUE,
-      has_interpret = TRUE,
+      has_tune = has_tune,
+      available = available,
       supports_regression = "regression" %in% adapter$tasks,
       supports_classification = "classification" %in% adapter$tasks,
       supports_prob = isTRUE(adapter$supports$prob),
       supports_multiclass = isTRUE(adapter$supports$multiclass),
       supports_importance = isTRUE(adapter$supports$importance),
+      interpret = "interpret()",
+      interpret_methods = .interpret_methods_for(adapter),
+      has_interpret = TRUE,
       engine_package = engine_pkg,
-      available = available,
       stringsAsFactors = FALSE
     )
   })
 
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
-  out <- out[order(out$learner), , drop = FALSE]
+  out[order(out$learner), , drop = FALSE]
+}
+
+#' Learner inventory table with capabilities.
+#'
+#' `list_learners()` returns a compact learner registry in the style of a
+#' catalog table. By default it focuses on the most user-visible columns:
+#' learner id, generic fit/predict/tune entry points, and availability in the
+#' current session.
+#'
+#' Additional capability metadata remains available through `columns =`.
+#'
+#' @param has_fit Optional logical filter for fit support.
+#' @param has_predict Optional logical filter for predict support.
+#' @param has_tune Optional logical filter for tuning support.
+#' @param available Optional logical filter for engine availability in the
+#'   current session.
+#' @param columns Optional character vector of columns to return.
+#' @param regression Optional logical filter for regression support.
+#' @param classification Optional logical filter for classification support.
+#' @param prob Optional logical filter for probability support.
+#' @param multiclass Optional logical filter for multiclass support.
+#' @param importance Optional logical filter for feature-importance support.
+#' @param tune Deprecated alias for `has_tune`.
+#' @return Data frame with learner metadata and capability columns.
+#' @examples
+#' list_learners()
+#' list_learners(has_tune = TRUE)
+#' list_tunable_learners()
+#' list_learners(classification = TRUE, prob = TRUE,
+#'               columns = c("learner", "has_tune", "supports_prob", "engine_package"))
+#' @export
+list_learners <- function(has_fit = NULL, has_predict = NULL, has_tune = NULL,
+                          available = NULL, columns = NULL,
+                          regression = NULL, classification = NULL,
+                          prob = NULL, multiclass = NULL, importance = NULL,
+                          tune = NULL) {
+  has_fit <- .validate_list_learners_flag(has_fit, "has_fit")
+  has_predict <- .validate_list_learners_flag(has_predict, "has_predict")
+  has_tune <- .validate_list_learners_flag(has_tune, "has_tune")
+  tune <- .validate_list_learners_flag(tune, "tune")
+  regression <- .validate_list_learners_flag(regression, "regression")
+  classification <- .validate_list_learners_flag(classification, "classification")
+  prob <- .validate_list_learners_flag(prob, "prob")
+  multiclass <- .validate_list_learners_flag(multiclass, "multiclass")
+  importance <- .validate_list_learners_flag(importance, "importance")
+  available <- .validate_list_learners_flag(available, "available")
+  if (is.null(has_tune) && !is.null(tune)) {
+    has_tune <- tune
+  }
+  out <- .learner_catalog()
 
   if (!is.null(regression)) {
     out <- out[out$supports_regression == regression, , drop = FALSE]
@@ -216,8 +232,14 @@ list_learners <- function(regression = NULL, classification = NULL,
   if (!is.null(classification)) {
     out <- out[out$supports_classification == classification, , drop = FALSE]
   }
-  if (!is.null(tune)) {
-    out <- out[out$has_tune == tune, , drop = FALSE]
+  if (!is.null(has_fit)) {
+    out <- out[out$has_fit == has_fit, , drop = FALSE]
+  }
+  if (!is.null(has_predict)) {
+    out <- out[out$has_predict == has_predict, , drop = FALSE]
+  }
+  if (!is.null(has_tune)) {
+    out <- out[out$has_tune == has_tune, , drop = FALSE]
   }
   if (!is.null(prob)) {
     out <- out[out$supports_prob == prob, , drop = FALSE]
@@ -234,9 +256,22 @@ list_learners <- function(regression = NULL, classification = NULL,
   if (!is.null(columns)) {
     columns <- .validate_list_learners_columns(columns, names(out))
     out <- out[, columns, drop = FALSE]
+  } else {
+    out <- out[, c("learner", "fit", "predict", "tune", "has_fit", "has_predict", "has_tune", "available"), drop = FALSE]
   }
 
   out
+}
+
+#' Shortcut for learners with tuning support.
+#'
+#' @param ... Passed to [list_learners()].
+#' @return Data frame with the same columns as [list_learners()].
+#' @examples
+#' list_tunable_learners()
+#' @export
+list_tunable_learners <- function(...) {
+  list_learners(has_tune = TRUE, ...)
 }
 
 .validate_list_learners_flag <- function(x, arg) {
