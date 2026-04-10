@@ -143,16 +143,38 @@ learners <- function() {
 #'
 #' `list_learners()` returns one row per learner id with task support,
 #' probability/multiclass/importance flags, and availability of the engine
-#' package in the current R session.
+#' package in the current R session. Optional filters and column selection make
+#' it easier to request a compact catalog view directly.
 #'
 #' This mirrors a "catalog view" API style useful for quickly seeing what can
 #' be fit, tuned, and interpreted in `funcml`.
 #'
+#' @param regression Optional logical filter for regression support.
+#' @param classification Optional logical filter for classification support.
+#' @param tune Optional logical filter for tuning support.
+#' @param prob Optional logical filter for probability support.
+#' @param multiclass Optional logical filter for multiclass support.
+#' @param importance Optional logical filter for feature-importance support.
+#' @param available Optional logical filter for engine availability in the
+#'   current session.
+#' @param columns Optional character vector of columns to return.
 #' @return Data frame with learner metadata and capability columns.
 #' @examples
 #' list_learners()
+#' list_learners(classification = TRUE, prob = TRUE, available = TRUE,
+#'               columns = c("learner", "supports_prob", "engine_package"))
 #' @export
-list_learners <- function() {
+list_learners <- function(regression = NULL, classification = NULL,
+                          tune = NULL, prob = NULL, multiclass = NULL,
+                          importance = NULL, available = NULL,
+                          columns = NULL) {
+  regression <- .validate_list_learners_flag(regression, "regression")
+  classification <- .validate_list_learners_flag(classification, "classification")
+  tune <- .validate_list_learners_flag(tune, "tune")
+  prob <- .validate_list_learners_flag(prob, "prob")
+  multiclass <- .validate_list_learners_flag(multiclass, "multiclass")
+  importance <- .validate_list_learners_flag(importance, "importance")
+  available <- .validate_list_learners_flag(available, "available")
   reg <- funcml_registry()
   ids <- names(reg)
   pkg_map <- .learner_engine_packages()
@@ -186,7 +208,63 @@ list_learners <- function() {
 
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
-  out[order(out$learner), , drop = FALSE]
+  out <- out[order(out$learner), , drop = FALSE]
+
+  if (!is.null(regression)) {
+    out <- out[out$supports_regression == regression, , drop = FALSE]
+  }
+  if (!is.null(classification)) {
+    out <- out[out$supports_classification == classification, , drop = FALSE]
+  }
+  if (!is.null(tune)) {
+    out <- out[out$has_tune == tune, , drop = FALSE]
+  }
+  if (!is.null(prob)) {
+    out <- out[out$supports_prob == prob, , drop = FALSE]
+  }
+  if (!is.null(multiclass)) {
+    out <- out[out$supports_multiclass == multiclass, , drop = FALSE]
+  }
+  if (!is.null(importance)) {
+    out <- out[out$supports_importance == importance, , drop = FALSE]
+  }
+  if (!is.null(available)) {
+    out <- out[out$available == available, , drop = FALSE]
+  }
+  if (!is.null(columns)) {
+    columns <- .validate_list_learners_columns(columns, names(out))
+    out <- out[, columns, drop = FALSE]
+  }
+
+  out
+}
+
+.validate_list_learners_flag <- function(x, arg) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+  if (!is.logical(x) || length(x) != 1L || is.na(x)) {
+    stop(sprintf("`%s` must be NULL or TRUE/FALSE.", arg), call. = FALSE)
+  }
+  x
+}
+
+.validate_list_learners_columns <- function(columns, allowed) {
+  if (!is.character(columns) || !length(columns)) {
+    stop("`columns` must be a non-empty character vector.", call. = FALSE)
+  }
+  unknown <- setdiff(columns, allowed)
+  if (length(unknown)) {
+    stop(
+      sprintf(
+        "Unknown `columns`: %s. Available columns: %s",
+        paste(unknown, collapse = ", "),
+        paste(allowed, collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+  columns
 }
 
 #' @export

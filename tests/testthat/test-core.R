@@ -137,6 +137,42 @@ test_that("list_learners returns a capability catalog", {
   expect_true(any(grepl("calibration", catalog$interpret_methods)))
 })
 
+test_that("list_learners supports task, capability, availability, and column filters", {
+  compact <- list_learners(
+    classification = TRUE,
+    prob = TRUE,
+    available = TRUE,
+    columns = c("learner", "supports_prob", "supports_multiclass", "available")
+  )
+
+  expect_s3_class(compact, "data.frame")
+  expect_named(compact, c("learner", "supports_prob", "supports_multiclass", "available"))
+  expect_true(nrow(compact) > 0)
+  expect_true(all(compact$supports_prob))
+  expect_true(all(compact$available))
+  expect_true(all(!is.na(compact$learner)))
+
+  regression_with_importance <- list_learners(regression = TRUE, importance = TRUE, tune = TRUE)
+  expect_true(all(regression_with_importance$supports_regression))
+  expect_true(all(regression_with_importance$supports_importance))
+  expect_true(all(regression_with_importance$has_tune))
+})
+
+test_that("list_learners validates filter arguments", {
+  expect_error(
+    list_learners(regression = NA),
+    "`regression` must be NULL or TRUE/FALSE"
+  )
+  expect_error(
+    list_learners(prob = NA),
+    "`prob` must be NULL or TRUE/FALSE"
+  )
+  expect_error(
+    list_learners(columns = "not_a_column"),
+    "Unknown `columns`"
+  )
+})
+
 test_that("new learner task support is registered correctly", {
   expect_equal(sort(funcml:::funcml_registry("gam")$tasks), c("classification", "regression"))
   expect_equal(sort(funcml:::funcml_registry("bart")$tasks), c("classification", "regression"))

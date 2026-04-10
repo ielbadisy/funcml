@@ -4,7 +4,34 @@
 \alias{list_learners}
 \title{Learner inventory table with capabilities.}
 \usage{
-list_learners()
+list_learners(
+  regression = NULL,
+  classification = NULL,
+  tune = NULL,
+  prob = NULL,
+  multiclass = NULL,
+  importance = NULL,
+  available = NULL,
+  columns = NULL
+)
+}
+\arguments{
+\item{regression}{Optional logical filter for regression support.}
+
+\item{classification}{Optional logical filter for classification support.}
+
+\item{tune}{Optional logical filter for tuning support.}
+
+\item{prob}{Optional logical filter for probability support.}
+
+\item{multiclass}{Optional logical filter for multiclass support.}
+
+\item{importance}{Optional logical filter for feature-importance support.}
+
+\item{available}{Optional logical filter for engine availability in the
+current session.}
+
+\item{columns}{Optional character vector of columns to return.}
 }
 \value{
 Data frame with learner metadata and capability columns.
@@ -12,7 +39,8 @@ Data frame with learner metadata and capability columns.
 \description{
 \code{list_learners()} returns one row per learner id with task support,
 probability/multiclass/importance flags, and availability of the engine
-package in the current R session.
+package in the current R session. Optional filters and column selection make
+it easier to request a compact catalog view directly.
 }
 \details{
 This mirrors a "catalog view" API style useful for quickly seeing what can
@@ -20,4 +48,6 @@ be fit, tuned, and interpreted in \code{funcml}.
 }
 \examples{
 list_learners()
+list_learners(classification = TRUE, prob = TRUE, available = TRUE,
+              columns = c("learner", "supports_prob", "engine_package"))
 }
