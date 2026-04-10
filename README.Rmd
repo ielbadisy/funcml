@@ -49,7 +49,7 @@ remotes::install_github("ielbadisy/funcml")
 ```
 
 After installation, inspect the learner catalog with `list_learners()`. This
-shows which engines are registered, what each learner supports, and which
+shows which learner ids are exposed through the compact `funcml` API and which
 backends are available in the current R session.
 
 ## API Overview
@@ -137,14 +137,13 @@ xgb_spec <- list(
 
 ## 1. Inspect the learner catalog
 
-`list_learners()` is the current catalog API. It returns one row per learner id
-with support flags, interpretation capabilities, engine package names, and
-current-session availability.
+`list_learners()` now follows a compact registry style by default.
 
 ```{r learner-catalog}
-catalog <- list_learners(
+detailed_catalog <- list_learners(
   columns = c(
     "learner",
+    "has_tune",
     "supports_regression",
     "supports_classification",
     "supports_prob",
@@ -155,34 +154,42 @@ catalog <- list_learners(
   )
 )
 
+catalog <- list_learners()
+
+catalog
+```
+
+```{r learner-catalog-summary}
 data.frame(
-  learners = nrow(catalog),
-  regression = sum(catalog$supports_regression),
-  classification = sum(catalog$supports_classification),
-  prob = sum(catalog$supports_prob),
-  multiclass = sum(catalog$supports_multiclass),
-  importance = sum(catalog$supports_importance),
-  available = sum(catalog$available)
+  learners = nrow(detailed_catalog),
+  tune = sum(detailed_catalog$has_tune),
+  regression = sum(detailed_catalog$supports_regression),
+  classification = sum(detailed_catalog$supports_classification),
+  prob = sum(detailed_catalog$supports_prob),
+  multiclass = sum(detailed_catalog$supports_multiclass),
+  importance = sum(detailed_catalog$supports_importance),
+  available = sum(detailed_catalog$available)
 )
 ```
 
 ```{r learner-catalog-preview}
-head(list_learners(
-  classification = TRUE,
-  prob = TRUE,
-  available = TRUE,
-  columns = c(
-    "learner",
-    "supports_prob",
-    "supports_multiclass",
-    "supports_importance",
-    "engine_package"
-  )
-), 6)
+list_tunable_learners()
 ```
 
 ```{r learner-id-preview}
-head(catalog$learner, 10)
+head(list_learners(
+  classification = TRUE,
+  prob = TRUE,
+  columns = c("learner", "has_tune", "supports_prob", "supports_multiclass", "engine_package")
+), 6)
+```
+
+```{r interpretability-catalog}
+list_interpretability_methods()
+```
+
+```{r metrics-catalog}
+list_metrics()
 ```
 
 ## 2. Fit one model and inspect the fitted object
@@ -477,12 +484,12 @@ catalog_summary <- data.frame(
     "Currently available"
   ),
   learners = c(
-    paste(catalog$learner[catalog$supports_regression], collapse = ", "),
-    paste(catalog$learner[catalog$supports_classification], collapse = ", "),
-    paste(catalog$learner[catalog$supports_prob], collapse = ", "),
-    paste(catalog$learner[catalog$supports_multiclass], collapse = ", "),
-    paste(catalog$learner[catalog$supports_importance], collapse = ", "),
-    paste(catalog$learner[catalog$available], collapse = ", ")
+    paste(detailed_catalog$learner[detailed_catalog$supports_regression], collapse = ", "),
+    paste(detailed_catalog$learner[detailed_catalog$supports_classification], collapse = ", "),
+    paste(detailed_catalog$learner[detailed_catalog$supports_prob], collapse = ", "),
+    paste(detailed_catalog$learner[detailed_catalog$supports_multiclass], collapse = ", "),
+    paste(detailed_catalog$learner[detailed_catalog$supports_importance], collapse = ", "),
+    paste(detailed_catalog$learner[detailed_catalog$available], collapse = ", ")
   ),
   row.names = NULL
 )
