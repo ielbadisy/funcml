@@ -3,25 +3,25 @@
 
 # funcml
 
-`funcml` is a machine learning framework for R with one compact
+`funcml` is a machine learning framework for R with one explicit
 interface for fitting models, validating them, tuning them, comparing
 learners, interpreting predictions, and estimating causal effects.
 
 The package is intentionally opinionated: preprocessing happens before
-`fit()`, the modeling input stays explicit, and the framework stays
-compact instead of expanding into a large orchestration framework.
+modeling, inputs stay explicit, and the API stays compact instead of
+expanding into a large orchestration framework.
 
 ## Why `funcml`?
 
-- One consistent surface: `fit()`, `predict()`, `evaluate()`, `tune()`,
-  `compare_learners()`, `interpret()`, and `estimate()`.
-- Plot-ready outputs: evaluation, tuning, comparison, explanation,
-  calibration, and treatment-effect objects all have native plot
-  methods.
-- Broad learner coverage: classical statistical models, trees, kernel
-  methods, boosting systems, Bayesian trees, and native ensemble
-  learners.
-- Audited learner layer: unsupported modes are blocked explicitly.
+- One surface for the full modeling loop: `fit()`, `predict()`,
+  `evaluate()`, `tune()`, `compare_learners()`, `interpret()`, and
+  `estimate()`.
+- Session-aware learner catalog via `list_learners()`, including
+  capability and availability metadata.
+- Plot-ready outputs across validation, tuning, comparison, explanation,
+  calibration, and treatment-effect workflows.
+- Native support for stacked and super learner ensembles through the
+  same interface as base learners.
 
 ## Installation
 
@@ -30,13 +30,15 @@ install.packages("remotes")
 remotes::install_github("ielbadisy/funcml")
 ```
 
-Installing `funcml` makes the learner registry available without extra
-registration steps.
+After installation, inspect the learner catalog with `list_learners()`.
+This shows which engines are registered, what each learner supports, and
+which backends are available in the current R session.
 
-## API overview
+## API Overview
 
 | Task                 | Main functions                                               | Returned object                        | Typical use                                                         |
 |----------------------|--------------------------------------------------------------|----------------------------------------|---------------------------------------------------------------------|
+| Learner discovery    | `list_learners()`                                            | `data.frame`                           | Inspect learner ids, capabilities, and engine availability          |
 | Model fitting        | `fit()`, `predict()`                                         | `funcml_fit`                           | Train one learner and generate predictions                          |
 | Resampled validation | `cv()`, `holdout()`, `group_cv()`, `time_cv()`, `evaluate()` | `funcml_eval`                          | Estimate out-of-sample performance with uncertainty                 |
 | Model selection      | `tune()`, `compare_learners()`                               | `funcml_tune`, `funcml_compare`        | Search hyperparameters and compare learners under common resampling |
@@ -115,13 +117,11 @@ xgb_spec <- list(
 )
 ```
 
-## 1. Start by inspecting the learner catalog
+## 1. Inspect the learner catalog
 
-`list_learners()` gives a session-aware inventory of the registry,
-including task support, probability support, multiclass support, engine
-packages, and whether each engine is currently available. You can also
-filter the catalog by task or capability and request only the columns
-you need for reporting or interactive exploration.
+`list_learners()` is the current catalog API. It returns one row per
+learner id with support flags, interpretation capabilities, engine
+package names, and current-session availability.
 
 ``` r
 catalog <- list_learners(
@@ -131,6 +131,7 @@ catalog <- list_learners(
     "supports_classification",
     "supports_prob",
     "supports_multiclass",
+    "supports_importance",
     "engine_package",
     "available"
   )
@@ -142,10 +143,11 @@ data.frame(
   classification = sum(catalog$supports_classification),
   prob = sum(catalog$supports_prob),
   multiclass = sum(catalog$supports_multiclass),
+  importance = sum(catalog$supports_importance),
   available = sum(catalog$available)
 )
-#>   learners regression classification prob multiclass available
-#> 1       25         19             24   23         18        25
+#>   learners regression classification prob multiclass importance available
+#> 1       25         19             24   23         18          7        25
 ```
 
 ``` r
@@ -153,22 +155,41 @@ head(list_learners(
   classification = TRUE,
   prob = TRUE,
   available = TRUE,
-  columns = c("learner", "supports_prob", "supports_multiclass", "engine_package")
+  columns = c(
+    "learner",
+    "supports_prob",
+    "supports_multiclass",
+    "supports_importance",
+    "engine_package"
+  )
 ), 6)
-#>      learner supports_prob supports_multiclass engine_package
-#> 15  adaboost          TRUE               FALSE            ada
-#> 22      bart          TRUE               FALSE         dbarts
-#> 9        C50          TRUE                TRUE            C50
-#> 18   cforest          TRUE                TRUE       partykit
-#> 17     ctree          TRUE                TRUE       partykit
-#> 6  e1071_svm          TRUE                TRUE          e1071
+#>      learner supports_prob supports_multiclass supports_importance
+#> 15  adaboost          TRUE               FALSE               FALSE
+#> 22      bart          TRUE               FALSE               FALSE
+#> 9        C50          TRUE                TRUE               FALSE
+#> 18   cforest          TRUE                TRUE               FALSE
+#> 17     ctree          TRUE                TRUE               FALSE
+#> 6  e1071_svm          TRUE                TRUE               FALSE
+#>    engine_package
+#> 15            ada
+#> 22         dbarts
+#> 9             C50
+#> 18       partykit
+#> 17       partykit
+#> 6           e1071
+```
+
+``` r
+head(catalog$learner, 10)
+#>  [1] "adaboost"  "bart"      "C50"       "cforest"   "ctree"     "e1071_svm"
+#>  [7] "earth"     "fda"       "gam"       "gbm"
 ```
 
 ## 2. Fit one model and inspect the fitted object
 
-The entry point is `fit()`. It returns a compact `funcml_fit` object
-that stores the learner id, formula, encoded feature layout, and
-prediction machinery.
+`fit()` is the entry point for training a single learner. It returns a
+compact `funcml_fit` object that stores the learner id, formula, encoded
+feature layout, and prediction machinery.
 
 ``` r
 fit_obj <- fit(
@@ -207,8 +228,8 @@ and returns fold-level results plus uncertainty summaries.
 
 ``` r
 eval_obj <- evaluate(
-  demo_reg,
-  mpg ~ wt + hp + qsec + drat,
+  data = demo_reg,
+  formula = mpg ~ wt + hp + qsec + drat,
   model = "xgboost",
   spec = xgb_spec,
   resampling = cv(v = 4, seed = 42)
@@ -235,14 +256,14 @@ plot(eval_obj)
 
 ![](README_files/figure-gfm/eval-plot-1.png)<!-- -->
 
-The same resampling interface can also handle grouped CV, rolling time
-splits, or plain holdout validation through `group_cv()`, `time_cv()`,
+The same resampling interface also handles grouped CV, rolling time
+splits, and plain holdout validation through `group_cv()`, `time_cv()`,
 and `holdout()`.
 
-## 4. Tune hyperparameters, then compare learners
+## 4. Tune hyperparameters and compare learners
 
 `tune()` searches a grid or random sample of hyperparameters using the
-same evaluation machinery. `compare_learners()` then places multiple
+same evaluation machinery. `compare_learners()` then puts multiple
 learners under the same resampling design for an apples-to-apples
 comparison.
 
@@ -254,8 +275,8 @@ tune_grid <- expand.grid(
 )
 
 tune_obj <- tune(
-  demo_reg,
-  mpg ~ wt + hp + qsec + drat,
+  data = demo_reg,
+  formula = mpg ~ wt + hp + qsec + drat,
   model = "xgboost",
   grid = tune_grid,
   resampling = cv(v = 3, seed = 42),
@@ -298,8 +319,8 @@ plot(tune_obj)
 
 ``` r
 compare_obj <- compare_learners(
-  demo_reg,
-  mpg ~ wt + hp + qsec,
+  data = demo_reg,
+  formula = mpg ~ wt + hp + qsec,
   models = c("glm", "rpart", "xgboost"),
   metrics = c("rmse", "mae"),
   resampling = cv(v = 4, seed = 42),
@@ -327,15 +348,16 @@ plot(compare_obj)
 
 ![](README_files/figure-gfm/compare-plot-1.png)<!-- -->
 
-## 5. Interpret a fitted model with the same object
+## 5. Interpret a fitted model
 
-The interpretation layer operates on fitted `funcml_fit` objects, so you
-do not need a second modeling interface for explanation tasks.
+The interpretation layer operates directly on fitted `funcml_fit`
+objects, so you do not need a second modeling interface for explanation
+tasks.
 
 ``` r
 permute_obj <- interpret(
-  fit_obj,
-  demo_reg,
+  fit = fit_obj,
+  data = demo_reg,
   method = "permute",
   nsim = 20,
   seed = 42
@@ -357,8 +379,8 @@ plot(permute_obj)
 
 ``` r
 ale_obj <- interpret(
-  fit_obj,
-  demo_reg,
+  fit = fit_obj,
+  data = demo_reg,
   method = "ale",
   features = c("wt", "hp")
 )
@@ -372,8 +394,8 @@ plot(ale_obj)
 
 ``` r
 shap_obj <- interpret(
-  fit_obj,
-  demo_reg,
+  fit = fit_obj,
+  data = demo_reg,
   method = "shap",
   newdata = demo_reg[1, , drop = FALSE],
   nsim = 30,
@@ -426,8 +448,8 @@ data.frame(
 
 ``` r
 calibration_obj <- interpret(
-  cls_fit,
-  demo_cls_test,
+  fit = cls_fit,
+  data = demo_cls_test,
   method = "calibration",
   type = "prob",
   bins = 8,
@@ -441,7 +463,7 @@ plot(calibration_obj)
 
 ![](README_files/figure-gfm/calibration-plot-1.png)<!-- -->
 
-## 7. Estimate causal effects with the same learner interface
+## 7. Estimate causal effects through the same interface
 
 `estimate()` extends the same framework into plug-in g-computation for
 common binary-treatment estimands.
@@ -452,8 +474,8 @@ target.
 
 ``` r
 est_obj <- estimate(
-  demo_causal,
-  outcome ~ trt + x1 + x2 + x3 + trt:x3,
+  data = demo_causal,
+  formula = outcome ~ trt + x1 + x2 + x3 + trt:x3,
   model = "glm",
   estimand = "ATE",
   treatment_level = 1,
@@ -484,8 +506,8 @@ The same API also supports `ATT`, `CATE`, and `IATE`.
 
 ## 8. Use ensembles as first-class learners
 
-`stacking` and `superlearner` live in the same learner registry as the
-base models, so ensembles are fit through the same API rather than a
+`stacking` and `superlearner` live in the same catalog as the base
+learners, so ensembles are fit through the same API rather than a
 separate pipeline.
 
 ``` r
@@ -505,23 +527,55 @@ round(predict(stack_fit, demo_reg[1:5, , drop = FALSE]), 2)
 #> [1] 21.33 21.40 22.18 21.60 17.51
 ```
 
-## 9. Learner coverage at a glance
+## 9. Capability summary from the live catalog
 
-The current registry covers 25 learner ids. Broadly:
+Rather than hardcoding learner names, you can summarize the current
+registry directly from `list_learners()`.
 
-| Support                            | Learners                                                                                                                                                      |
-|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Regression + classification        | `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `xgboost`, `stacking`, `superlearner` |
-| Regression + binary classification | `earth`, `gam`, `bart`                                                                                                                                        |
-| Classification only                | `C50`, `naivebayes`, `fda`, `lda`, `qda`                                                                                                                      |
-| Binary classification only         | `adaboost`                                                                                                                                                    |
-| Regression only                    | `pls`                                                                                                                                                         |
+``` r
+catalog_summary <- data.frame(
+  capability = c(
+    "Supports regression",
+    "Supports classification",
+    "Supports probabilities",
+    "Supports multiclass",
+    "Supports feature importance",
+    "Currently available"
+  ),
+  learners = c(
+    paste(catalog$learner[catalog$supports_regression], collapse = ", "),
+    paste(catalog$learner[catalog$supports_classification], collapse = ", "),
+    paste(catalog$learner[catalog$supports_prob], collapse = ", "),
+    paste(catalog$learner[catalog$supports_multiclass], collapse = ", "),
+    paste(catalog$learner[catalog$supports_importance], collapse = ", "),
+    paste(catalog$learner[catalog$available], collapse = ", ")
+  ),
+  row.names = NULL
+)
+
+catalog_summary
+#>                    capability
+#> 1         Supports regression
+#> 2     Supports classification
+#> 3      Supports probabilities
+#> 4         Supports multiclass
+#> 5 Supports feature importance
+#> 6         Currently available
+#>                                                                                                                                                                                           learners
+#> 1                                           bart, cforest, ctree, e1071_svm, earth, gam, gbm, glm, glmnet, kknn, lightgbm, nnet, pls, randomForest, ranger, rpart, stacking, superlearner, xgboost
+#> 2      adaboost, bart, C50, cforest, ctree, e1071_svm, earth, fda, gam, gbm, glm, glmnet, kknn, lda, lightgbm, naivebayes, nnet, qda, randomForest, ranger, rpart, stacking, superlearner, xgboost
+#> 3           adaboost, bart, C50, cforest, ctree, e1071_svm, earth, gam, gbm, glm, glmnet, kknn, lda, lightgbm, naivebayes, nnet, qda, randomForest, ranger, rpart, stacking, superlearner, xgboost
+#> 4                                            C50, cforest, ctree, e1071_svm, fda, glmnet, kknn, lda, lightgbm, naivebayes, nnet, qda, randomForest, ranger, rpart, stacking, superlearner, xgboost
+#> 5                                                                                                                                       earth, gbm, lightgbm, randomForest, ranger, rpart, xgboost
+#> 6 adaboost, bart, C50, cforest, ctree, e1071_svm, earth, fda, gam, gbm, glm, glmnet, kknn, lda, lightgbm, naivebayes, nnet, pls, qda, randomForest, ranger, rpart, stacking, superlearner, xgboost
+```
 
 ## 10. Summary
 
-`funcml` is designed so the same fitted object and the same learner
-registry can support:
+`funcml` is designed so the same fitted object model and the same
+learner catalog can support:
 
+- learner discovery with `list_learners()`
 - one-model training with `fit()`
 - prediction with `predict()`
 - resampled validation with `evaluate()`
