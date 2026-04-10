@@ -1,3 +1,73 @@
+#' List available metrics used in scoring and resampling summaries.
+#'
+#' @param direction Optional character filter: `"maximize"` or `"minimize"`.
+#' @param columns Optional character vector of columns to return.
+#' @return Data frame of metric metadata.
+#' @examples
+#' list_metrics()
+#' list_metrics(direction = "minimize")
+#' @export
+list_metrics <- function(direction = NULL, columns = NULL) {
+  if (!is.null(direction)) {
+    if (!is.character(direction) || length(direction) != 1L || !(direction %in% c("maximize", "minimize"))) {
+      stop("`direction` must be NULL, \"maximize\", or \"minimize\".", call. = FALSE)
+    }
+  }
+  out <- .metrics_catalog()
+  if (!is.null(direction)) {
+    out <- out[out$direction == direction, , drop = FALSE]
+  }
+  if (!is.null(columns)) {
+    columns <- .validate_list_learners_columns(columns, names(out))
+    out <- out[, columns, drop = FALSE]
+  }
+  out
+}
+
+.metrics_catalog <- function() {
+  data.frame(
+    metric = c(
+      "rmse", "mae", "mse", "medae", "mape", "rsq",
+      "accuracy", "precision", "recall", "specificity", "f1",
+      "balanced_accuracy", "logloss", "brier", "auc", "auc_weighted",
+      "ece", "mce"
+    ),
+    direction = c(
+      "minimize", "minimize", "minimize", "minimize", "minimize", "maximize",
+      "maximize", "maximize", "maximize", "maximize", "maximize",
+      "maximize", "minimize", "minimize", "maximize", "maximize",
+      "minimize", "minimize"
+    ),
+    summary = c(
+      "Root mean squared error for regression predictions.",
+      "Mean absolute error for regression predictions.",
+      "Mean squared error for regression predictions.",
+      "Median absolute error for regression predictions.",
+      "Mean absolute percentage error for regression predictions.",
+      "Coefficient of determination for regression predictions.",
+      "Classification accuracy.",
+      "Macro-averaged classification precision.",
+      "Macro-averaged classification recall.",
+      "Macro-averaged classification specificity.",
+      "Macro-averaged F1 score.",
+      "Macro-averaged balanced accuracy.",
+      "Negative log-likelihood for classification probabilities.",
+      "Brier score for classification probabilities.",
+      "Area under the ROC curve.",
+      "Weighted multiclass area under the ROC curve.",
+      "Expected calibration error for binary classification.",
+      "Maximum calibration error for binary classification."
+    ),
+    range = c(
+      "[0, Inf)", "[0, Inf)", "[0, Inf)", "[0, Inf)", "[0, Inf)", "(-Inf, 1]",
+      "[0, 1]", "[0, 1]", "[0, 1]", "[0, 1]", "[0, 1]",
+      "[0, 1]", "[0, Inf)", "[0, 2]", "[0, 1]", "[0, 1]",
+      "[0, 1]", "[0, 1]"
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
 #' Regression and classification metrics.
 #'
 #' Base R implementations used across evaluation and interpretation utilities.

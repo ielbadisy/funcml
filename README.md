@@ -31,8 +31,8 @@ remotes::install_github("ielbadisy/funcml")
 ```
 
 After installation, inspect the learner catalog with `list_learners()`.
-This shows which engines are registered, what each learner supports, and
-which backends are available in the current R session.
+This shows which learner ids are exposed through the compact `funcml`
+API and which backends are available in the current R session.
 
 ## API Overview
 
@@ -119,14 +119,13 @@ xgb_spec <- list(
 
 ## 1. Inspect the learner catalog
 
-`list_learners()` is the current catalog API. It returns one row per
-learner id with support flags, interpretation capabilities, engine
-package names, and current-session availability.
+`list_learners()` now follows a compact registry style by default.
 
 ``` r
-catalog <- list_learners(
+detailed_catalog <- list_learners(
   columns = c(
     "learner",
+    "has_tune",
     "supports_regression",
     "supports_classification",
     "supports_prob",
@@ -137,52 +136,156 @@ catalog <- list_learners(
   )
 )
 
+catalog <- list_learners()
+
+catalog
+#>         learner   fit   predict   tune has_fit has_predict has_tune available
+#> 15     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 22         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 9           C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 18      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 17        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 6     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 11        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 14          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 12          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 8           gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 1           glm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 3        glmnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 10         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 19          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 21     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 13   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 5          nnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 16          pls fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 20          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 7  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 4        ranger fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 2         rpart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 24     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 25 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 23      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+```
+
+``` r
 data.frame(
-  learners = nrow(catalog),
-  regression = sum(catalog$supports_regression),
-  classification = sum(catalog$supports_classification),
-  prob = sum(catalog$supports_prob),
-  multiclass = sum(catalog$supports_multiclass),
-  importance = sum(catalog$supports_importance),
-  available = sum(catalog$available)
+  learners = nrow(detailed_catalog),
+  tune = sum(detailed_catalog$has_tune),
+  regression = sum(detailed_catalog$supports_regression),
+  classification = sum(detailed_catalog$supports_classification),
+  prob = sum(detailed_catalog$supports_prob),
+  multiclass = sum(detailed_catalog$supports_multiclass),
+  importance = sum(detailed_catalog$supports_importance),
+  available = sum(detailed_catalog$available)
 )
-#>   learners regression classification prob multiclass importance available
-#> 1       25         19             24   23         18          7        25
+#>   learners tune regression classification prob multiclass importance available
+#> 1       25   25         19             24   23         18          7        25
+```
+
+``` r
+list_tunable_learners()
+#>         learner   fit   predict   tune has_fit has_predict has_tune available
+#> 15     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 22         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 9           C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 18      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 17        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 6     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 11        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 14          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 12          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 8           gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 1           glm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 3        glmnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 10         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 19          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 21     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 13   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 5          nnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 16          pls fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 20          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 7  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 4        ranger fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 2         rpart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 24     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 25 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 23      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 ```
 
 ``` r
 head(list_learners(
   classification = TRUE,
   prob = TRUE,
-  available = TRUE,
-  columns = c(
-    "learner",
-    "supports_prob",
-    "supports_multiclass",
-    "supports_importance",
-    "engine_package"
-  )
+  columns = c("learner", "has_tune", "supports_prob", "supports_multiclass", "engine_package")
 ), 6)
-#>      learner supports_prob supports_multiclass supports_importance
-#> 15  adaboost          TRUE               FALSE               FALSE
-#> 22      bart          TRUE               FALSE               FALSE
-#> 9        C50          TRUE                TRUE               FALSE
-#> 18   cforest          TRUE                TRUE               FALSE
-#> 17     ctree          TRUE                TRUE               FALSE
-#> 6  e1071_svm          TRUE                TRUE               FALSE
-#>    engine_package
-#> 15            ada
-#> 22         dbarts
-#> 9             C50
-#> 18       partykit
-#> 17       partykit
-#> 6           e1071
+#>      learner has_tune supports_prob supports_multiclass engine_package
+#> 15  adaboost     TRUE          TRUE               FALSE            ada
+#> 22      bart     TRUE          TRUE               FALSE         dbarts
+#> 9        C50     TRUE          TRUE                TRUE            C50
+#> 18   cforest     TRUE          TRUE                TRUE       partykit
+#> 17     ctree     TRUE          TRUE                TRUE       partykit
+#> 6  e1071_svm     TRUE          TRUE                TRUE          e1071
 ```
 
 ``` r
-head(catalog$learner, 10)
-#>  [1] "adaboost"  "bart"      "C50"       "cforest"   "ctree"     "e1071_svm"
-#>  [7] "earth"     "fda"       "gam"       "gbm"
+list_interpretability_methods()
+#>                                  compute   plot has_compute has_plot
+#> 1              interpret(method = "vip") plot()        TRUE     TRUE
+#> 2          interpret(method = "permute") plot()        TRUE     TRUE
+#> 3              interpret(method = "pdp") plot()        TRUE     TRUE
+#> 4              interpret(method = "ice") plot()        TRUE     TRUE
+#> 5              interpret(method = "ale") plot()        TRUE     TRUE
+#> 6            interpret(method = "local") plot()        TRUE     TRUE
+#> 7             interpret(method = "lime") plot()        TRUE     TRUE
+#> 8             interpret(method = "shap") plot()        TRUE     TRUE
+#> 9      interpret(method = "local_model") plot()        TRUE     TRUE
+#> 10     interpret(method = "interaction") plot()        TRUE     TRUE
+#> 11       interpret(method = "surrogate") plot()        TRUE     TRUE
+#> 12         interpret(method = "profile") plot()        TRUE     TRUE
+#> 13 interpret(method = "ceteris_paribus") plot()        TRUE     TRUE
+#> 14     interpret(method = "calibration") plot()        TRUE     TRUE
+```
+
+``` r
+list_metrics()
+#>               metric direction
+#> 1               rmse  minimize
+#> 2                mae  minimize
+#> 3                mse  minimize
+#> 4              medae  minimize
+#> 5               mape  minimize
+#> 6                rsq  maximize
+#> 7           accuracy  maximize
+#> 8          precision  maximize
+#> 9             recall  maximize
+#> 10       specificity  maximize
+#> 11                f1  maximize
+#> 12 balanced_accuracy  maximize
+#> 13           logloss  minimize
+#> 14             brier  minimize
+#> 15               auc  maximize
+#> 16      auc_weighted  maximize
+#> 17               ece  minimize
+#> 18               mce  minimize
+#>                                                       summary     range
+#> 1         Root mean squared error for regression predictions.  [0, Inf)
+#> 2             Mean absolute error for regression predictions.  [0, Inf)
+#> 3              Mean squared error for regression predictions.  [0, Inf)
+#> 4           Median absolute error for regression predictions.  [0, Inf)
+#> 5  Mean absolute percentage error for regression predictions.  [0, Inf)
+#> 6    Coefficient of determination for regression predictions. (-Inf, 1]
+#> 7                                    Classification accuracy.    [0, 1]
+#> 8                    Macro-averaged classification precision.    [0, 1]
+#> 9                       Macro-averaged classification recall.    [0, 1]
+#> 10                 Macro-averaged classification specificity.    [0, 1]
+#> 11                                   Macro-averaged F1 score.    [0, 1]
+#> 12                          Macro-averaged balanced accuracy.    [0, 1]
+#> 13  Negative log-likelihood for classification probabilities.  [0, Inf)
+#> 14              Brier score for classification probabilities.    [0, 2]
+#> 15                                  Area under the ROC curve.    [0, 1]
+#> 16              Weighted multiclass area under the ROC curve.    [0, 1]
+#> 17      Expected calibration error for binary classification.    [0, 1]
+#> 18       Maximum calibration error for binary classification.    [0, 1]
 ```
 
 ## 2. Fit one model and inspect the fitted object
@@ -543,12 +646,12 @@ catalog_summary <- data.frame(
     "Currently available"
   ),
   learners = c(
-    paste(catalog$learner[catalog$supports_regression], collapse = ", "),
-    paste(catalog$learner[catalog$supports_classification], collapse = ", "),
-    paste(catalog$learner[catalog$supports_prob], collapse = ", "),
-    paste(catalog$learner[catalog$supports_multiclass], collapse = ", "),
-    paste(catalog$learner[catalog$supports_importance], collapse = ", "),
-    paste(catalog$learner[catalog$available], collapse = ", ")
+    paste(detailed_catalog$learner[detailed_catalog$supports_regression], collapse = ", "),
+    paste(detailed_catalog$learner[detailed_catalog$supports_classification], collapse = ", "),
+    paste(detailed_catalog$learner[detailed_catalog$supports_prob], collapse = ", "),
+    paste(detailed_catalog$learner[detailed_catalog$supports_multiclass], collapse = ", "),
+    paste(detailed_catalog$learner[detailed_catalog$supports_importance], collapse = ", "),
+    paste(detailed_catalog$learner[detailed_catalog$available], collapse = ", ")
   ),
   row.names = NULL
 )
