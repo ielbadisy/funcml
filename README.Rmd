@@ -140,36 +140,7 @@ xgb_spec <- list(
 `list_learners()` now follows a compact registry style by default.
 
 ```{r learner-catalog}
-detailed_catalog <- list_learners(
-  columns = c(
-    "learner",
-    "has_tune",
-    "supports_regression",
-    "supports_classification",
-    "supports_prob",
-    "supports_multiclass",
-    "supports_importance",
-    "engine_package",
-    "available"
-  )
-)
-
-catalog <- list_learners()
-
-catalog
-```
-
-```{r learner-catalog-summary}
-data.frame(
-  learners = nrow(detailed_catalog),
-  tune = sum(detailed_catalog$has_tune),
-  regression = sum(detailed_catalog$supports_regression),
-  classification = sum(detailed_catalog$supports_classification),
-  prob = sum(detailed_catalog$supports_prob),
-  multiclass = sum(detailed_catalog$supports_multiclass),
-  importance = sum(detailed_catalog$supports_importance),
-  available = sum(detailed_catalog$available)
-)
+list_learners()
 ```
 
 ```{r learner-catalog-preview}
@@ -177,11 +148,10 @@ list_tunable_learners()
 ```
 
 ```{r learner-id-preview}
-head(list_learners(
+list_learners(
   classification = TRUE,
   prob = TRUE,
-  columns = c("learner", "has_tune", "supports_prob", "supports_multiclass", "engine_package")
-), 6)
+  )
 ```
 
 ```{r interpretability-catalog}
@@ -211,11 +181,7 @@ fit_obj
 ```
 
 ```{r fit-predict}
-head(data.frame(
-  car = demo_reg$car[1:6],
-  observed = demo_reg$mpg[1:6],
-  pred = round(predict(fit_obj, demo_reg[1:6, , drop = FALSE]), 2)
-), 6)
+predict(fit_obj, demo_reg[1:6, ])
 ```
 
 ## 3. Validate performance with resampling
@@ -232,12 +198,7 @@ eval_obj <- evaluate(
   resampling = cv(v = 4, seed = 42)
 )
 
-eval_tbl <- eval_obj$summary[, c("metric", "mean", "conf_low", "conf_high")]
-eval_tbl[, c("mean", "conf_low", "conf_high")] <- round(
-  eval_tbl[, c("mean", "conf_low", "conf_high")],
-  3
-)
-eval_tbl
+eval_obj
 ```
 
 ```{r eval-plot}
@@ -273,22 +234,7 @@ tune_obj <- tune(
   seed = 42
 )
 
-round(tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")], 3)
-```
-
-```{r tune-table}
-tune_tbl <- head(
-  tune_obj$results[
-    order(tune_obj$results$mean),
-    c(names(tune_grid), "mean", "conf_low", "conf_high")
-  ],
-  4
-)
-tune_tbl[, c("mean", "conf_low", "conf_high")] <- round(
-  tune_tbl[, c("mean", "conf_low", "conf_high")],
-  3
-)
-tune_tbl
+tune_obj
 ```
 
 ```{r tune-plot}
@@ -305,12 +251,7 @@ compare_obj <- compare_learners(
   specs = list(xgboost = xgb_spec)
 )
 
-compare_tbl <- compare_obj$results[, c("model", "metric", "mean", "conf_low", "conf_high", "rank")]
-compare_tbl[, c("mean", "conf_low", "conf_high")] <- round(
-  compare_tbl[, c("mean", "conf_low", "conf_high")],
-  3
-)
-compare_tbl
+compare_obj
 ```
 
 ```{r compare-plot}
@@ -319,8 +260,7 @@ plot(compare_obj)
 
 ## 5. Interpret a fitted model
 
-The interpretation layer operates directly on fitted `funcml_fit` objects, so
-you do not need a second modeling interface for explanation tasks.
+The interpretation layer operates directly on fitted `funcml_fit` objects, so you do not need a second modeling interface for explanation tasks.
 
 ```{r permute}
 permute_obj <- interpret(
@@ -356,7 +296,7 @@ shap_obj <- interpret(
   fit = fit_obj,
   data = demo_reg,
   method = "shap",
-  newdata = demo_reg[1, , drop = FALSE],
+  newdata = demo_reg[1,],
   nsim = 30,
   nsamples = 20,
   seed = 42
@@ -367,9 +307,7 @@ shap_obj <- interpret(
 plot(shap_obj, kind = "waterfall")
 ```
 
-Other supported methods include PDP, ICE, local surrogate explanations, global
-surrogates, interaction strength, ceteris paribus profiles, and calibration
-diagnostics.
+Other supported methods include PDP, ICE, local surrogate explanations, global surrogates, interaction strength, ceteris paribus profiles, and calibration diagnostics.
 
 ## 6. Inspect class probabilities and calibration
 
@@ -384,10 +322,7 @@ cls_fit <- fit(
   seed = 42
 )
 
-cls_prob <- round(
-  predict(cls_fit, demo_cls_test[1:6, , drop = FALSE], type = "prob"),
-  3
-)
+cls_prob <- predict(cls_fit, demo_cls_test[1:6, , drop = FALSE], type = "prob")
 
 data.frame(
   prob_no = cls_prob[, "no"],
@@ -431,15 +366,9 @@ est_obj <- estimate(
   seed = 42
 )
 
-data.frame(
-  estimand = est_obj$estimand,
-  treatment_level = est_obj$treatment_level,
-  control_level = est_obj$control_level,
-  estimate = round(est_obj$estimate, 3),
-  conf_low = round(est_obj$conf_int[1], 3),
-  conf_high = round(est_obj$conf_int[2], 3)
-)
+est_obj
 ```
+
 
 ```{r estimate-plot}
 plot(est_obj)
@@ -449,8 +378,7 @@ The same API also supports `ATT`, `CATE`, and `IATE`.
 
 ## 8. Use ensembles as first-class learners
 
-`stacking` and `superlearner` live in the same catalog as the base learners, so
-ensembles are fit through the same API rather than a separate pipeline.
+`stacking` and `superlearner` live in the same catalog as the base learners, so ensembles are fit through the same API rather than a separate pipeline.
 
 ```{r ensemble}
 stack_fit <- fit(
@@ -465,44 +393,13 @@ stack_fit <- fit(
   seed = 42
 )
 
-round(predict(stack_fit, demo_reg[1:5, , drop = FALSE]), 2)
+predict(stack_fit, demo_reg[1:5, ])
 ```
 
-## 9. Capability summary from the live catalog
+## 9. Summary
 
-Rather than hardcoding learner names, you can summarize the current registry
-directly from `list_learners()`.
+`funcml` is designed around these core functions: 
 
-```{r catalog-summary}
-catalog_summary <- data.frame(
-  capability = c(
-    "Supports regression",
-    "Supports classification",
-    "Supports probabilities",
-    "Supports multiclass",
-    "Supports feature importance",
-    "Currently available"
-  ),
-  learners = c(
-    paste(detailed_catalog$learner[detailed_catalog$supports_regression], collapse = ", "),
-    paste(detailed_catalog$learner[detailed_catalog$supports_classification], collapse = ", "),
-    paste(detailed_catalog$learner[detailed_catalog$supports_prob], collapse = ", "),
-    paste(detailed_catalog$learner[detailed_catalog$supports_multiclass], collapse = ", "),
-    paste(detailed_catalog$learner[detailed_catalog$supports_importance], collapse = ", "),
-    paste(detailed_catalog$learner[detailed_catalog$available], collapse = ", ")
-  ),
-  row.names = NULL
-)
-
-catalog_summary
-```
-
-## 10. Summary
-
-`funcml` is designed so the same fitted object model and the same learner
-catalog can support:
-
-- learner discovery with `list_learners()`
 - one-model training with `fit()`
 - prediction with `predict()`
 - resampled validation with `evaluate()`
@@ -511,5 +408,4 @@ catalog can support:
 - model explanation with `interpret()`
 - plug-in g-computation with `estimate()`
 
-That is the central idea of the package: one explicit API surface for tabular
-machine learning in R, rather than a stack of disconnected modeling wrappers.
+That is the central idea of the package: one explicit API surface for tabular machine learning in R, rather than a stack of disconnected modeling wrappers.
