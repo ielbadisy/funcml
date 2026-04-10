@@ -10,6 +10,8 @@
 #' @param conf_level Confidence level for fold-based summary intervals.
 #' @param seed Optional seed.
 #' @param fit Optional preconfigured `funcml_fit` object (re-fit per fold).
+#' @param ncores Optional number of CPU cores used to evaluate resampling folds.
+#'   `NULL` or `1` runs sequentially.
 #' @param ... Passed to `fit()`.
 #' @return A `funcml_eval` object.
 #' @examples
@@ -24,7 +26,9 @@
 #' @export
 evaluate <- function(data, formula, model = NULL, spec = NULL,
                      resampling = cv(5), metrics = NULL, type = NULL,
-                     conf_level = 0.95, seed = NULL, fit = NULL, ...) {
+                     conf_level = 0.95, seed = NULL, fit = NULL,
+                     ncores = NULL, ...) {
+  ncores <- .validate_ncores(ncores)
   if (!is.null(seed)) set.seed(seed)
   if (!is.null(fit)) {
     base_model <- fit$model
@@ -55,10 +59,14 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
     }
     metrics <- unlist(metrics)
   }
-  folds_out <- list()
-  idx <- 1
-
-  for (fold in resampling$folds) {
+  fold_ids <- seq_along(resampling$folds)
+  fold_seeds <- .task_seeds(seed, length(fold_ids))
+  folds_out <- .funcml_map(fold_ids, function(i) {
+    fold <- resampling$folds[[i]]
+    task_seed <- fold_seeds[[i]]
+    if (!is.null(task_seed)) {
+      set.seed(task_seed)
+    }
     train_data <- data[fold$train, , drop = FALSE]
     test_data  <- data[fold$test, , drop = FALSE]
     fit_fold <- fit(formula, train_data, base_model, spec = base_spec, ...)
@@ -78,24 +86,24 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
       }
     }
 
-    for (m in metrics) {
-      val <- if (task == "regression") {
+    vals <- vapply(metrics, function(m) {
+      if (task == "regression") {
         .loss(y_all[fold$test], preds, task, m)
       } else if (m %in% c("logloss", "brier", "auc", "auc_weighted", "ece", "mce")) {
         .loss(y_all[fold$test], pred_class, task, m, prob_matrix = prob_matrix)
       } else {
         .loss(y_all[fold$test], pred_class, task, m, prob_matrix = prob_matrix)
       }
-      folds_out[[idx]] <- data.frame(
-        repeat_id = fold$repeat_id,
-        fold = fold$fold,
-        metric = m,
-        value = val,
-        stringsAsFactors = FALSE
-      )
-      idx <- idx + 1
-    }
-  }
+    }, numeric(1))
+
+    data.frame(
+      repeat_id = rep(fold$repeat_id, length(metrics)),
+      fold = rep(fold$fold, length(metrics)),
+      metric = metrics,
+      value = vals,
+      stringsAsFactors = FALSE
+    )
+  }, ncores = ncores)
 
   folds_df <- do.call(rbind, folds_out)
   # Aggregate fold metrics into mean/sd columns explicitly to avoid the

@@ -10,6 +10,8 @@
 #' @param type Prediction type override.
 #' @param conf_level Confidence level for learner summary intervals.
 #' @param seed Optional seed.
+#' @param ncores Optional number of CPU cores used to compare learners. `NULL`
+#'   or `1` runs sequentially.
 #' @param tune Logical; if `TRUE`, run `tune()` for each learner before comparing.
 #' @param grids Optional tuning grids. Supply either a single data frame to reuse
 #'   across learners or a named list of data frames keyed by learner id.
@@ -28,8 +30,10 @@
 #' @export
 compare_learners <- function(data, formula, models, specs = NULL,
                              resampling = cv(5), metrics = NULL, type = NULL,
-                             conf_level = 0.95, seed = NULL, tune = FALSE, grids = NULL,
+                             conf_level = 0.95, seed = NULL, ncores = NULL,
+                             tune = FALSE, grids = NULL,
                              metric = NULL, ...) {
+  ncores <- .validate_ncores(ncores)
   if (!is.character(models) || !length(models)) {
     stop("`models` must be a non-empty character vector.", call. = FALSE)
   }
@@ -53,9 +57,12 @@ compare_learners <- function(data, formula, models, specs = NULL,
 
   details <- vector("list", length(models))
   names(details) <- models
+  model_ids <- seq_along(models)
+  model_seeds <- .task_seeds(seed, length(model_ids))
 
   if (!isTRUE(tune)) {
-    rows <- lapply(models, function(model_id) {
+    rows <- .funcml_map(model_ids, function(i) {
+      model_id <- models[[i]]
       eval_args <- c(
         list(
           data = data,
@@ -66,7 +73,8 @@ compare_learners <- function(data, formula, models, specs = NULL,
           metrics = metrics,
           type = type,
           conf_level = conf_level,
-          seed = seed
+          seed = model_seeds[[i]],
+          ncores = NULL
         ),
         dots
       )
@@ -76,13 +84,14 @@ compare_learners <- function(data, formula, models, specs = NULL,
       out$model <- model_id
       out$tuned <- FALSE
       out
-    })
+    }, ncores = ncores)
     results <- do.call(rbind, rows)
     results <- results[, c("model", "metric", "mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high", "tuned")]
     rownames(results) <- NULL
     results$rank <- .compare_rank(results)
   } else {
-    rows <- lapply(models, function(model_id) {
+    rows <- .funcml_map(model_ids, function(i) {
+      model_id <- models[[i]]
       grid <- .compare_grid_for_model(grids, model_id)
       tune_args <- c(
         list(
@@ -93,7 +102,8 @@ compare_learners <- function(data, formula, models, specs = NULL,
           resampling = resampling,
           metric = optimize_metric,
           type = type,
-          seed = seed
+          seed = model_seeds[[i]],
+          ncores = NULL
         ),
         specs[[model_id]] %||% list(),
         dots
@@ -110,7 +120,8 @@ compare_learners <- function(data, formula, models, specs = NULL,
           metrics = metrics_use,
           type = type,
           conf_level = conf_level,
-          seed = seed
+          seed = model_seeds[[i]],
+          ncores = NULL
         ),
         dots
       )
@@ -120,10 +131,10 @@ compare_learners <- function(data, formula, models, specs = NULL,
       out <- eval_obj$summary
       out$model <- model_id
       out$tuned <- TRUE
-      out$best_spec <- .format_compare_spec(tune_obj$fit_best$spec)
+      out$best_spec <- .format_compare_spec(.strip_control_spec(tune_obj$fit_best$spec))
       out$opt_metric <- optimize_metric
       out
-    })
+    }, ncores = ncores)
     results <- do.call(rbind, rows)
     results <- results[, c("model", "metric", "mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high", "tuned", "best_spec", "opt_metric")]
     rownames(results) <- NULL

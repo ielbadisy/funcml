@@ -14,6 +14,7 @@ compare_learners(
   type = NULL,
   conf_level = 0.95,
   seed = NULL,
+  ncores = NULL,
   tune = FALSE,
   grids = NULL,
   metric = NULL,
@@ -39,6 +40,9 @@ these are computed for each learner's tuned best configuration.}
 \item{conf_level}{Confidence level for learner summary intervals.}
 
 \item{seed}{Optional seed.}
+
+\item{ncores}{Optional number of CPU cores used to compare learners. \code{NULL}
+or \code{1} runs sequentially.}
 
 \item{tune}{Logical; if \code{TRUE}, run \code{tune()} for each learner before comparing.}
 

@@ -30,6 +30,43 @@ infer_task <- function(y) {
   "regression"
 }
 
+.validate_ncores <- function(ncores) {
+  if (is.null(ncores)) {
+    return(NULL)
+  }
+  if (!is.numeric(ncores) || length(ncores) != 1L || !is.finite(ncores)) {
+    stop("`ncores` must be NULL or a single positive integer.", call. = FALSE)
+  }
+  ncores_int <- as.integer(ncores)
+  if (ncores_int < 1L || !isTRUE(all.equal(as.numeric(ncores_int), as.numeric(ncores)))) {
+    stop("`ncores` must be NULL or a single positive integer.", call. = FALSE)
+  }
+  ncores_int
+}
+
+.task_seeds <- function(seed, n) {
+  if (is.null(seed)) {
+    return(rep(list(NULL), n))
+  }
+  as.list(seed + seq_len(n) - 1L)
+}
+
+.strip_control_spec <- function(spec) {
+  spec[names(spec) %in% c("ncores")] <- NULL
+  spec
+}
+
+.funcml_map <- function(.x, .f, ncores = NULL, ...) {
+  ncores <- .validate_ncores(ncores)
+  if (!length(.x)) {
+    return(list())
+  }
+  if (is.null(ncores) || ncores <= 1L) {
+    return(lapply(.x, .f, ...))
+  }
+  functionals::fmap(.x, .f, ncores = ncores, ...)
+}
+
 .encode_train <- function(data, formula, na_action = stats::na.fail) {
   mf <- stats::model.frame(formula, data = data, na.action = na_action)
   y <- stats::model.response(mf)

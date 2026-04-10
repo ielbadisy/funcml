@@ -15,6 +15,7 @@ evaluate(
   conf_level = 0.95,
   seed = NULL,
   fit = NULL,
+  ncores = NULL,
   ...
 )
 }
@@ -38,6 +39,9 @@ evaluate(
 \item{seed}{Optional seed.}
 
 \item{fit}{Optional preconfigured \code{funcml_fit} object (re-fit per fold).}
+
+\item{ncores}{Optional number of CPU cores used to evaluate resampling folds.
+\code{NULL} or \code{1} runs sequentially.}
 
 \item{...}{Passed to \code{fit()}.}
 }
