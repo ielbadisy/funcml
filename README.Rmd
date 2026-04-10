@@ -136,43 +136,40 @@ xgb_spec <- list(
 
 `list_learners()` gives a session-aware inventory of the registry, including
 task support, probability support, multiclass support, engine packages, and
-whether each engine is currently available.
+whether each engine is currently available. You can also filter the catalog by
+task or capability and request only the columns you need for reporting or
+interactive exploration.
 
 ```{r learner-catalog}
-catalog <- list_learners()
-
-catalog_summary <- data.frame(
-  quantity = c(
-    "Total learners",
-    "Regression support",
-    "Classification support",
-    "Probability support",
-    "Multiclass support",
-    "Engines currently available"
-  ),
-  value = c(
-    nrow(catalog),
-    sum(catalog$supports_regression),
-    sum(catalog$supports_classification),
-    sum(catalog$supports_prob),
-    sum(catalog$supports_multiclass),
-    sum(catalog$available)
+catalog <- list_learners(
+  columns = c(
+    "learner",
+    "supports_regression",
+    "supports_classification",
+    "supports_prob",
+    "supports_multiclass",
+    "engine_package",
+    "available"
   )
 )
 
-catalog_summary
+data.frame(
+  learners = nrow(catalog),
+  regression = sum(catalog$supports_regression),
+  classification = sum(catalog$supports_classification),
+  prob = sum(catalog$supports_prob),
+  multiclass = sum(catalog$supports_multiclass),
+  available = sum(catalog$available)
+)
 ```
 
 ```{r learner-catalog-preview}
-catalog[, c(
-  "learner",
-  "supports_regression",
-  "supports_classification",
-  "supports_prob",
-  "supports_multiclass",
-  "engine_package",
-  "available"
-)]
+head(list_learners(
+  classification = TRUE,
+  prob = TRUE,
+  available = TRUE,
+  columns = c("learner", "supports_prob", "supports_multiclass", "engine_package")
+), 10)
 ```
 
 ## 2. Fit one model and inspect the fitted object
@@ -198,11 +195,11 @@ summary(fit_obj)
 ```
 
 ```{r fit-predict}
-data.frame(
+head(data.frame(
   car = demo_reg$car[1:6],
   observed = demo_reg$mpg[1:6],
-  predicted = round(predict(fit_obj, demo_reg[1:6, , drop = FALSE]), 2)
-)
+  pred = round(predict(fit_obj, demo_reg[1:6, , drop = FALSE]), 2)
+), 6)
 ```
 
 ## 3. Validate performance with resampling
@@ -254,14 +251,14 @@ tune_obj <- tune(
   seed = 42
 )
 
-tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")]
+round(tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")], 3)
 ```
 
 ```{r tune-table}
-tune_obj$results[
+head(tune_obj$results[
   order(tune_obj$results$mean),
   c(names(tune_grid), "mean", "conf_low", "conf_high")
-]
+], 6)
 ```
 
 ```{r tune-plot}
