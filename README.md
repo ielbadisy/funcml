@@ -119,102 +119,53 @@ xgb_spec <- list(
 
 `list_learners()` gives a session-aware inventory of the registry,
 including task support, probability support, multiclass support, engine
-packages, and whether each engine is currently available.
+packages, and whether each engine is currently available. You can also
+filter the catalog by task or capability and request only the columns
+you need for reporting or interactive exploration.
 
 ``` r
-catalog <- list_learners()
-
-catalog_summary <- data.frame(
-  quantity = c(
-    "Total learners",
-    "Regression support",
-    "Classification support",
-    "Probability support",
-    "Multiclass support",
-    "Engines currently available"
-  ),
-  value = c(
-    nrow(catalog),
-    sum(catalog$supports_regression),
-    sum(catalog$supports_classification),
-    sum(catalog$supports_prob),
-    sum(catalog$supports_multiclass),
-    sum(catalog$available)
+catalog <- list_learners(
+  columns = c(
+    "learner",
+    "supports_regression",
+    "supports_classification",
+    "supports_prob",
+    "supports_multiclass",
+    "engine_package",
+    "available"
   )
 )
 
-catalog_summary
-#>                      quantity value
-#> 1              Total learners    25
-#> 2          Regression support    19
-#> 3      Classification support    24
-#> 4         Probability support    23
-#> 5          Multiclass support    18
-#> 6 Engines currently available    25
+data.frame(
+  learners = nrow(catalog),
+  regression = sum(catalog$supports_regression),
+  classification = sum(catalog$supports_classification),
+  prob = sum(catalog$supports_prob),
+  multiclass = sum(catalog$supports_multiclass),
+  available = sum(catalog$available)
+)
+#>   learners regression classification prob multiclass available
+#> 1       25         19             24   23         18        25
 ```
 
 ``` r
-catalog[, c(
-  "learner",
-  "supports_regression",
-  "supports_classification",
-  "supports_prob",
-  "supports_multiclass",
-  "engine_package",
-  "available"
-)]
-#>         learner supports_regression supports_classification supports_prob
-#> 15     adaboost               FALSE                    TRUE          TRUE
-#> 22         bart                TRUE                    TRUE          TRUE
-#> 9           C50               FALSE                    TRUE          TRUE
-#> 18      cforest                TRUE                    TRUE          TRUE
-#> 17        ctree                TRUE                    TRUE          TRUE
-#> 6     e1071_svm                TRUE                    TRUE          TRUE
-#> 11        earth                TRUE                    TRUE          TRUE
-#> 14          fda               FALSE                    TRUE         FALSE
-#> 12          gam                TRUE                    TRUE          TRUE
-#> 8           gbm                TRUE                    TRUE          TRUE
-#> 1           glm                TRUE                    TRUE          TRUE
-#> 3        glmnet                TRUE                    TRUE          TRUE
-#> 10         kknn                TRUE                    TRUE          TRUE
-#> 19          lda               FALSE                    TRUE          TRUE
-#> 21     lightgbm                TRUE                    TRUE          TRUE
-#> 13   naivebayes               FALSE                    TRUE          TRUE
-#> 5          nnet                TRUE                    TRUE          TRUE
-#> 16          pls                TRUE                   FALSE         FALSE
-#> 20          qda               FALSE                    TRUE          TRUE
-#> 7  randomForest                TRUE                    TRUE          TRUE
-#> 4        ranger                TRUE                    TRUE          TRUE
-#> 2         rpart                TRUE                    TRUE          TRUE
-#> 24     stacking                TRUE                    TRUE          TRUE
-#> 25 superlearner                TRUE                    TRUE          TRUE
-#> 23      xgboost                TRUE                    TRUE          TRUE
-#>    supports_multiclass engine_package available
-#> 15               FALSE            ada      TRUE
-#> 22               FALSE         dbarts      TRUE
-#> 9                 TRUE            C50      TRUE
-#> 18                TRUE       partykit      TRUE
-#> 17                TRUE       partykit      TRUE
-#> 6                 TRUE          e1071      TRUE
-#> 11               FALSE          earth      TRUE
-#> 14                TRUE            mda      TRUE
-#> 12               FALSE           mgcv      TRUE
-#> 8                FALSE            gbm      TRUE
-#> 1                FALSE          stats      TRUE
-#> 3                 TRUE         glmnet      TRUE
-#> 10                TRUE           kknn      TRUE
-#> 19                TRUE           MASS      TRUE
-#> 21                TRUE       lightgbm      TRUE
-#> 13                TRUE     naivebayes      TRUE
-#> 5                 TRUE           nnet      TRUE
-#> 16               FALSE            pls      TRUE
-#> 20                TRUE           MASS      TRUE
-#> 7                 TRUE   randomForest      TRUE
-#> 4                 TRUE         ranger      TRUE
-#> 2                 TRUE          rpart      TRUE
-#> 24                TRUE         funcml      TRUE
-#> 25                TRUE         funcml      TRUE
-#> 23                TRUE        xgboost      TRUE
+head(list_learners(
+  classification = TRUE,
+  prob = TRUE,
+  available = TRUE,
+  columns = c("learner", "supports_prob", "supports_multiclass", "engine_package")
+), 10)
+#>      learner supports_prob supports_multiclass engine_package
+#> 15  adaboost          TRUE               FALSE            ada
+#> 22      bart          TRUE               FALSE         dbarts
+#> 9        C50          TRUE                TRUE            C50
+#> 18   cforest          TRUE                TRUE       partykit
+#> 17     ctree          TRUE                TRUE       partykit
+#> 6  e1071_svm          TRUE                TRUE          e1071
+#> 11     earth          TRUE               FALSE          earth
+#> 12       gam          TRUE               FALSE           mgcv
+#> 8        gbm          TRUE               FALSE            gbm
+#> 1        glm          TRUE               FALSE          stats
 ```
 
 ## 2. Fit one model and inspect the fitted object
@@ -259,18 +210,18 @@ summary(fit_obj)
 ```
 
 ``` r
-data.frame(
+head(data.frame(
   car = demo_reg$car[1:6],
   observed = demo_reg$mpg[1:6],
-  predicted = round(predict(fit_obj, demo_reg[1:6, , drop = FALSE]), 2)
-)
-#>                 car observed predicted
-#> 1         Mazda RX4     21.0     21.21
-#> 2     Mazda RX4 Wag     21.0     21.21
-#> 3        Datsun 710     22.8     22.52
-#> 4    Hornet 4 Drive     21.4     21.27
-#> 5 Hornet Sportabout     18.7     17.83
-#> 6           Valiant     18.1     18.35
+  pred = round(predict(fit_obj, demo_reg[1:6, , drop = FALSE]), 2)
+), 6)
+#>                 car observed  pred
+#> 1         Mazda RX4     21.0 21.21
+#> 2     Mazda RX4 Wag     21.0 21.21
+#> 3        Datsun 710     22.8 22.52
+#> 4    Hornet 4 Drive     21.4 21.27
+#> 5 Hornet Sportabout     18.7 17.83
+#> 6           Valiant     18.1 18.35
 ```
 
 ## 3. Validate performance with resampling
@@ -333,16 +284,16 @@ tune_obj <- tune(
   seed = 42
 )
 
-tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")]
-#>   max_depth eta nrounds     mean    conf_low conf_high
-#> 7         2 0.1      30 2.938398 -0.05709457  5.933891
+round(tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")], 3)
+#>   max_depth eta nrounds  mean conf_low conf_high
+#> 7         2 0.1      30 2.938   -0.057     5.934
 ```
 
 ``` r
-tune_obj$results[
+head(tune_obj$results[
   order(tune_obj$results$mean),
   c(names(tune_grid), "mean", "conf_low", "conf_high")
-]
+], 6)
 #>   max_depth  eta nrounds     mean    conf_low conf_high
 #> 7         2 0.10      30 2.938398 -0.05709457  5.933891
 #> 3         2 0.10      20 3.105323 -0.55410645  6.764753
@@ -350,8 +301,6 @@ tune_obj$results[
 #> 4         3 0.10      20 3.234155 -0.34665172  6.814961
 #> 5         2 0.05      30 3.348797 -0.32544499  7.023039
 #> 6         3 0.05      30 3.433179 -0.31782192  7.184180
-#> 2         3 0.05      20 3.838658  0.09467180  7.582643
-#> 1         2 0.05      20 3.909885  0.56273243  7.257037
 ```
 
 ``` r
