@@ -154,7 +154,7 @@ head(list_learners(
   prob = TRUE,
   available = TRUE,
   columns = c("learner", "supports_prob", "supports_multiclass", "engine_package")
-), 10)
+), 6)
 #>      learner supports_prob supports_multiclass engine_package
 #> 15  adaboost          TRUE               FALSE            ada
 #> 22      bart          TRUE               FALSE         dbarts
@@ -162,10 +162,6 @@ head(list_learners(
 #> 18   cforest          TRUE                TRUE       partykit
 #> 17     ctree          TRUE                TRUE       partykit
 #> 6  e1071_svm          TRUE                TRUE          e1071
-#> 11     earth          TRUE               FALSE          earth
-#> 12       gam          TRUE               FALSE           mgcv
-#> 8        gbm          TRUE               FALSE            gbm
-#> 1        glm          TRUE               FALSE          stats
 ```
 
 ## 2. Fit one model and inspect the fitted object
@@ -187,26 +183,6 @@ fit_obj
 #> <funcml_fit> regression model: xgboost
 #> Formula: mpg ~ wt + hp + qsec + drat
 #> Features: 4 | Obs: 32
-```
-
-``` r
-summary(fit_obj)
-#> <funcml_fit summary> regression model: xgboost
-#> Spec:
-#> $nrounds
-#> [1] 30
-#> 
-#> $max_depth
-#> [1] 3
-#> 
-#> $eta
-#> [1] 0.1
-#> 
-#> $subsample
-#> [1] 1
-#> 
-#> $colsample_bytree
-#> [1] 1
 ```
 
 ``` r
@@ -238,14 +214,19 @@ eval_obj <- evaluate(
   resampling = cv(v = 4, seed = 42)
 )
 
-summary(eval_obj)
-#>   metric       mean         sd n  std_error conf_level    conf_low  conf_high
-#> 1   rmse  3.3098266 1.52367053 4 0.76183527       0.95  0.88532681  5.7343265
-#> 2    mae  2.6666687 1.24734293 4 0.62367146       0.95  0.68186772  4.6514696
-#> 3    mse 12.6961313 9.89521740 4 4.94760870       0.95 -3.04936773 28.4416303
-#> 4  medae  2.3683064 1.37102015 4 0.68551008       0.95  0.18670736  4.5499054
-#> 5   mape  0.1375875 0.05773173 4 0.02886587       0.95  0.04572342  0.2294516
-#> 6    rsq  0.4117001 0.80640932 4 0.40320466       0.95 -0.87147708  1.6948773
+eval_tbl <- eval_obj$summary[, c("metric", "mean", "conf_low", "conf_high")]
+eval_tbl[, c("mean", "conf_low", "conf_high")] <- round(
+  eval_tbl[, c("mean", "conf_low", "conf_high")],
+  3
+)
+eval_tbl
+#>   metric   mean conf_low conf_high
+#> 1   rmse  3.310    0.885     5.734
+#> 2    mae  2.667    0.682     4.651
+#> 3    mse 12.696   -3.049    28.442
+#> 4  medae  2.368    0.187     4.550
+#> 5   mape  0.138    0.046     0.229
+#> 6    rsq  0.412   -0.871     1.695
 ```
 
 ``` r
@@ -290,17 +271,23 @@ round(tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")], 3)
 ```
 
 ``` r
-head(tune_obj$results[
-  order(tune_obj$results$mean),
-  c(names(tune_grid), "mean", "conf_low", "conf_high")
-], 6)
-#>   max_depth  eta nrounds     mean    conf_low conf_high
-#> 7         2 0.10      30 2.938398 -0.05709457  5.933891
-#> 3         2 0.10      20 3.105323 -0.55410645  6.764753
-#> 8         3 0.10      30 3.134498  0.13583466  6.133162
-#> 4         3 0.10      20 3.234155 -0.34665172  6.814961
-#> 5         2 0.05      30 3.348797 -0.32544499  7.023039
-#> 6         3 0.05      30 3.433179 -0.31782192  7.184180
+tune_tbl <- head(
+  tune_obj$results[
+    order(tune_obj$results$mean),
+    c(names(tune_grid), "mean", "conf_low", "conf_high")
+  ],
+  4
+)
+tune_tbl[, c("mean", "conf_low", "conf_high")] <- round(
+  tune_tbl[, c("mean", "conf_low", "conf_high")],
+  3
+)
+tune_tbl
+#>   max_depth eta nrounds  mean conf_low conf_high
+#> 7         2 0.1      30 2.938   -0.057     5.934
+#> 3         2 0.1      20 3.105   -0.554     6.765
+#> 8         3 0.1      30 3.134    0.136     6.133
+#> 4         3 0.1      20 3.234   -0.347     6.815
 ```
 
 ``` r
@@ -319,21 +306,19 @@ compare_obj <- compare_learners(
   specs = list(xgboost = xgb_spec)
 )
 
-summary(compare_obj)
-#>     model metric     mean        sd n std_error conf_level  conf_low conf_high
-#> 1     glm   rmse 2.823282 0.8391539 4 0.4195769       0.95 1.4880008  4.158563
-#> 2     glm    mae 2.324837 0.6977166 4 0.3488583       0.95 1.2146141  3.435060
-#> 3   rpart   rmse 4.589988 0.5112815 4 0.2556408       0.95 3.7764255  5.403552
-#> 4   rpart    mae 3.781101 0.3039781 4 0.1519891       0.95 3.2974042  4.264798
-#> 5 xgboost   rmse 3.374909 1.4559200 4 0.7279600       0.95 1.0582155  5.691603
-#> 6 xgboost    mae 2.734509 1.1846891 4 0.5923445       0.95 0.8494044  4.619614
-#>   tuned rank
-#> 1 FALSE    1
-#> 2 FALSE    1
-#> 3 FALSE    3
-#> 4 FALSE    3
-#> 5 FALSE    2
-#> 6 FALSE    2
+compare_tbl <- compare_obj$results[, c("model", "metric", "mean", "conf_low", "conf_high", "rank")]
+compare_tbl[, c("mean", "conf_low", "conf_high")] <- round(
+  compare_tbl[, c("mean", "conf_low", "conf_high")],
+  3
+)
+compare_tbl
+#>     model metric  mean conf_low conf_high rank
+#> 1     glm   rmse 2.823    1.488     4.159    1
+#> 2     glm    mae 2.325    1.215     3.435    1
+#> 3   rpart   rmse 4.590    3.776     5.404    3
+#> 4   rpart    mae 3.781    3.297     4.265    3
+#> 5 xgboost   rmse 3.375    1.058     5.692    2
+#> 6 xgboost    mae 2.735    0.849     4.620    2
 ```
 
 ``` r
@@ -477,11 +462,16 @@ est_obj <- estimate(
   seed = 42
 )
 
-summary(est_obj)
-#>       estimand treatment treatment_level control_level estimate std_error
-#> lower      ATE       trt               1             0 1.214864 0.0123336
-#>       interval_method conf_level conf_low conf_high
-#> lower          normal       0.95 1.190691  1.239038
+data.frame(
+  estimand = est_obj$estimand,
+  treatment_level = est_obj$treatment_level,
+  control_level = est_obj$control_level,
+  estimate = round(est_obj$estimate, 3),
+  conf_low = round(est_obj$conf_int[1], 3),
+  conf_high = round(est_obj$conf_int[2], 3)
+)
+#>       estimand treatment_level control_level estimate conf_low conf_high
+#> lower      ATE               1             0    1.215    1.191     1.239
 ```
 
 ``` r

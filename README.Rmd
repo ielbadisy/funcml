@@ -169,7 +169,7 @@ head(list_learners(
   prob = TRUE,
   available = TRUE,
   columns = c("learner", "supports_prob", "supports_multiclass", "engine_package")
-), 10)
+), 6)
 ```
 
 ## 2. Fit one model and inspect the fitted object
@@ -188,10 +188,6 @@ fit_obj <- fit(
 )
 
 fit_obj
-```
-
-```{r fit-summary}
-summary(fit_obj)
 ```
 
 ```{r fit-predict}
@@ -216,7 +212,12 @@ eval_obj <- evaluate(
   resampling = cv(v = 4, seed = 42)
 )
 
-summary(eval_obj)
+eval_tbl <- eval_obj$summary[, c("metric", "mean", "conf_low", "conf_high")]
+eval_tbl[, c("mean", "conf_low", "conf_high")] <- round(
+  eval_tbl[, c("mean", "conf_low", "conf_high")],
+  3
+)
+eval_tbl
 ```
 
 ```{r eval-plot}
@@ -255,10 +256,18 @@ round(tune_obj$best[, c(names(tune_grid), "mean", "conf_low", "conf_high")], 3)
 ```
 
 ```{r tune-table}
-head(tune_obj$results[
-  order(tune_obj$results$mean),
-  c(names(tune_grid), "mean", "conf_low", "conf_high")
-], 6)
+tune_tbl <- head(
+  tune_obj$results[
+    order(tune_obj$results$mean),
+    c(names(tune_grid), "mean", "conf_low", "conf_high")
+  ],
+  4
+)
+tune_tbl[, c("mean", "conf_low", "conf_high")] <- round(
+  tune_tbl[, c("mean", "conf_low", "conf_high")],
+  3
+)
+tune_tbl
 ```
 
 ```{r tune-plot}
@@ -275,7 +284,12 @@ compare_obj <- compare_learners(
   specs = list(xgboost = xgb_spec)
 )
 
-summary(compare_obj)
+compare_tbl <- compare_obj$results[, c("model", "metric", "mean", "conf_low", "conf_high", "rank")]
+compare_tbl[, c("mean", "conf_low", "conf_high")] <- round(
+  compare_tbl[, c("mean", "conf_low", "conf_high")],
+  3
+)
+compare_tbl
 ```
 
 ```{r compare-plot}
@@ -396,7 +410,14 @@ est_obj <- estimate(
   seed = 42
 )
 
-summary(est_obj)
+data.frame(
+  estimand = est_obj$estimand,
+  treatment_level = est_obj$treatment_level,
+  control_level = est_obj$control_level,
+  estimate = round(est_obj$estimate, 3),
+  conf_low = round(est_obj$conf_int[1], 3),
+  conf_high = round(est_obj$conf_int[2], 3)
+)
 ```
 
 ```{r estimate-plot}
