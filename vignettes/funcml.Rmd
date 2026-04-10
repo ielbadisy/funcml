@@ -1,6 +1,6 @@
 ---
 title: "funcml"
-output: rmarkdown::html_vignette
+output: rmarkdown::pdf_document
 vignette: >
   %\VignetteIndexEntry{funcml}
   %\VignetteEngine{knitr::rmarkdown}
