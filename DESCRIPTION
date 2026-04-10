@@ -2,6 +2,7 @@ Package: funcml
 Type: Package
 Title: Machine Learning Framework for R
 Version: 0.7.1
+Depends: R (>= 2.10)
 Authors@R: c(
     person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
   )
@@ -21,6 +22,7 @@ Description: Machine learning framework for R.
     machine learning ecosystems.
 License: GPL-3 | file LICENSE
 Encoding: UTF-8
+LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools,
