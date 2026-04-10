@@ -14,6 +14,8 @@
 #'   `tune()` performs nested resampling and reports outer-fold performance
 #'   estimates for the tuned model-selection procedure.
 #' @param seed Optional seed.
+#' @param ncores Optional number of CPU cores used for tuning tasks. `NULL` or
+#'   `1` runs sequentially.
 #' @param ... Passed to `fit()`.
 #' @return A `funcml_tune` object.
 #' @examples
@@ -30,7 +32,9 @@
 tune <- function(data, formula, model, grid, resampling = cv(5),
                  metric = NULL, type = NULL,
                  search = c("grid", "random"), n_evals = NULL,
-                 outer_resampling = NULL, seed = NULL, ...) {
+                 outer_resampling = NULL, seed = NULL,
+                 ncores = NULL, ...) {
+  ncores <- .validate_ncores(ncores)
   search <- match.arg(search)
   if (!is.data.frame(grid) || !nrow(grid)) {
     stop("`grid` must be a non-empty data frame.", call. = FALSE)
@@ -58,14 +62,19 @@ tune <- function(data, formula, model, grid, resampling = cv(5),
       search = search,
       n_evals = n_evals,
       seed = seed,
+      ncores = ncores,
       ...
     )
   }
   rows <- split(search_grid, seq_len(nrow(search_grid)))
-  results <- lapply(rows, function(row) {
+  row_ids <- seq_along(rows)
+  row_seeds <- .task_seeds(seed, length(row_ids))
+  results <- .funcml_map(row_ids, function(i) {
+    row <- rows[[i]]
     spec_row <- as.list(row)
     eval_row <- evaluate(data, formula, model, spec = spec_row, resampling = resampling,
-                         metrics = metric, type = type, seed = seed, ...)
+                         metrics = metric, type = type, seed = row_seeds[[i]],
+                         ncores = NULL, ...)
     summary_row <- eval_row$summary[eval_row$summary$metric == metric, , drop = FALSE]
     c(
       spec_row,
@@ -77,11 +86,12 @@ tune <- function(data, formula, model, grid, resampling = cv(5),
       conf_low = summary_row$conf_low,
       conf_high = summary_row$conf_high
     )
-  })
+  }, ncores = ncores)
   results_df <- do.call(rbind, lapply(results, function(x) as.data.frame(as.list(x), stringsAsFactors = FALSE)))
   best_idx <- if (dirs == "min") which.min(results_df$mean) else which.max(results_df$mean)
   best_spec <- as.list(search_grid[best_idx, , drop = FALSE])
   fit_best <- fit(formula, data, model, spec = best_spec, ...)
+  fit_best$spec <- .strip_control_spec(fit_best$spec)
 
   out <- list(
     results = results_df,
@@ -158,7 +168,7 @@ plot.funcml_tune <- function(x, ...) {
 
 .nested_resampling_summary <- function(data, formula, model, grid, resampling,
                                        outer_resampling, metric, type,
-                                       search, n_evals, seed, ...) {
+                                       search, n_evals, seed, ncores, ...) {
   y_all <- model.response(model.frame(formula, data))
   task <- infer_task(y_all)
   if (task == "classification") {
@@ -166,9 +176,11 @@ plot.funcml_tune <- function(x, ...) {
   }
   outer_resampling <- generate_folds(nrow(data), y_all, outer_resampling, data = data)
 
-  outer_folds <- lapply(seq_along(outer_resampling$folds), function(i) {
+  outer_ids <- seq_along(outer_resampling$folds)
+  outer_seeds <- .task_seeds(seed, length(outer_ids))
+  outer_folds <- .funcml_map(outer_ids, function(i) {
     fold <- outer_resampling$folds[[i]]
-    inner_seed <- if (is.null(seed)) NULL else seed + i
+    inner_seed <- outer_seeds[[i]]
     train_data <- data[fold$train, , drop = FALSE]
     test_data <- data[fold$test, , drop = FALSE]
     inner_tune <- tune(
@@ -183,6 +195,7 @@ plot.funcml_tune <- function(x, ...) {
       n_evals = n_evals,
       outer_resampling = NULL,
       seed = inner_seed,
+      ncores = NULL,
       ...
     )
     metric_value <- .score_tuned_split(
@@ -205,7 +218,7 @@ plot.funcml_tune <- function(x, ...) {
       selected_config = spec_label,
       stringsAsFactors = FALSE
     )
-  })
+  }, ncores = ncores)
   outer_folds <- do.call(rbind, outer_folds)
   list(
     folds = outer_folds,

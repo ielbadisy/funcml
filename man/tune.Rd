@@ -16,6 +16,7 @@ tune(
   n_evals = NULL,
   outer_resampling = NULL,
   seed = NULL,
+  ncores = NULL,
   ...
 )
 }
@@ -44,6 +45,9 @@ tune(
 estimates for the tuned model-selection procedure.}
 
 \item{seed}{Optional seed.}
+
+\item{ncores}{Optional number of CPU cores used for tuning tasks. \code{NULL} or
+\code{1} runs sequentially.}
 
 \item{...}{Passed to \code{fit()}.}
 }
