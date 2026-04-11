@@ -34,4 +34,8 @@ quality-adjusted life years, and administration mode.
 \details{
 Column names were standardized to \code{snake_case} when packaging the data.
 }
+\examples{
+str(funcml::ketapain)
+summary(funcml::ketapain$qaly)
+}
 \keyword{datasets}
