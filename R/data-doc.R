@@ -22,6 +22,9 @@
 #' }
 #' @source Original arthritis survey dataset distributed with the project
 #'   materials.
+#' @examples
+#' str(funcml::arthritis)
+#' table(funcml::arthritis$status)
 "arthritis"
 
 #' Bangladesh maternal risk data
@@ -50,6 +53,9 @@
 #'   health risk factors dataset: Clinical parameters and insights from rural
 #'   Bangladesh. *Data in Brief*, 59(Suppl 2), 111363.
 #'   doi:10.1016/j.dib.2025.111363.
+#' @examples
+#' str(funcml::bangladeshmaternalrisk)
+#' table(funcml::bangladeshmaternalrisk$risk_level)
 "bangladeshmaternalrisk"
 
 #' Pima diabetes data
@@ -75,6 +81,9 @@
 #'   (1988). Using the ADAP learning algorithm to forecast the onset of
 #'   diabetes mellitus. In *Proceedings of the Annual Symposium on Computer
 #'   Application in Medical Care*, 261-265.
+#' @examples
+#' str(funcml::pimadiabetes)
+#' table(funcml::pimadiabetes$split)
 "pimadiabetes"
 
 #' Youth tobacco survey data
@@ -119,6 +128,9 @@
 #'   tobacco susceptibility and current use among adolescents from 97 countries
 #'   in the Global Youth Tobacco Survey, 2013-2017. *PLOS Global Public
 #'   Health*, 1(12), e0000060. doi:10.1371/journal.pgph.0000060.
+#' @examples
+#' str(funcml::cigsmoke)
+#' table(funcml::cigsmoke$e_cig)
 "cigsmoke"
 
 #' Birth weight data
@@ -142,6 +154,9 @@
 #' @source Hosmer DW, Lemeshow S (1989). *Applied Logistic Regression*. Wiley.
 #'   The packaged data are a lightly renamed version of the classic
 #'   `MASS::birthwt` dataset.
+#' @examples
+#' str(funcml::birthweight)
+#' summary(funcml::birthweight$birth_weight_g)
 "birthweight"
 
 #' Ketamine pain management data
@@ -167,4 +182,98 @@
 #' }
 #' @source Original ketamine pain management dataset distributed with the
 #'   project materials.
+#' @examples
+#' str(funcml::ketapain)
+#' summary(funcml::ketapain$qaly)
 "ketapain"
+
+#' Haberman survival data
+#'
+#' A binary classification dataset on breast cancer survival after surgery.
+#'
+#' @format A data frame with 306 rows and 4 variables:
+#' \describe{
+#'   \item{age}{Age of patient at operation time in years.}
+#'   \item{operation_year}{Year of operation minus 1900.}
+#'   \item{positive_axillary_nodes}{Number of positive axillary nodes detected.}
+#'   \item{survival_status}{Survival status (`1` = survived 5 years or longer,
+#'   `2` = died within 5 years).}
+#' }
+#' @source Haberman's Survival Data from the University of Chicago's Billings
+#'   Hospital study, distributed through the UCI Machine Learning Repository.
+#' @examples
+#' str(funcml::haberman)
+#' table(funcml::haberman$survival_status)
+"haberman"
+
+#' Wisconsin breast cancer data
+#'
+#' A binary classification dataset for breast cancer diagnosis from cytology
+#' measurements.
+#'
+#' @format A data frame with 699 rows and 10 variables:
+#' \describe{
+#'   \item{clump_thickness}{Clump thickness score.}
+#'   \item{uniformity_cell_size}{Uniformity of cell size score.}
+#'   \item{uniformity_cell_shape}{Uniformity of cell shape score.}
+#'   \item{marginal_adhesion}{Marginal adhesion score.}
+#'   \item{single_epithelial_cell_size}{Single epithelial cell size score.}
+#'   \item{bare_nuclei}{Bare nuclei score.}
+#'   \item{bland_chromatin}{Bland chromatin score.}
+#'   \item{normal_nucleoli}{Normal nucleoli score.}
+#'   \item{mitoses}{Mitoses score.}
+#'   \item{class}{Diagnostic class (`2` = benign, `4` = malignant).}
+#' }
+#' @source Wisconsin Breast Cancer Database from University of Wisconsin
+#'   Hospitals, distributed through the UCI Machine Learning Repository.
+#' @examples
+#' str(funcml::breastcancerwisconsin)
+#' table(funcml::breastcancerwisconsin$class)
+"breastcancerwisconsin"
+
+#' Mammography calcification data
+#'
+#' A binary classification dataset for detection of mammographic
+#' microcalcifications.
+#'
+#' @format A data frame with 11,183 rows and 7 variables:
+#' \describe{
+#'   \item{attr1}{Numeric imaging-derived predictor 1.}
+#'   \item{attr2}{Numeric imaging-derived predictor 2.}
+#'   \item{attr3}{Numeric imaging-derived predictor 3.}
+#'   \item{attr4}{Numeric imaging-derived predictor 4.}
+#'   \item{attr5}{Numeric imaging-derived predictor 5.}
+#'   \item{attr6}{Numeric imaging-derived predictor 6.}
+#'   \item{class}{Calcification class (`\"-1\"` or `\"1\"`).}
+#' }
+#' @source Woods K, Doss C, Bowyer K, Solka J, Priebe C, Kegelmeyer P
+#'   (1993). Comparative evaluation of pattern recognition techniques for
+#'   detection of microcalcifications in mammography.
+#' @examples
+#' str(funcml::mammography)
+#' table(funcml::mammography$class)
+"mammography"
+
+#' Thyroid function data
+#'
+#' A multiclass classification dataset on thyroid functional state using five
+#' laboratory test measurements.
+#'
+#' @format A data frame with 215 rows and 6 variables:
+#' \describe{
+#'   \item{t3_resin_uptake}{T3-resin uptake percentage.}
+#'   \item{total_serum_thyroxin}{Total serum thyroxin measurement.}
+#'   \item{total_serum_triiodothyronine}{Total serum triiodothyronine
+#'   measurement.}
+#'   \item{basal_tsh}{Basal thyroid-stimulating hormone measurement.}
+#'   \item{max_abs_tsh_diff}{Maximum absolute TSH difference after thyrotropin-
+#'   releasing hormone injection.}
+#'   \item{class}{Thyroid class (`1` = normal, `2` = hyperthyroid,
+#'   `3` = hypothyroid).}
+#' }
+#' @source Thyroid gland data distributed through the UCI Machine Learning
+#'   Repository.
+#' @examples
+#' str(funcml::newthyroid)
+#' table(funcml::newthyroid$class)
+"newthyroid"
