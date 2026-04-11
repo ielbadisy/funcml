@@ -49,6 +49,10 @@ and tobacco-related environments among youth respondents.
 \details{
 Column names were standardized to \code{snake_case} when packaging the data.
 }
+\examples{
+str(funcml::cigsmoke)
+table(funcml::cigsmoke$e_cig)
+}
 \references{
 Kim N, Loh WY, McCarthy DE (2021). Machine learning models of
 tobacco susceptibility and current use among adolescents from 97 countries

@@ -12,43 +12,37 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(funcml)
 ```
 
-`funcml` provides a machine learning framework for R. The package also includes native
-interpretability helpers for permutation
-importance, partial dependence, ICE, ALE, local surrogate explanations, SHAP,
-interaction strength, greedy breakdown profiles, and global surrogate models.
-It also exposes native ensemble learners through `model = "stacking"` and
-`model = "superlearner"`.
+`funcml` provides a machine learning framework for R. The package also includes native interpretability helpers for permutation importance, partial dependence, ICE, ALE, local surrogate explanations, SHAP, interaction strength, greedy breakdown profiles, and global surrogate models.
 
-The package is intentionally opinionated. It is not designed to compete
-feature for feature with broader frameworks such as `tidymodels`, `mlr3`, or
-`caret`. Instead, `funcml` focuses on a compact and explicit framework for
-users who want to fit, compare, tune, interpret, and estimate models through
-one coherent interface, with formula syntax as the main model-specification
-surface.
+It also exposes native ensemble learners through `model = "stacking"` and `model = "superlearner"`.
+
+The package is intentionally opinionated. It is not designed to compete feature for feature with broader frameworks such as `tidymodels`, `mlr3`, or `caret`. Instead, `funcml` focuses on a compact and explicit framework for users who want to fit, compare, tune, interpret, and estimate models through one coherent interface, with formula syntax as the main model-specification surface.
 
 This design comes with a deliberate tradeoff:
 
-- preprocessing is expected to happen outside `funcml`, so the data passed to
-  `fit()` is the exact data being modeled
-- the package favors explicit inputs and direct model specification over hidden
-  preprocessing state inside training pipelines
-- cross-validation is still the default, but the package also supports holdout
-  splits, grouped CV, and time-aware rolling evaluation through the same
-  resampling interface
+- preprocessing is expected to happen outside `funcml`, so the data passed to `fit()` is the exact data being modeled
 
-Users who need broader preprocessing orchestration or specialized resampling
-designs should use a more complete framework.
+- the package favors explicit inputs and direct model specification over hidden preprocessing state inside training pipelines
+
+- cross-validation is still the default, but the package also supports holdout splits, grouped CV, and time-aware rolling evaluation through the same resampling interface
+
+
+Users who need broader preprocessing orchestration or specialized resampling designs should use a more complete framework.
 
 Learner coverage currently includes:
 
 - regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`, `lightgbm`, `xgboost`, `stacking`, `superlearner`
+
 - regression and binary classification: `earth`, `gam`, `bart`
+
 - classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`
+
 - binary classification only: `adaboost`
+
 - regression only: `pls`
 
 ```{r}
-fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
+fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "ranger")
 
 permute_obj <- interpret(fit_obj, mtcars, method = "permute", nsim = 5)
 pdp_obj <- interpret(fit_obj, mtcars, method = "pdp", features = "wt")
@@ -60,14 +54,16 @@ surrogate_obj <- interpret(fit_obj, mtcars, method = "surrogate")
 ```
 
 ```{r}
-eval_obj <- evaluate(mpg ~ wt + hp, data = mtcars, model = "glm", resampling = holdout(prop = 0.8, seed = 1))
-eval_obj$summary
+eval_obj <- evaluate(mpg ~ wt + hp, data = mtcars, model = "glm", resampling = cv(5))
+eval_obj
 ```
 
 ```{r}
 tune_grid <- expand.grid(intercept = c(TRUE, FALSE))
+
 tune_obj <- tune(mpg ~ wt + hp, data = mtcars, model = "glm", grid = tune_grid, search = "random", n_evals = 1, resampling = cv(v = 3, seed = 1), seed = 1)
-tune_obj$best
+
+tune_obj
 ```
 
 Nested CV is available through `outer_resampling`. The inner `resampling`
@@ -85,7 +81,7 @@ nested_tune_obj <- tune(
   metric = "rmse",
   seed = 1
 )
-nested_tune_obj$nested$summary
+nested_tune_obj
 ```
 
 ```{r, eval = FALSE}
@@ -94,7 +90,7 @@ plot(interaction_obj)
 ```
 
 ```{r}
-learners()[1:10]
+learners()
 ```
 
 ```{r}
