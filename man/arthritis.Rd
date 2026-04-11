@@ -35,4 +35,8 @@ behavioral covariates.
 \details{
 Column names were standardized to \code{snake_case} when packaging the data.
 }
+\examples{
+str(funcml::arthritis)
+table(funcml::arthritis$status)
+}
 \keyword{datasets}

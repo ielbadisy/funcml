@@ -31,4 +31,8 @@ birthweight
 A regression-oriented birth weight dataset with maternal risk factors and a
 derived low-birth-weight indicator.
 }
+\examples{
+str(funcml::birthweight)
+summary(funcml::birthweight$birth_weight_g)
+}
 \keyword{datasets}

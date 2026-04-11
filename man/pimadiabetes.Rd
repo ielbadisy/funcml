@@ -29,6 +29,10 @@ pimadiabetes
 A diabetes classification dataset with clinical measurements and a predefined
 train/test split column.
 }
+\examples{
+str(funcml::pimadiabetes)
+table(funcml::pimadiabetes$split)
+}
 \references{
 Smith JW, Everhart JE, Dickson WC, Knowler WC, Johannes RS
 (1988). Using the ADAP learning algorithm to forecast the onset of

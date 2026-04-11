@@ -37,4 +37,8 @@ diabetes history, and related clinical indicators.
 \details{
 Column names were standardized to \code{snake_case} when packaging the data.
 }
+\examples{
+str(funcml::bangladeshmaternalrisk)
+table(funcml::bangladeshmaternalrisk$risk_level)
+}
 \keyword{datasets}
