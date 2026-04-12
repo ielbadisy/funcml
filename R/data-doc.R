@@ -277,3 +277,197 @@
 #' str(funcml::newthyroid)
 #' table(funcml::newthyroid$class)
 "newthyroid"
+
+#' Doctor visits data
+#'
+#' A regression dataset on annual doctor visit counts and related health,
+#' demographic, and insurance covariates.
+#'
+#' @format A data frame with 5,190 rows and 12 variables:
+#' \describe{
+#'   \item{visits}{Number of doctor visits.}
+#'   \item{gender}{Recorded gender.}
+#'   \item{age}{Age in years scaled to decades.}
+#'   \item{income}{Income measure scaled by household composition.}
+#'   \item{illness}{Number of illnesses in the previous two weeks.}
+#'   \item{reduced}{Number of days with reduced activity.}
+#'   \item{health}{Self-rated health score.}
+#'   \item{private}{Private insurance indicator.}
+#'   \item{freepoor}{Free care indicator for low-income patients.}
+#'   \item{freerepat}{Free care indicator for pensioners or veterans.}
+#'   \item{nchronic}{Indicator for no chronic condition.}
+#'   \item{lchronic}{Indicator for limiting chronic condition.}
+#' }
+#' @source Cameron AC, Trivedi PK (1998). *Regression Analysis of Count Data*.
+#'   Cambridge University Press. The packaged data are from `AER::DoctorVisits`.
+#' @examples
+#' str(funcml::doctorvisits)
+#' summary(funcml::doctorvisits$visits)
+"doctorvisits"
+
+#' CD4 follow-up data
+#'
+#' A regression dataset relating baseline CD4 counts to one-year follow-up CD4
+#' measurements in HIV-positive patients.
+#'
+#' @format A data frame with 20 rows and 2 variables:
+#' \describe{
+#'   \item{baseline}{Baseline CD4 count.}
+#'   \item{oneyear}{One-year follow-up CD4 count.}
+#' }
+#' @source Davison AC, Hinkley DV (1997). *Bootstrap Methods and Their
+#'   Application*. Cambridge University Press. The packaged data are from
+#'   `boot::cd4`.
+#' @examples
+#' str(funcml::cd4counts)
+#' summary(funcml::cd4counts$oneyear)
+"cd4counts"
+
+#' Cancer remission data
+#'
+#' A binary classification dataset on cancer remission status using leukemia
+#' index and treatment group indicators.
+#'
+#' Column names were standardized to `snake_case` when packaging the data.
+#'
+#' @format A data frame with 27 rows and 3 variables:
+#' \describe{
+#'   \item{li}{Leukemia index measurement.}
+#'   \item{m}{Treatment group indicator.}
+#'   \item{remission}{Remission outcome indicator (`0` = no remission,
+#'   `1` = remission).}
+#' }
+#' @source Davison AC, Hinkley DV (1997). *Bootstrap Methods and Their
+#'   Application*. Cambridge University Press. The packaged data are from
+#'   `boot::remission`.
+#' @examples
+#' str(funcml::cancerremission)
+#' table(funcml::cancerremission$remission)
+"cancerremission"
+
+#' Infant mortality data
+#'
+#' A regression dataset on infant mortality with country-level income, region,
+#' and oil-export status covariates.
+#'
+#' Column names were standardized to `snake_case` when packaging the data.
+#'
+#' @format A data frame with 105 rows and 5 variables:
+#' \describe{
+#'   \item{country}{Country name.}
+#'   \item{income}{Per-capita income.}
+#'   \item{infant}{Infant mortality rate.}
+#'   \item{region}{Geographic region.}
+#'   \item{oil}{Oil-exporting country indicator.}
+#' }
+#' @source Fox J, Weisberg S (2019). *An R Companion to Applied Regression*.
+#'   Sage. The packaged data are from `carData::Leinhardt`.
+#' @examples
+#' str(funcml::infantmortality)
+#' summary(funcml::infantmortality$infant)
+"infantmortality"
+
+#' Heart failure data
+#'
+#' A binary classification dataset on heart failure mortality using demographic,
+#' laboratory, and clinical covariates.
+#'
+#' Column names were standardized to `snake_case` when packaging the data.
+#'
+#' @format A data frame with 299 rows and 13 variables:
+#' \describe{
+#'   \item{age}{Age in years.}
+#'   \item{anaemia}{Anaemia indicator.}
+#'   \item{creatinine_phosphokinase}{Creatinine phosphokinase level.}
+#'   \item{diabetes}{Diabetes indicator.}
+#'   \item{ejection_fraction}{Ejection fraction percentage.}
+#'   \item{high_blood_pressure}{High blood pressure indicator.}
+#'   \item{platelets}{Platelet count.}
+#'   \item{serum_creatinine}{Serum creatinine level.}
+#'   \item{serum_sodium}{Serum sodium level.}
+#'   \item{sex}{Sex indicator.}
+#'   \item{smoking}{Smoking indicator.}
+#'   \item{time}{Follow-up time.}
+#'   \item{death_event}{Death event outcome indicator (`0` = no event,
+#'   `1` = death).}
+#' }
+#' @source CardioDataSets package dataset
+#'   `CardioDataSets::cardiac_failure_df`.
+#' @examples
+#' str(funcml::heartfailure)
+#' table(funcml::heartfailure$death_event)
+"heartfailure"
+
+#' Heart disease patient data
+#'
+#' A binary classification dataset on heart disease status using demographic
+#' and clinical risk factors.
+#'
+#' Column names were standardized to `snake_case` when packaging the data.
+#'
+#' @format A data frame with 303 rows and 9 variables:
+#' \describe{
+#'   \item{age}{Age in years.}
+#'   \item{sex}{Recorded sex.}
+#'   \item{chest_pain}{Chest pain type.}
+#'   \item{bp}{Resting blood pressure.}
+#'   \item{cholesterol}{Serum cholesterol measurement.}
+#'   \item{blood_sugar}{High fasting blood sugar indicator.}
+#'   \item{maximum_hr}{Maximum heart rate achieved.}
+#'   \item{exercise_induced_angina}{Exercise-induced angina indicator.}
+#'   \item{heart_disease}{Heart disease outcome (`"Yes"` or `"No"`).}
+#' }
+#' @source CardioDataSets package dataset
+#'   `CardioDataSets::heartdisease_tbl_df`.
+#' @examples
+#' str(funcml::heartdisease)
+#' table(funcml::heartdisease$heart_disease)
+"heartdisease"
+
+#' Breast cancer diagnostic data
+#'
+#' A binary classification dataset for breast cancer diagnosis using tumor
+#' morphology measurements.
+#'
+#' Column names were standardized to `snake_case` when packaging the data.
+#'
+#' @format A data frame with 569 rows and 31 variables:
+#' \describe{
+#'   \item{radius_mean}{Mean radius.}
+#'   \item{texture_mean}{Mean texture.}
+#'   \item{perimeter_mean}{Mean perimeter.}
+#'   \item{area_mean}{Mean area.}
+#'   \item{smoothness_mean}{Mean smoothness.}
+#'   \item{compactness_mean}{Mean compactness.}
+#'   \item{concavity_mean}{Mean concavity.}
+#'   \item{concave_pts_mean}{Mean number of concave points.}
+#'   \item{symmetry_mean}{Mean symmetry.}
+#'   \item{fractal_dim_mean}{Mean fractal dimension.}
+#'   \item{radius_se}{Radius standard error.}
+#'   \item{texture_se}{Texture standard error.}
+#'   \item{perimeter_se}{Perimeter standard error.}
+#'   \item{area_se}{Area standard error.}
+#'   \item{smoothness_se}{Smoothness standard error.}
+#'   \item{compactness_se}{Compactness standard error.}
+#'   \item{concavity_se}{Concavity standard error.}
+#'   \item{concave_pts_se}{Concave points standard error.}
+#'   \item{symmetry_se}{Symmetry standard error.}
+#'   \item{fractal_dim_se}{Fractal dimension standard error.}
+#'   \item{radius_worst}{Worst radius.}
+#'   \item{texture_worst}{Worst texture.}
+#'   \item{perimeter_worst}{Worst perimeter.}
+#'   \item{area_worst}{Worst area.}
+#'   \item{smoothness_worst}{Worst smoothness.}
+#'   \item{compactness_worst}{Worst compactness.}
+#'   \item{concavity_worst}{Worst concavity.}
+#'   \item{concave_pts_worst}{Worst number of concave points.}
+#'   \item{symmetry_worst}{Worst symmetry.}
+#'   \item{fractal_dim_worst}{Worst fractal dimension.}
+#'   \item{diagnosis}{Diagnosis outcome (`"B"` = benign, `"M"` = malignant).}
+#' }
+#' @source Breast Cancer Wisconsin Diagnostic Dataset from the UCI Machine
+#'   Learning Repository, packaged in `dslabs::brca`.
+#' @examples
+#' str(funcml::breastcancerdiagnostic)
+#' table(funcml::breastcancerdiagnostic$diagnosis)
+"breastcancerdiagnostic"
