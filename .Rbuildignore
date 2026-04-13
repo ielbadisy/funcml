@@ -32,9 +32,11 @@
 ^README[.]Rmd$
 ^README[.]html$
 ^README_files$
+^vignettes/[.]Rhistory$
 ^vignettes/.*[.]html$
 ^vignettes/.*[.]R$
 ^dev$
 ^[.]codex$
 ^CONTRIBUTING[.]md$
 ^CITATION[.]cff$
+^cran-comments[.]md$
