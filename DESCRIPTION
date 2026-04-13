@@ -1,36 +1,34 @@
 Package: funcml
 Type: Package
-Title: Machine Learning Framework for R
+Title: Functional Machine Learning Framework for R
 Version: 0.7.1
 Depends: R (>= 3.5.0)
 Authors@R: c(
     person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
   )
-Author: Imad El Badisy [aut, cre]
-Maintainer: Imad El Badisy <elbadisyimad@gmail.com>
-Description: Machine learning framework for R.
-    Provides a compact and explicit framework for supervised learning,
-    resampling-based evaluation, hyperparameter tuning, learner comparison,
-    interpretation, and plug-in g-computation through stable S3 interfaces and
-    a learner registry covering multiple backend engines. Model
-    specification uses standard R formulas within a broader framework for
-    fitting, evaluation, tuning, interpretation, and causal estimation. The
-    package is intentionally opinionated:
-    preprocessing is expected to happen outside the modeling step, and the
-    framework emphasizes explicit inputs, consistent object contracts, and a
-    compact API rather than competing feature for feature with larger
-    machine learning ecosystems.
+Description: A compact and explicit machine learning framework for R for
+    supervised learning, resampling-based evaluation, hyperparameter
+    tuning, learner comparison, interpretation, and plug-in
+    g-computation. The package uses standard R formulas for model
+    specification and provides stable S3 interfaces for fitting,
+    evaluation, tuning, interpretation, and causal estimation across a
+    learner registry with multiple backend engines. The framework is
+    intentionally opinionated: preprocessing is expected to occur
+    outside the modeling step, and the API emphasizes explicit inputs,
+    consistent object contracts, and compact interfaces rather than
+    feature-by-feature competition with larger machine learning
+    ecosystems.
 License: GPL-3 | file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools,
-        MASS, mgcv, nnet, rpart, glmnet, ranger, e1071,
-        randomForest, gbm, C50, kknn, earth, naivebayes, mda, ada,
-        pls, partykit, dbarts, xgboost, lightgbm
+    MASS, mgcv, nnet, rpart, glmnet, ranger, e1071, randomForest, gbm,
+    C50, kknn, earth, naivebayes, mda, ada, pls, partykit, dbarts,
+    xgboost, lightgbm
 Suggests: testthat (>= 3.1.0), knitr, rmarkdown, roxygen2, gggenes,
-        ggfittext, shapviz, patchwork
+    ggfittext, shapviz, patchwork
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 NeedsCompilation: no
