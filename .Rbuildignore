@@ -36,3 +36,4 @@
 ^vignettes/.*[.]R$
 ^dev$
 ^[.]codex$
+^CONTRIBUTING[.]md$
