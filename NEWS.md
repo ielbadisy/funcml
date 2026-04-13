@@ -3,9 +3,9 @@
 - Refined the README into a more detailed progressive API walkthrough with
   additional tables, figures, and staged examples covering the full package
   surface.
-- Hardened interpretability to use fully internal runtime paths: `vip` now
-  always uses permutation importance and SHAP plotting no longer branches to
-  optional external packages.
+- Hardened interpretability runtime paths by forcing `vip` to use
+  permutation importance consistently while retaining `shapviz`-enhanced
+  SHAP plotting when the optional plotting packages are installed.
 
 # funcml 0.7.0
 
