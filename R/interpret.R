@@ -1270,6 +1270,31 @@ plot_vi <- function(df, ylab, title) {
     .publication_theme()
 }
 
+#' Permutation importance result methods.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_permute` objects returned by `interpret(method = "permute")`.
+#'
+#' @param x A `funcml_permute` object.
+#' @param object A `funcml_permute` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name interpret-permute-methods
+#' @aliases plot.funcml_permute print.funcml_permute summary.funcml_permute
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5))
+#' perm <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "permute",
+#'   features = c("wt", "hp"),
+#'   nsim = 1,
+#'   metric = "rmse"
+#' )
+#' print(perm)
+#' summary(perm)
+#' plot(perm)
 #' @export
 plot.funcml_permute <- function(x, ...) {
   df <- x$result$scores
@@ -1314,6 +1339,7 @@ plot.funcml_permute <- function(x, ...) {
     .publication_theme()
 }
 
+#' @rdname interpret-permute-methods
 #' @export
 print.funcml_permute <- function(x, ...) {
   cat("<funcml_vi>\n")
@@ -1321,12 +1347,37 @@ print.funcml_permute <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname interpret-permute-methods
 #' @export
 summary.funcml_permute <- function(object, ...) {
   print(object$result$scores)
   invisible(object$result$scores)
 }
 
+#' Partial dependence result methods.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_pdp` objects returned by `interpret(method = "pdp")`.
+#'
+#' @param x A `funcml_pdp` object.
+#' @param object A `funcml_pdp` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name interpret-pdp-methods
+#' @aliases plot.funcml_pdp print.funcml_pdp summary.funcml_pdp
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5))
+#' pdp <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "pdp",
+#'   features = c("wt", "hp"),
+#'   nsamples = 20
+#' )
+#' print(pdp)
+#' summary(pdp)
+#' plot(pdp)
 #' @export
 plot.funcml_pdp <- function(x, ...) {
   curves <- x$result$curves
@@ -1357,6 +1408,7 @@ plot.funcml_pdp <- function(x, ...) {
   p
 }
 
+#' @rdname interpret-pdp-methods
 #' @export
 print.funcml_pdp <- function(x, ...) {
   cat("<funcml_pdp>\n")
@@ -1364,12 +1416,38 @@ print.funcml_pdp <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname interpret-pdp-methods
 #' @export
 summary.funcml_pdp <- function(object, ...) {
   print(object$result$curves)
   invisible(object$result$curves)
 }
 
+#' ICE result methods.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_ice` objects returned by `interpret(method = "ice")`
+#' or `interpret(method = "ceteris_paribus")`.
+#'
+#' @param x A `funcml_ice` object.
+#' @param object A `funcml_ice` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name interpret-ice-methods
+#' @aliases plot.funcml_ice print.funcml_ice summary.funcml_ice
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5))
+#' ice <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "ice",
+#'   features = c("wt", "hp"),
+#'   nsamples = 20
+#' )
+#' print(ice)
+#' summary(ice)
+#' plot(ice)
 #' @export
 plot.funcml_ice <- function(x, ...) {
   curves <- x$result$curves
@@ -1390,6 +1468,7 @@ plot.funcml_ice <- function(x, ...) {
     .publication_theme()
 }
 
+#' @rdname interpret-ice-methods
 #' @export
 print.funcml_ice <- function(x, ...) {
   cat("<funcml_ice>\n")
@@ -1397,12 +1476,37 @@ print.funcml_ice <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname interpret-ice-methods
 #' @export
 summary.funcml_ice <- function(object, ...) {
   print(object$result$curves)
   invisible(object$result$curves)
 }
 
+#' ALE result methods.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_ale` objects returned by `interpret(method = "ale")`.
+#'
+#' @param x A `funcml_ale` object.
+#' @param object A `funcml_ale` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name interpret-ale-methods
+#' @aliases plot.funcml_ale print.funcml_ale summary.funcml_ale
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5))
+#' ale <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "ale",
+#'   features = c("wt", "hp"),
+#'   nsamples = 20
+#' )
+#' print(ale)
+#' summary(ale)
+#' plot(ale)
 #' @export
 plot.funcml_ale <- function(x, ...) {
   curves <- x$result$curves
@@ -1434,6 +1538,7 @@ plot.funcml_ale <- function(x, ...) {
   p
 }
 
+#' @rdname interpret-ale-methods
 #' @export
 print.funcml_ale <- function(x, ...) {
   cat("<funcml_ale>\n")
@@ -1441,17 +1546,44 @@ print.funcml_ale <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname interpret-ale-methods
 #' @export
 summary.funcml_ale <- function(object, ...) {
   print(object$result$curves)
   invisible(object$result$curves)
 }
 
+#' Local surrogate result methods.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_local` objects returned by `interpret(method = "local")`
+#' or `interpret(method = "lime")`.
+#'
+#' @param x A `funcml_local` object.
+#' @param object A `funcml_local` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name interpret-local-methods
+#' @aliases plot.funcml_local print.funcml_local summary.funcml_local
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5))
+#' local_obj <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "local",
+#'   newdata = mtcars[1, , drop = FALSE],
+#'   k = 2
+#' )
+#' print(local_obj)
+#' summary(local_obj)
+#' plot(local_obj)
 #' @export
 plot.funcml_local <- function(x, ...) {
   plot_vi(x$result$weights, "Weight", "Local surrogate weights")
 }
 
+#' @rdname interpret-local-methods
 #' @export
 print.funcml_local <- function(x, ...) {
   cat("<funcml_local>\n")
@@ -1459,12 +1591,38 @@ print.funcml_local <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname interpret-local-methods
 #' @export
 summary.funcml_local <- function(object, ...) {
   print(object$result)
   invisible(object$result)
 }
 
+#' Local surrogate result methods for `local_model` and `lime`.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_iml_local_model` objects returned by
+#' `interpret(method = "local_model")` or `interpret(method = "lime")`.
+#'
+#' @param x A `funcml_iml_local_model` object.
+#' @param object A `funcml_iml_local_model` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name interpret-local-model-methods
+#' @aliases plot.funcml_iml_local_model print.funcml_iml_local_model summary.funcml_iml_local_model plot.funcml_lime
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5))
+#' local_model <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "local_model",
+#'   newdata = mtcars[1, , drop = FALSE],
+#'   k = 2
+#' )
+#' print(local_model)
+#' summary(local_model)
+#' plot(local_model)
 #' @export
 plot.funcml_iml_local_model <- function(x, ...) {
   df <- x$result$results
@@ -1487,11 +1645,13 @@ plot.funcml_iml_local_model <- function(x, ...) {
     .publication_theme()
 }
 
+#' @rdname interpret-local-model-methods
 #' @export
 plot.funcml_lime <- function(x, ...) {
   plot.funcml_iml_local_model(x, ...)
 }
 
+#' @rdname interpret-local-model-methods
 #' @export
 print.funcml_iml_local_model <- function(x, ...) {
   cat("<funcml_iml_local_model>\n")
@@ -1499,12 +1659,36 @@ print.funcml_iml_local_model <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname interpret-local-model-methods
 #' @export
 summary.funcml_iml_local_model <- function(object, ...) {
   print(object$result)
   invisible(object$result)
 }
 
+#' Calibration result methods.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_calibration` objects returned by
+#' `interpret(method = "calibration")`.
+#'
+#' @param x A `funcml_calibration` object.
+#' @param object A `funcml_calibration` object.
+#' @param style Plot style: `"curve"` or `"histogram"`.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name interpret-calibration-methods
+#' @aliases plot.funcml_calibration print.funcml_calibration summary.funcml_calibration
+#' @examples
+#' fit_obj <- fit(mpg > 20 ~ wt + hp + disp, data = mtcars, model = "glm")
+#' cal <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "calibration"
+#' )
+#' print(cal)
+#' summary(cal)
+#' plot(cal)
 #' @export
 plot.funcml_calibration <- function(x, style = c("curve", "histogram"), ...) {
   style <- match.arg(style)
@@ -1545,6 +1729,7 @@ plot.funcml_calibration <- function(x, style = c("curve", "histogram"), ...) {
     .publication_theme()
 }
 
+#' @rdname interpret-calibration-methods
 #' @export
 print.funcml_calibration <- function(x, ...) {
   cat("<funcml_calibration>\n")
@@ -1552,6 +1737,7 @@ print.funcml_calibration <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname interpret-calibration-methods
 #' @export
 summary.funcml_calibration <- function(object, ...) {
   out <- list(
@@ -1564,6 +1750,33 @@ summary.funcml_calibration <- function(object, ...) {
   invisible(out)
 }
 
+#' SHAP result methods.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_shap` objects returned by `interpret(method = "shap")`.
+#'
+#' @param x A `funcml_shap` object.
+#' @param object A `funcml_shap` object.
+#' @param kind Plot kind. One of `"auto"`, `"waterfall"`, `"force"`,
+#'   `"summary"`, `"beeswarm"`, `"importance"`, `"bar"`, `"dependence"`,
+#'   `"dependence2d"`, or `"interaction"`.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name interpret-shap-methods
+#' @aliases plot.funcml_shap print.funcml_shap summary.funcml_shap
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5))
+#' shap <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "shap",
+#'   newdata = mtcars[1, , drop = FALSE],
+#'   nsim = 1
+#' )
+#' print(shap)
+#' summary(shap)
+#' plot(shap)
 #' @export
 plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "force", "summary", "beeswarm", "importance", "bar", "dependence", "dependence2d", "interaction"), ...) {
   kind <- match.arg(kind)
@@ -1740,6 +1953,7 @@ plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "force", "summary"
     .publication_theme()
 }
 
+#' @rdname interpret-shap-methods
 #' @export
 print.funcml_shap <- function(x, ...) {
   cat("<funcml_shap>\n")
@@ -1747,12 +1961,36 @@ print.funcml_shap <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname interpret-shap-methods
 #' @export
 summary.funcml_shap <- function(object, ...) {
   print(object$result)
   invisible(object$result)
 }
 
+#' Global surrogate result methods.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_surrogate` objects returned by
+#' `interpret(method = "surrogate")`.
+#'
+#' @param x A `funcml_surrogate` object.
+#' @param object A `funcml_surrogate` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name interpret-surrogate-methods
+#' @aliases plot.funcml_surrogate print.funcml_surrogate summary.funcml_surrogate
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5))
+#' surrogate <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "surrogate"
+#' )
+#' print(surrogate)
+#' summary(surrogate)
+#' plot(surrogate)
 #' @export
 plot.funcml_surrogate <- function(x, ...) {
   surrogate_pred <- if (!is.null(x$result$nodes)) as.numeric(x$result$nodes) else as.numeric(stats::fitted(x$result$model))
@@ -1780,6 +2018,7 @@ plot.funcml_surrogate <- function(x, ...) {
     .publication_theme()
 }
 
+#' @rdname interpret-surrogate-methods
 #' @export
 print.funcml_surrogate <- function(x, ...) {
   cat("<funcml_surrogate>\n")
@@ -1787,12 +2026,39 @@ print.funcml_surrogate <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname interpret-surrogate-methods
 #' @export
 summary.funcml_surrogate <- function(object, ...) {
   print(summary(object$result$model))
   invisible(summary(object$result$model))
 }
 
+#' Interaction result methods.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_interaction` objects returned by
+#' `interpret(method = "interaction")`.
+#'
+#' @param x A `funcml_interaction` object.
+#' @param object A `funcml_interaction` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name interpret-interaction-methods
+#' @aliases plot.funcml_interaction print.funcml_interaction summary.funcml_interaction
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5))
+#' interaction_obj <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "interaction",
+#'   features = c("wt", "hp"),
+#'   nsamples = 20,
+#'   grid_size = 5
+#' )
+#' print(interaction_obj)
+#' summary(interaction_obj)
+#' plot(interaction_obj)
 #' @export
 plot.funcml_interaction <- function(x, ...) {
   pairwise <- x$result$pairwise
@@ -1810,6 +2076,7 @@ plot.funcml_interaction <- function(x, ...) {
     ggplot2::theme(panel.grid = ggplot2::element_blank())
 }
 
+#' @rdname interpret-interaction-methods
 #' @export
 print.funcml_interaction <- function(x, ...) {
   cat("<funcml_interaction>\n")
@@ -1817,6 +2084,7 @@ print.funcml_interaction <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname interpret-interaction-methods
 #' @export
 summary.funcml_interaction <- function(object, ...) {
   print(object$result$results)

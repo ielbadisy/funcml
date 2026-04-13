@@ -191,6 +191,28 @@ compare_learners <- function(data, formula, models, specs = NULL,
   out
 }
 
+#' Methods for learner comparison results.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_compare` objects.
+#'
+#' @param x A `funcml_compare` object.
+#' @param object A `funcml_compare` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name compare-methods
+#' @aliases print.funcml_compare summary.funcml_compare plot.funcml_compare
+#' @examples
+#' cmp <- compare_learners(
+#'   data = mtcars,
+#'   formula = mpg ~ wt + hp,
+#'   models = c("glm", "rpart"),
+#'   resampling = cv(3, seed = 1),
+#'   metrics = c("rmse", "mae")
+#' )
+#' print(cmp)
+#' summary(cmp)
+#' plot(cmp)
 #' @export
 print.funcml_compare <- function(x, ...) {
   cat(sprintf("<funcml_compare> task: %s | tuned: %s\n", x$task, x$tuned))
@@ -198,12 +220,14 @@ print.funcml_compare <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname compare-methods
 #' @export
 summary.funcml_compare <- function(object, ...) {
   print(object$results)
   invisible(object$results)
 }
 
+#' @rdname compare-methods
 #' @export
 plot.funcml_compare <- function(x, ...) {
   df <- x$results
