@@ -392,3 +392,8 @@ predict(stack_fit, demo_reg[1:5, ])
 - plug-in g-computation with `estimate()`
 
 That is the central idea of the package: one explicit API surface for tabular machine learning in R, rather than a stack of modeling wrappers.
+
+## Citation
+
+If you use `funcml` in your work, cite the repository using GitHub's
+`Cite this repository` panel or the metadata in `CITATION.cff`.
