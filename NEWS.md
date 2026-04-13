@@ -3,6 +3,9 @@
 - Refined the README into a more detailed progressive API walkthrough with
   additional tables, figures, and staged examples covering the full package
   surface.
+- Hardened interpretability to use fully internal runtime paths: `vip` now
+  always uses permutation importance and SHAP plotting no longer branches to
+  optional external packages.
 
 # funcml 0.7.0
 
