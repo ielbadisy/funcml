@@ -314,6 +314,51 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
   out
 }
 
+.as_shapviz_object <- function(df, S_inter = NULL) {
+  obs_ids <- sort(unique(df$observation))
+  features <- unique(df$feature)
+  shap_mat <- sapply(features, function(feat) {
+    vals <- df[df$feature == feat, c("observation", "shap"), drop = FALSE]
+    vals <- vals[match(obs_ids, vals$observation), "shap"]
+    as.numeric(vals)
+  })
+  if (!is.matrix(shap_mat)) {
+    shap_mat <- matrix(shap_mat, ncol = length(features))
+  }
+  colnames(shap_mat) <- features
+  rownames(shap_mat) <- obs_ids
+
+  X <- data.frame(row.names = obs_ids, stringsAsFactors = FALSE)
+  for (feat in features) {
+    vals <- df[df$feature == feat, c("observation", "raw_value", "feature_value"), drop = FALSE]
+    vals <- vals[match(obs_ids, vals$observation), , drop = FALSE]
+    if (all(!is.na(vals$raw_value))) {
+      X[[feat]] <- as.numeric(vals$raw_value)
+    } else {
+      X[[feat]] <- vals$feature_value
+    }
+  }
+  baseline <- df[df$feature == features[1], c("observation", "baseline"), drop = FALSE]
+  baseline <- baseline[match(obs_ids, baseline$observation), "baseline"]
+  shapviz::shapviz(
+    shap_mat,
+    X = X,
+    baseline = mean(as.numeric(baseline)),
+    S_inter = S_inter
+  )
+}
+
+.funcml_shapviz_style <- function(plot_obj) {
+  if (inherits(plot_obj, "ggplot")) {
+    return(plot_obj + .publication_theme())
+  }
+  if ("patchwork" %in% class(plot_obj)) {
+    patchwork_and <- getFromNamespace("&", "patchwork")
+    return(patchwork_and(plot_obj, .publication_theme()))
+  }
+  plot_obj
+}
+
 .format_tune_config <- function(df, exclude = c("mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high")) {
   cols <- setdiff(names(df), exclude)
   if (!length(cols)) {
@@ -386,8 +431,7 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' Model-agnostic interpretation (global + local).
 #'
 #' Implements native permutation VI, PDP/ICE/ALE, SHAP approximations, local
-#' surrogate explanations, interaction strength, and global surrogate models
-#' through fully internal computation and plotting paths.
+#' surrogate explanations, interaction strength, and global surrogate models.
 #'
 #' @param fit A `funcml_fit` object.
 #' @param data Reference data (typically training set).
@@ -1712,102 +1756,70 @@ plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "force", "summary"
   }
   need_interactions <- identical(kind, "interaction") || isTRUE(dots$interactions)
   s_inter <- if (need_interactions) .funcml_shap_interaction_array(x, nsim = dots$nsim %||% NULL, seed = dots$seed %||% x$seed) else NULL
-  if (kind == "force") {
-    df <- df[df$observation == (dots$row_id %||% min(df$observation)), , drop = FALSE]
-    df <- df[order(abs(df$shap), decreasing = TRUE), , drop = FALSE]
-    base <- df$baseline[1]
-    pred <- df$prediction[1]
-    df$feature <- factor(df$feature_label, levels = rev(df$feature_label))
-    df$direction <- .funcml_direction(df$shap)
-    return(
-      ggplot2::ggplot(df, ggplot2::aes(x = shap, y = feature, fill = direction)) +
-        ggplot2::geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.4) +
-        ggplot2::geom_col(width = 0.7, colour = NA, show.legend = FALSE) +
-        ggplot2::scale_fill_manual(values = c(increase = "#2ca25f", decrease = "#de2d26")) +
-        ggplot2::labs(
-          x = "SHAP contribution",
-          y = NULL,
-          title = "Approximate SHAP force plot",
-          subtitle = sprintf("Baseline = %.3f | Final prediction = %.3f", base, pred)
-        ) +
-        .publication_theme()
-    )
-  }
+  sv <- .as_shapviz_object(df, S_inter = s_inter)
   if (kind == "waterfall") {
-    df <- df[df$observation == min(df$observation), , drop = FALSE]
-    df <- df[order(abs(df$shap), decreasing = TRUE), , drop = FALSE]
-    base <- df$baseline[1]
-    x_range <- range(c(df$baseline[1], df$prediction[1], df$baseline[1] + cumsum(df$shap)))
-    pad <- max(diff(x_range) * 0.08, 0.05)
-    df$start <- c(base, base + cumsum(utils::head(df$shap, -1L)))
-    df$end <- base + cumsum(df$shap)
-    df$direction <- .funcml_direction(df$shap)
-    df$feature <- factor(df$feature_label, levels = rev(df$feature_label))
-    return(
-      ggplot2::ggplot(df, ggplot2::aes(y = feature)) +
-        ggplot2::geom_vline(xintercept = base, colour = "grey70", linewidth = 0.4, linetype = "dashed") +
-        ggplot2::geom_vline(xintercept = df$prediction[1], colour = "grey40", linewidth = 0.4, linetype = "dotted") +
-        ggplot2::geom_segment(ggplot2::aes(x = start, xend = end, yend = feature, colour = direction), linewidth = 5, lineend = "butt") +
-        ggplot2::geom_point(ggplot2::aes(x = end, colour = direction), size = 2.1) +
-        ggplot2::geom_text(
-          ggplot2::aes(x = end, label = sprintf("%+.3f", shap), hjust = ifelse(shap >= 0, -0.15, 1.15)),
-          size = 3,
-          colour = "black"
-        ) +
-        ggplot2::labs(
-          x = "SHAP contribution",
-          y = NULL,
-          title = "Approximate SHAP waterfall",
-          subtitle = sprintf("Baseline = %.3f | Final prediction = %.3f", base, df$prediction[1])
-        ) +
-        ggplot2::expand_limits(x = c(x_range[1] - pad, x_range[2] + pad)) +
-        .funcml_direction_scale_colour(guide = "none") +
-        .publication_theme()
+    plot_obj <- shapviz::sv_waterfall(
+      sv,
+      row_id = dots$row_id %||% min(df$observation),
+      fill_colors = c("#2ca25f", "#de2d26")
     )
+    return(.funcml_shapviz_style(plot_obj))
+  }
+  if (kind == "force") {
+    plot_obj <- shapviz::sv_force(
+      sv,
+      row_id = dots$row_id %||% min(df$observation),
+      fill_colors = c("#2ca25f", "#de2d26")
+    )
+    return(.funcml_shapviz_style(plot_obj))
   }
   if (kind %in% c("summary", "beeswarm")) {
-    df$abs_shap <- abs(df$shap)
-    ord <- stats::aggregate(abs_shap ~ feature, data = df, FUN = mean)
-    ord <- ord[order(ord$abs_shap, decreasing = TRUE), "feature"]
-    numeric_value <- suppressWarnings(as.numeric(df$feature_value))
-    df$feature_value_scaled <- ave(
-      numeric_value,
-      df$feature,
-      FUN = function(v) {
-        if (all(is.na(v))) {
-          rep(0.5, length(v))
-        } else {
-          rng <- range(v, na.rm = TRUE)
-          if (!is.finite(rng[1]) || diff(rng) == 0) rep(0.5, length(v)) else (v - rng[1]) / diff(rng)
-        }
-      }
+    plot_obj <- shapviz::sv_importance(
+      sv,
+      kind = "beeswarm",
+      show_numbers = FALSE
     )
-    df$feature <- factor(df$feature, levels = rev(ord))
-    return(
-      ggplot2::ggplot(df, ggplot2::aes(x = shap, y = feature, colour = feature_value_scaled)) +
-        ggplot2::geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.4) +
-        ggplot2::geom_point(
-          position = ggplot2::position_jitter(height = 0.18, width = 0),
-          alpha = 0.7,
-          size = 1.6
-        ) +
-        ggplot2::scale_colour_gradient(low = "#2c7bb6", high = "#d7191c", name = "Feature value") +
-        ggplot2::labs(
-          x = "SHAP contribution",
-          y = NULL,
-          title = "Approximate SHAP summary"
-        ) +
-        .publication_theme()
-    )
+    return(.funcml_shapviz_style(plot_obj))
   }
-  df$abs_shap <- abs(df$shap)
-  imp <- stats::aggregate(abs_shap ~ feature, data = df, FUN = mean)
-  imp <- imp[order(imp$abs_shap, decreasing = TRUE), , drop = FALSE]
-  ggplot2::ggplot(imp, ggplot2::aes(x = abs_shap, y = stats::reorder(feature, abs_shap))) +
-    ggplot2::geom_segment(ggplot2::aes(x = 0, xend = abs_shap, yend = feature), linewidth = 0.55, colour = "grey65") +
-    ggplot2::geom_point(size = 2.3, colour = "black") +
-    ggplot2::labs(x = "Mean |SHAP contribution|", y = NULL, title = "Approximate SHAP importance") +
-    .publication_theme()
+  if (kind %in% c("importance", "bar")) {
+    plot_obj <- shapviz::sv_importance(
+      sv,
+      kind = "bar",
+      show_numbers = FALSE,
+      fill = "grey35"
+    )
+    return(.funcml_shapviz_style(plot_obj))
+  }
+  if (kind == "dependence") {
+    v <- dots$v %||% x$features[1]
+    color_var <- dots$color_var %||% "auto"
+    plot_obj <- shapviz::sv_dependence(
+      sv,
+      v = v,
+      color_var = color_var,
+      interactions = isTRUE(dots$interactions)
+    )
+    return(.funcml_shapviz_style(plot_obj))
+  }
+  if (kind == "dependence2d") {
+    x_var <- dots$feature_x %||% dots$x %||% x$features[1]
+    y_var <- dots$feature_y %||% dots$y %||% x$features[min(2, length(x$features))]
+    if (identical(x_var, y_var)) {
+      stop("`x` and `y` must refer to two different features for `kind = \"dependence2d\"`.", call. = FALSE)
+    }
+    plot_obj <- shapviz::sv_dependence2D(
+      sv,
+      x = x_var,
+      y = y_var,
+      interactions = isTRUE(dots$interactions)
+    )
+    return(.funcml_shapviz_style(plot_obj))
+  }
+  plot_obj <- shapviz::sv_interaction(
+    sv,
+    kind = dots$interaction_kind %||% "bar"
+  )
+  .funcml_shapviz_style(plot_obj)
 }
 
 #' @rdname interpret-shap-methods
