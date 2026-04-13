@@ -62,7 +62,7 @@ test_that("plot labels follow method-specific semantics", {
   expect_match(perm_plot$labels$x, "Change in RMSE after permutation")
   expect_equal(pdp_plot$labels$y, "Partial dependence")
   expect_match(ale_plot$labels$y, "ALE on response scale")
-  expect_equal(sh_plot$labels$x, "SHAP contribution")
+  expect_equal(sh_plot$labels$x, "SHAP value")
 })
 
 test_that("shap supports dependence, 2d dependence, force, and interaction plots", {
