@@ -352,10 +352,6 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
   if (inherits(plot_obj, "ggplot")) {
     return(plot_obj + .publication_theme())
   }
-  if ("patchwork" %in% class(plot_obj)) {
-    patchwork_and <- getFromNamespace("&", "patchwork")
-    return(patchwork_and(plot_obj, .publication_theme()))
-  }
   plot_obj
 }
 
