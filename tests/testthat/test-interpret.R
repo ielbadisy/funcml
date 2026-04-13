@@ -60,6 +60,39 @@ test_that("classification interpretability supports subsetted features", {
   expect_true(all(grepl(" = ", sh$result$feature_label, fixed = TRUE)))
 })
 
+test_that("vip always uses internal permutation importance", {
+  set.seed(21)
+  dat <- data.frame(
+    x1 = rnorm(90),
+    x2 = rnorm(90),
+    x3 = rnorm(90)
+  )
+  dat$y <- 1.4 * dat$x1 - 0.7 * dat$x2 + 0.2 * dat$x3 + rnorm(90, sd = 0.2)
+
+  fit_obj <- fit(y ~ x1 + x2 + x3, data = dat, model = "rpart")
+
+  vip_auto <- interpret(
+    fit_obj,
+    dat,
+    method = "vip",
+    importance_type = "auto",
+    nsim = 6,
+    seed = 5
+  )
+  vip_model <- interpret(
+    fit_obj,
+    dat,
+    method = "vip",
+    importance_type = "model",
+    nsim = 6,
+    seed = 5
+  )
+
+  expect_equal(vip_auto$result$scores, vip_model$result$scores)
+  expect_equal(vip_auto$diagnostics$engine, "permute")
+  expect_equal(vip_model$diagnostics$engine, "permute")
+})
+
 test_that("ICE handles vectorized feature grids for numeric predictors", {
   fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
 

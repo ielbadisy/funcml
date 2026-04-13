@@ -48,8 +48,9 @@ interpret(
 
 \item{metric}{Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc/auc_weighted).}
 
-\item{importance_type}{Importance engine for \code{method = "vip"}: \code{"permute"},
-\code{"model"}, or \code{"auto"}.}
+\item{importance_type}{Importance engine for \code{method = "vip"}. Internal
+permutation importance is always used; accepted values are retained only
+for backward-compatible argument parsing.}
 
 \item{compare}{How to compare baseline and perturbed performance for
 importance: \code{"difference"} or \code{"ratio"}.}
@@ -85,7 +86,7 @@ local neighborhood.}
 \description{
 Implements native permutation VI, PDP/ICE/ALE, SHAP approximations, local
 surrogate explanations, interaction strength, and global surrogate models
-without vendoring external package source code.
+through fully internal computation and plotting paths.
 }
 \examples{
 fit_obj <- fit(

@@ -1,11 +1,5 @@
 library(funcml)
 
-skip_if_not_installed <- function(pkg) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    skip(paste("Package", pkg, "not installed"))
-  }
-}
-
 test_that("lime alias returns a ggplot local explanation", {
   set.seed(5)
   dat <- data.frame(y = rnorm(30), x = rnorm(30), z = rnorm(30))
@@ -68,12 +62,10 @@ test_that("plot labels follow method-specific semantics", {
   expect_match(perm_plot$labels$x, "Change in RMSE after permutation")
   expect_equal(pdp_plot$labels$y, "Partial dependence")
   expect_match(ale_plot$labels$y, "ALE on response scale")
-  expect_equal(sh_plot$labels$x, "SHAP value")
+  expect_equal(sh_plot$labels$x, "SHAP contribution")
 })
 
 test_that("shap supports dependence, 2d dependence, force, and interaction plots", {
-  skip_if_not_installed("shapviz")
-
   set.seed(12)
   dat <- data.frame(y = rnorm(40), x = rnorm(40), z = rnorm(40))
   dat$y <- 1.5 * dat$x - 0.8 * dat$z + rnorm(40, sd = 0.2)
