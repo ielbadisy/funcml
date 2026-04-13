@@ -125,6 +125,28 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
   out
 }
 
+#' Methods for cross-validation results.
+#'
+#' These methods provide the standard `print()` and `summary()` interfaces for
+#' `funcml_eval` objects, plus a `plot()` method for fold-level diagnostics.
+#'
+#' @param x A `funcml_eval` object.
+#' @param object A `funcml_eval` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name evaluate-methods
+#' @aliases print.funcml_eval summary.funcml_eval plot.funcml_eval
+#' @examples
+#' eval_obj <- evaluate(
+#'   data = mtcars,
+#'   formula = mpg ~ wt + hp,
+#'   model = "glm",
+#'   resampling = cv(3, seed = 1),
+#'   metrics = c("rmse", "mae")
+#' )
+#' print(eval_obj)
+#' summary(eval_obj)
+#' plot(eval_obj)
 #' @export
 print.funcml_eval <- function(x, ...) {
   cat(sprintf("<funcml_eval> model: %s | task: %s\n", x$model, x$task))
@@ -132,12 +154,14 @@ print.funcml_eval <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname evaluate-methods
 #' @export
 summary.funcml_eval <- function(object, ...) {
   print(object$summary)
   invisible(object$summary)
 }
 
+#' @rdname evaluate-methods
 #' @export
 plot.funcml_eval <- function(x, ...) {
   df <- x$folds

@@ -13,7 +13,7 @@ A data frame with 11,183 rows and 7 variables:
 \item{attr4}{Numeric imaging-derived predictor 4.}
 \item{attr5}{Numeric imaging-derived predictor 5.}
 \item{attr6}{Numeric imaging-derived predictor 6.}
-\item{class}{Calcification class (\code{"-1"} or \code{"1"}).}
+\item{class}{Calcification class (\verb{\\"-1\\"} or \verb{\\"1\\"}).}
 }
 }
 \source{

@@ -13,9 +13,9 @@ theme_funcml(base_size = 11)
 A ggplot2 theme object.
 }
 \description{
-A custom ggplot2 theme used across \code{funcml} plots. It favors warm paper
-panels, high-contrast text, and restrained accent colors so interpretability
-plots share one visual language.
+A custom ggplot2 theme used across \code{funcml} plots. It keeps a clean
+light background, restrained grid lines, and high-contrast labels so
+package figures remain consistent and publication-friendly.
 }
 \examples{
 ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
