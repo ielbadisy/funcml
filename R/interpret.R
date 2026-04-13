@@ -314,54 +314,6 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
   out
 }
 
-.as_shapviz_object <- function(df, S_inter = NULL) {
-  if (!requireNamespace("shapviz", quietly = TRUE)) {
-    return(NULL)
-  }
-  obs_ids <- sort(unique(df$observation))
-  features <- unique(df$feature)
-  shap_mat <- sapply(features, function(feat) {
-    vals <- df[df$feature == feat, c("observation", "shap"), drop = FALSE]
-    vals <- vals[match(obs_ids, vals$observation), "shap"]
-    as.numeric(vals)
-  })
-  if (!is.matrix(shap_mat)) {
-    shap_mat <- matrix(shap_mat, ncol = length(features))
-  }
-  colnames(shap_mat) <- features
-  rownames(shap_mat) <- obs_ids
-
-  X <- data.frame(row.names = obs_ids, stringsAsFactors = FALSE)
-  for (feat in features) {
-    vals <- df[df$feature == feat, c("observation", "raw_value", "feature_value"), drop = FALSE]
-    vals <- vals[match(obs_ids, vals$observation), , drop = FALSE]
-    if (all(!is.na(vals$raw_value))) {
-      X[[feat]] <- as.numeric(vals$raw_value)
-    } else {
-      X[[feat]] <- vals$feature_value
-    }
-  }
-  baseline <- df[df$feature == features[1], c("observation", "baseline"), drop = FALSE]
-  baseline <- baseline[match(obs_ids, baseline$observation), "baseline"]
-  shapviz::shapviz(
-    shap_mat,
-    X = X,
-    baseline = mean(as.numeric(baseline)),
-    S_inter = S_inter
-  )
-}
-
-.funcml_shapviz_style <- function(plot_obj) {
-  if (inherits(plot_obj, "ggplot")) {
-    return(plot_obj + .publication_theme())
-  }
-  if ("patchwork" %in% class(plot_obj)) {
-    patchwork_and <- getFromNamespace("&", "patchwork")
-    return(patchwork_and(plot_obj, .publication_theme()))
-  }
-  plot_obj
-}
-
 .format_tune_config <- function(df, exclude = c("mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high")) {
   cols <- setdiff(names(df), exclude)
   if (!length(cols)) {
@@ -435,7 +387,7 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #'
 #' Implements native permutation VI, PDP/ICE/ALE, SHAP approximations, local
 #' surrogate explanations, interaction strength, and global surrogate models
-#' without vendoring external package source code.
+#' through fully internal computation and plotting paths.
 #'
 #' @param fit A `funcml_fit` object.
 #' @param data Reference data (typically training set).
@@ -446,8 +398,9 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' @param features Optional subset of features; defaults to all predictors.
 #' @param type Prediction scale: regression -> "response"; classification -> "prob" or "class".
 #' @param metric Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc/auc_weighted).
-#' @param importance_type Importance engine for `method = "vip"`: `"permute"`,
-#'   `"model"`, or `"auto"`.
+#' @param importance_type Importance engine for `method = "vip"`. Internal
+#'   permutation importance is always used; accepted values are retained only
+#'   for backward-compatible argument parsing.
 #' @param compare How to compare baseline and perturbed performance for
 #'   importance: `"difference"` or `"ratio"`.
 #' @param keep Keep per-repetition raw importance scores when `nsim > 1`.
@@ -621,34 +574,6 @@ interpret <- function(fit, data, formula = fit$formula,
 interpret_vip <- function(fit, data, features, type, metric, class_level, pos_level,
                           nsim, nsamples, importance_type, compare, keep,
                           type_missing, sample_size = NULL, sample_frac = NULL, ...) {
-  if (importance_type == "auto") {
-    importance_type <- if (isTRUE(fit$adapter$supports$importance) && !is.null(fit$adapter$importance)) {
-      "model"
-    } else {
-      "permute"
-    }
-  }
-  if (importance_type == "model") {
-    encoded <- .encode_train(data = data, formula = fit$formula, na_action = fit$na_action)
-    feature_names <- setdiff(encoded$features, "(Intercept)")
-    scores <- fit$adapter$importance(
-      state = fit$state,
-      X = encoded$X,
-      y = encoded$y,
-      feature_names = feature_names,
-      task = fit$task,
-      levels = fit$levels
-    )
-    scores <- scores[, intersect(c("feature", "importance"), names(scores)), drop = FALSE]
-    scores <- scores[scores$feature %in% features, , drop = FALSE]
-    scores <- scores[order(scores$importance, decreasing = TRUE), , drop = FALSE]
-    rownames(scores) <- NULL
-    return(.interpret_result(
-      payload = list(scores = scores, baseline = NA_real_, metric = NULL, comparison = NULL, raw_scores = NULL),
-      diagnostics = list(reference = "native model importance", engine = "model")
-    ))
-  }
-
   if (!is.null(sample_size) && !is.null(sample_frac)) {
     stop("Arguments `sample_size` and `sample_frac` cannot both be specified.", call. = FALSE)
   }
@@ -1787,74 +1712,6 @@ plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "force", "summary"
   }
   need_interactions <- identical(kind, "interaction") || isTRUE(dots$interactions)
   s_inter <- if (need_interactions) .funcml_shap_interaction_array(x, nsim = dots$nsim %||% NULL, seed = dots$seed %||% x$seed) else NULL
-  sv <- .as_shapviz_object(df, S_inter = s_inter)
-  if (!is.null(sv)) {
-    if (kind == "waterfall") {
-      plot_obj <- shapviz::sv_waterfall(
-        sv,
-        row_id = dots$row_id %||% min(df$observation),
-        fill_colors = c("#2ca25f", "#de2d26")
-      )
-      return(.funcml_shapviz_style(plot_obj))
-    }
-    if (kind == "force") {
-      plot_obj <- shapviz::sv_force(
-        sv,
-        row_id = dots$row_id %||% min(df$observation),
-        fill_colors = c("#2ca25f", "#de2d26")
-      )
-      return(.funcml_shapviz_style(plot_obj))
-    }
-    if (kind %in% c("summary", "beeswarm")) {
-      plot_obj <- shapviz::sv_importance(
-        sv,
-        kind = "beeswarm",
-        show_numbers = FALSE
-      )
-      return(.funcml_shapviz_style(plot_obj))
-    }
-    if (kind %in% c("importance", "bar")) {
-      plot_obj <- shapviz::sv_importance(
-        sv,
-        kind = "bar",
-        show_numbers = FALSE,
-        fill = "grey35"
-      )
-      return(.funcml_shapviz_style(plot_obj))
-    }
-    if (kind == "dependence") {
-      v <- dots$v %||% x$features[1]
-      color_var <- dots$color_var %||% "auto"
-      plot_obj <- shapviz::sv_dependence(
-        sv,
-        v = v,
-        color_var = color_var,
-        interactions = isTRUE(dots$interactions)
-      )
-      return(.funcml_shapviz_style(plot_obj))
-    }
-    if (kind == "dependence2d") {
-      x_var <- dots$feature_x %||% dots$x %||% x$features[1]
-      y_var <- dots$feature_y %||% dots$y %||% x$features[min(2, length(x$features))]
-      if (identical(x_var, y_var)) {
-        stop("`x` and `y` must refer to two different features for `kind = \"dependence2d\"`.", call. = FALSE)
-      }
-      plot_obj <- shapviz::sv_dependence2D(
-        sv,
-        x = x_var,
-        y = y_var,
-        interactions = isTRUE(dots$interactions)
-      )
-      return(.funcml_shapviz_style(plot_obj))
-    }
-    if (kind == "interaction") {
-      plot_obj <- shapviz::sv_interaction(
-        sv,
-        kind = dots$interaction_kind %||% "bar"
-      )
-      return(.funcml_shapviz_style(plot_obj))
-    }
-  }
   if (kind == "force") {
     df <- df[df$observation == (dots$row_id %||% min(df$observation)), , drop = FALSE]
     df <- df[order(abs(df$shap), decreasing = TRUE), , drop = FALSE]
