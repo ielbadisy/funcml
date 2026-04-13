@@ -2,7 +2,7 @@ Package: funcml
 Type: Package
 Title: Machine Learning Framework for R
 Version: 0.7.1
-Depends: R (>= 2.10)
+Depends: R (>= 3.5.0)
 Authors@R: c(
     person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
   )
