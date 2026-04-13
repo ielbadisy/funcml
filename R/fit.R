@@ -302,6 +302,28 @@ list_tunable_learners <- function(...) {
   columns
 }
 
+#' Methods for fitted funcml models.
+#'
+#' These methods provide the standard `print()`, `summary()`, `predict()`, and
+#' `coef()` interfaces for `funcml_fit` objects.
+#'
+#' @param x A `funcml_fit` object.
+#' @param object A `funcml_fit` object.
+#' @param newdata Data frame of new observations.
+#' @param type Prediction type override.
+#' @param class_level Target class for multiclass probability predictions.
+#' @param pos_level Alias for the binary positive class.
+#' @param na_action NA handling for new data.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name fit-methods
+#' @aliases print.funcml_fit summary.funcml_fit predict.funcml_fit coef.funcml_fit
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
+#' print(fit_obj)
+#' summary(fit_obj)
+#' predict(fit_obj, newdata = mtcars[1:3, , drop = FALSE])
+#' coef(fit_obj)
 #' @export
 print.funcml_fit <- function(x, ...) {
   cat(sprintf("<funcml_fit> %s model: %s\n", x$task, x$model))
@@ -310,6 +332,7 @@ print.funcml_fit <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname fit-methods
 #' @export
 summary.funcml_fit <- function(object, ...) {
   cat(sprintf("<funcml_fit summary> %s model: %s\n", object$task, object$model))
@@ -318,6 +341,7 @@ summary.funcml_fit <- function(object, ...) {
   invisible(object)
 }
 
+#' @rdname fit-methods
 #' @export
 predict.funcml_fit <- function(object, newdata, type = NULL, class_level = NULL,
                               pos_level = NULL, na_action = object$na_action, ...) {
@@ -325,7 +349,7 @@ predict.funcml_fit <- function(object, newdata, type = NULL, class_level = NULL,
                  pos_level = pos_level, na_action = na_action, ...)
 }
 
-# Optional helper for models exposing coefficients.
+#' @rdname fit-methods
 #' @export
 coef.funcml_fit <- function(object, ...) {
   if (is.null(object$state$state)) stop("Coefficients not available for this model.", call. = FALSE)

@@ -127,6 +127,29 @@ metric_direction <- function(metric) {
   if (metric %in% c("rmse", "mae", "mse", "medae", "mape", "logloss", "brier", "ece", "mce")) "min" else "max"
 }
 
+#' Methods for tuning results.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_tune` objects.
+#'
+#' @param x A `funcml_tune` object.
+#' @param object A `funcml_tune` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name tune-methods
+#' @aliases print.funcml_tune summary.funcml_tune plot.funcml_tune
+#' @examples
+#' tune_obj <- tune(
+#'   data = mtcars,
+#'   formula = mpg ~ wt + hp,
+#'   model = "rpart",
+#'   grid = expand.grid(cp = c(0.001, 0.01), minsplit = c(5, 10)),
+#'   resampling = cv(3, seed = 1),
+#'   metric = "rmse"
+#' )
+#' print(tune_obj)
+#' summary(tune_obj)
+#' plot(tune_obj)
 #' @export
 print.funcml_tune <- function(x, ...) {
   cat(sprintf("<funcml_tune> metric=%s direction=%s search=%s\n", x$metric, x$direction, x$search))
@@ -139,12 +162,14 @@ print.funcml_tune <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname tune-methods
 #' @export
 summary.funcml_tune <- function(object, ...) {
   print(object$results)
   invisible(object$results)
 }
 
+#' @rdname tune-methods
 #' @export
 plot.funcml_tune <- function(x, ...) {
   df <- x$results

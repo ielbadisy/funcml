@@ -295,6 +295,30 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
   sqrt(sum(w * (x - mu)^2) / (n_eff - 1))
 }
 
+#' Methods for causal estimand results.
+#'
+#' These methods provide the standard `print()`, `summary()`, and `plot()`
+#' interfaces for `funcml_estimand` objects.
+#'
+#' @param x A `funcml_estimand` object.
+#' @param object A `funcml_estimand` object.
+#' @param ... Additional arguments passed to the underlying method.
+#'
+#' @name estimate-methods
+#' @aliases print.funcml_estimand summary.funcml_estimand plot.funcml_estimand
+#' @examples
+#' causal_data <- mtcars
+#' causal_data$am <- factor(causal_data$am, labels = c("auto", "manual"))
+#' ate <- estimate(
+#'   data = causal_data,
+#'   formula = mpg ~ am + wt + hp,
+#'   model = "glm",
+#'   treatment = "am",
+#'   estimand = "ATE"
+#' )
+#' print(ate)
+#' summary(ate)
+#' plot(ate)
 #' @export
 print.funcml_estimand <- function(x, ...) {
   cat(sprintf("<funcml_estimand> %s via g-computation\n", x$estimand))
@@ -312,6 +336,7 @@ print.funcml_estimand <- function(x, ...) {
   invisible(x)
 }
 
+#' @rdname estimate-methods
 #' @export
 summary.funcml_estimand <- function(object, ...) {
   if (object$estimand == "IATE") {
@@ -335,6 +360,7 @@ summary.funcml_estimand <- function(object, ...) {
   invisible(out)
 }
 
+#' @rdname estimate-methods
 #' @export
 plot.funcml_estimand <- function(x, ...) {
   df <- x$effects
