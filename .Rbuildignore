@@ -37,3 +37,4 @@
 ^dev$
 ^[.]codex$
 ^CONTRIBUTING[.]md$
+^CITATION[.]cff$
