@@ -85,8 +85,7 @@ local neighborhood.}
 }
 \description{
 Implements native permutation VI, PDP/ICE/ALE, SHAP approximations, local
-surrogate explanations, interaction strength, and global surrogate models
-through fully internal computation and plotting paths.
+surrogate explanations, interaction strength, and global surrogate models.
 }
 \examples{
 fit_obj <- fit(
