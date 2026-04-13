@@ -597,5 +597,5 @@ tabular machine learning in R, rather than a stack of modeling wrappers.
 
 ## Citation
 
-If you use `funcml` in your work, cite the repository using GitHub's
+If you use `funcml` in your work, cite the repository using GitHub’s
 `Cite this repository` panel or the metadata in `CITATION.cff`.
