@@ -3,9 +3,10 @@
 
 # funcml
 
-`funcml` is a machine learning framework for R with one explicit
-interface for fitting models, validating them, tuning them, comparing
-learners, interpreting predictions, and estimating causal effects.
+`funcml` is a functional machine learning framework for R with one
+explicit interface for fitting models, validating them, tuning them,
+comparing learners, interpreting predictions, and estimating causal
+effects.
 
 The package is intentionally opinionated: preprocessing happens before
 modeling, inputs stay explicit, and the API stays compact instead of
@@ -20,8 +21,8 @@ expanding into a large orchestration framework.
   capability and availability metadata.
 - Plot-ready outputs across validation, tuning, comparison, explanation,
   calibration, and treatment-effect workflows.
-- Native support for stacked and super learner ensembles through the
-  same interface as base learners.
+- Native support for stacked and superlearner ensembles through the same
+  interface as base learners.
 
 ## Installation
 
@@ -107,19 +108,11 @@ demo_causal <- local({
     true_effect = true_effect
   )
 })
-
-xgb_spec <- list(
-  nrounds = 30,
-  max_depth = 3,
-  eta = 0.1,
-  subsample = 1,
-  colsample_bytree = 1
-)
 ```
 
 ## 1. Inspect the learner catalog
 
-`list_learners()` now follows a compact registry style by default.
+`list_*()` follow a compact registry style by default.
 
 ``` r
 list_learners()
@@ -280,6 +273,14 @@ compact `funcml_fit` object that stores the learner id, formula, encoded
 feature layout, and prediction machinery.
 
 ``` r
+xgb_spec <- list(
+  nrounds = 30,
+  max_depth = 3,
+  eta = 0.1,
+  subsample = 1,
+  colsample_bytree = 1
+)
+
 fit_obj <- fit(
   mpg ~ wt + hp + qsec + drat,
   data = demo_reg,
@@ -592,5 +593,4 @@ predict(stack_fit, demo_reg[1:5, ])
 - plug-in g-computation with `estimate()`
 
 That is the central idea of the package: one explicit API surface for
-tabular machine learning in R, rather than a stack of disconnected
-modeling wrappers.
+tabular machine learning in R, rather than a stack of modeling wrappers.

@@ -22,24 +22,18 @@ set.seed(42)
 
 # funcml
 
-`funcml` is a machine learning framework for R with one explicit interface for
-fitting models, validating them, tuning them, comparing learners,
+`funcml` is a functional machine learning framework for R with one explicit interface for fitting models, validating them, tuning them, comparing learners,
 interpreting predictions, and estimating causal effects.
 
-The package is intentionally opinionated: preprocessing happens before
-modeling, inputs stay explicit, and the API stays compact instead of expanding
+The package is intentionally opinionated: preprocessing happens before modeling, inputs stay explicit, and the API stays compact instead of expanding
 into a large orchestration framework.
 
 ## Why `funcml`?
 
-- One surface for the full modeling loop: `fit()`, `predict()`, `evaluate()`,
-  `tune()`, `compare_learners()`, `interpret()`, and `estimate()`.
-- Session-aware learner catalog via `list_learners()`, including capability and
-  availability metadata.
-- Plot-ready outputs across validation, tuning, comparison, explanation,
-  calibration, and treatment-effect workflows.
-- Native support for stacked and super learner ensembles through the same
-  interface as base learners.
+- One surface for the full modeling loop: `fit()`, `predict()`, `evaluate()`, `tune()`, `compare_learners()`, `interpret()`, and `estimate()`.
+- Session-aware learner catalog via `list_learners()`, including capability and availability metadata.
+- Plot-ready outputs across validation, tuning, comparison, explanation, calibration, and treatment-effect workflows.
+- Native support for stacked and superlearner ensembles through the same interface as base learners.
 
 ## Installation
 
@@ -48,9 +42,7 @@ install.packages("remotes")
 remotes::install_github("ielbadisy/funcml")
 ```
 
-After installation, inspect the learner catalog with `list_learners()`. This
-shows which learner ids are exposed through the compact `funcml` API and which
-backends are available in the current R session.
+After installation, inspect the learner catalog with `list_learners()`. This shows which learner ids are exposed through the compact `funcml` API and which backends are available in the current R session.
 
 ## API Overview
 
@@ -65,9 +57,7 @@ backends are available in the current R session.
 
 ## Demo data used below
 
-The README uses one regression problem, one binary classification problem, and
-one synthetic causal example so the same API can be shown across the package
-surface.
+The README uses one regression problem, one binary classification problem, and one synthetic causal example so the same API can be shown across the package surface.
 
 ```{r demo-data}
 demo_reg <- transform(
@@ -125,23 +115,16 @@ demo_causal <- local({
     true_effect = true_effect
   )
 })
-
-xgb_spec <- list(
-  nrounds = 30,
-  max_depth = 3,
-  eta = 0.1,
-  subsample = 1,
-  colsample_bytree = 1
-)
 ```
 
 ## 1. Inspect the learner catalog
 
-`list_learners()` now follows a compact registry style by default.
+`list_*()` follow a compact registry style by default.
 
 ```{r learner-catalog}
 list_learners()
 ```
+
 
 ```{r learner-catalog-preview}
 list_tunable_learners()
@@ -164,11 +147,17 @@ list_metrics()
 
 ## 2. Fit one model and inspect the fitted object
 
-`fit()` is the entry point for training a single learner. It returns a compact
-`funcml_fit` object that stores the learner id, formula, encoded feature
-layout, and prediction machinery.
+`fit()` is the entry point for training a single learner. It returns a compact `funcml_fit` object that stores the learner id, formula, encoded feature layout, and prediction machinery.
 
 ```{r fit-model}
+xgb_spec <- list(
+  nrounds = 30,
+  max_depth = 3,
+  eta = 0.1,
+  subsample = 1,
+  colsample_bytree = 1
+)
+
 fit_obj <- fit(
   mpg ~ wt + hp + qsec + drat,
   data = demo_reg,
@@ -186,8 +175,7 @@ predict(fit_obj, demo_reg[1:6, ])
 
 ## 3. Validate performance with resampling
 
-`evaluate()` applies the same learner interface under a resampling plan and
-returns fold-level results plus uncertainty summaries.
+`evaluate()` applies the same learner interface under a resampling plan and returns fold-level results plus uncertainty summaries.
 
 ```{r evaluate}
 eval_obj <- evaluate(
@@ -205,15 +193,12 @@ eval_obj
 plot(eval_obj)
 ```
 
-The same resampling interface also handles grouped CV, rolling time splits,
-and plain holdout validation through `group_cv()`, `time_cv()`, and
+The same resampling interface also handles grouped CV, rolling time splits, and plain holdout validation through `group_cv()`, `time_cv()`, and
 `holdout()`.
 
 ## 4. Tune hyperparameters and compare learners
 
-`tune()` searches a grid or random sample of hyperparameters using the same
-evaluation machinery. `compare_learners()` then puts multiple learners under
-the same resampling design for an apples-to-apples comparison.
+`tune()` searches a grid or random sample of hyperparameters using the same evaluation machinery. `compare_learners()` then puts multiple learners under the same resampling design for an apples-to-apples comparison.
 
 ```{r tune}
 tune_grid <- expand.grid(
@@ -348,11 +333,9 @@ plot(calibration_obj)
 
 ## 7. Estimate causal effects through the same interface
 
-`estimate()` extends the same framework into plug-in g-computation for common
-binary-treatment estimands.
+`estimate()` extends the same framework into plug-in g-computation for common binary-treatment estimands.
 
-This synthetic causal example has measured confounding and a known treatment
-effect centered near `1.2`, so the ATE output has a meaningful target.
+This synthetic causal example has measured confounding and a known treatment effect centered near `1.2`, so the ATE output has a meaningful target.
 
 ```{r estimate}
 est_obj <- estimate(
@@ -408,4 +391,4 @@ predict(stack_fit, demo_reg[1:5, ])
 - model explanation with `interpret()`
 - plug-in g-computation with `estimate()`
 
-That is the central idea of the package: one explicit API surface for tabular machine learning in R, rather than a stack of disconnected modeling wrappers.
+That is the central idea of the package: one explicit API surface for tabular machine learning in R, rather than a stack of modeling wrappers.
