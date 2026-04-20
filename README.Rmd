@@ -11,6 +11,7 @@ output:
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
+  fig.path = "man/figures/README-",
   dpi = 120,
   warning = FALSE,
   message = FALSE
