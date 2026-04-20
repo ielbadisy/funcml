@@ -281,7 +281,7 @@ eval_obj
 plot(eval_obj)
 ```
 
-![](README_files/figure-gfm/evaluate-plot-1.png)<!-- -->
+![](man/figures/README-evaluate-plot-1.png)<!-- -->
 
 `funcml` also supports grouped cross-validation, time-based resampling,
 and holdout validation through `group_cv()`, `time_cv()`, and
@@ -324,7 +324,7 @@ tune_obj
 plot(tune_obj)
 ```
 
-![](README_files/figure-gfm/tune-plot-1.png)<!-- -->
+![](man/figures/README-tune-plot-1.png)<!-- -->
 
 ## Compare learners
 
@@ -363,7 +363,7 @@ compare_obj
 plot(compare_obj)
 ```
 
-![](README_files/figure-gfm/compare-plot-1.png)<!-- -->
+![](man/figures/README-compare-plot-1.png)<!-- -->
 
 ## Interpret fitted models
 
@@ -392,7 +392,7 @@ summary(permute_obj)
 plot(permute_obj)
 ```
 
-![](README_files/figure-gfm/interpret-permute-plot-1.png)<!-- -->
+![](man/figures/README-interpret-permute-plot-1.png)<!-- -->
 
 A second example shows accumulated local effects for one feature from
 the same fitted model.
@@ -409,7 +409,7 @@ ale_obj <- interpret(
 plot(ale_obj)
 ```
 
-![](README_files/figure-gfm/interpret-ale-1.png)<!-- -->
+![](man/figures/README-interpret-ale-1.png)<!-- -->
 
 Other supported methods include PDP, ICE, SHAP, local explanations,
 surrogate models, interaction diagnostics, and calibration plots.
@@ -432,7 +432,7 @@ calibration_obj <- interpret(
 plot(calibration_obj)
 ```
 
-![](README_files/figure-gfm/calibration-1.png)<!-- -->
+![](man/figures/README-calibration-1.png)<!-- -->
 
 ## Estimate causal effects
 
@@ -463,7 +463,7 @@ est_obj
 plot(est_obj)
 ```
 
-![](README_files/figure-gfm/estimate-plot-1.png)<!-- -->
+![](man/figures/README-estimate-plot-1.png)<!-- -->
 
 The same interface also supports `ATT`, `CATE`, and `IATE`.
 
