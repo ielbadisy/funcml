@@ -22,18 +22,19 @@ set.seed(42)
 
 # funcml
 
-`funcml` is a functional machine learning framework for R with one explicit interface for fitting models, validating them, tuning them, comparing learners,
-interpreting predictions, and estimating causal effects.
+`funcml` is a functional machine learning framework for tabular data in R.
 
-The package is intentionally opinionated: preprocessing happens before modeling, inputs stay explicit, and the API stays compact instead of expanding
-into a large orchestration framework.
+It provides one explicit interface for the core modeling workflow:
 
-## Why `funcml`?
+* fit models with `fit()`
+* generate predictions with `predict()`
+* validate performance with `evaluate()`
+* tune hyperparameters with `tune()`
+* compare learners with `compare_learners()`
+* interpret fitted models with `interpret()`
+* estimate causal effects with `estimate()`
 
-- One surface for the full modeling loop: `fit()`, `predict()`, `evaluate()`, `tune()`, `compare_learners()`, `interpret()`, and `estimate()`.
-- Session-aware learner catalog via `list_learners()`, including capability and availability metadata.
-- Plot-ready outputs across validation, tuning, comparison, explanation, calibration, and treatment-effect workflows.
-- Native support for stacked and superlearner ensembles through the same interface as base learners.
+The package is intentionally compact and opinionated: preprocessing happens before modeling, inputs stay explicit, and the API stays small instead of expanding into a large orchestration layer.
 
 ## Installation
 
@@ -42,112 +43,55 @@ install.packages("remotes")
 remotes::install_github("ielbadisy/funcml")
 ```
 
-After installation, inspect the learner catalog with `list_learners()`. This shows which learner ids are exposed through the compact `funcml` API and which backends are available in the current R session.
+## Core API
 
-## API Overview
+The design of `funcml` centers on a small set of functions:
 
-| Task | Main functions | Returned object | Typical use |
-| --- | --- | --- | --- |
-| Learner discovery | `list_learners()` | `data.frame` | Inspect learner ids, capabilities, and engine availability |
-| Model fitting | `fit()`, `predict()` | `funcml_fit` | Train one learner and generate predictions |
-| Resampled validation | `cv()`, `holdout()`, `group_cv()`, `time_cv()`, `evaluate()` | `funcml_eval` | Estimate out-of-sample performance with uncertainty |
-| Model selection | `tune()`, `compare_learners()` | `funcml_tune`, `funcml_compare` | Search hyperparameters and compare learners under common resampling |
-| Interpretation | `interpret()` | method-specific interpretation classes | Explain fitted models with global and local diagnostics |
-| Causal estimation | `estimate()` | `funcml_estimand` | Estimate plug-in g-computation estimands |
-
-## Demo data used below
-
-The README uses one regression problem, one binary classification problem, and one synthetic causal example so the same API can be shown across the package surface.
-
-```{r demo-data}
-demo_reg <- transform(
-  mtcars,
-  car = rownames(mtcars)
-)
-
-demo_cls <- local({
-  x1 <- rnorm(500)
-  x2 <- rnorm(500)
-  x3 <- runif(500, -1, 1)
-  eta <- -0.4 + 1.0 * x1 - 0.8 * x2 + 0.7 * x3
-  data.frame(
-    outcome = factor(
-      ifelse(runif(500) < stats::plogis(eta), "yes", "no"),
-      levels = c("no", "yes")
-    ),
-    x1 = x1,
-    x2 = x2,
-    x3 = x3
-  )
-})
-
-demo_cls_test <- local({
-  x1 <- rnorm(250)
-  x2 <- rnorm(250)
-  x3 <- runif(250, -1, 1)
-  eta <- -0.4 + 1.0 * x1 - 0.8 * x2 + 0.7 * x3
-  data.frame(
-    outcome = factor(
-      ifelse(runif(250) < stats::plogis(eta), "yes", "no"),
-      levels = c("no", "yes")
-    ),
-    x1 = x1,
-    x2 = x2,
-    x3 = x3
-  )
-})
-
-demo_causal <- local({
-  x1 <- rnorm(600)
-  x2 <- rnorm(600)
-  x3 <- runif(600, -1, 1)
-  p_trt <- stats::plogis(-0.2 + 0.7 * x1 - 0.5 * x2 + 0.4 * x3)
-  trt <- rbinom(600, 1, p_trt)
-  true_effect <- 1.2 + 0.6 * x3
-  outcome <- 3 + true_effect * trt + 0.8 * x1 - 0.7 * x2 + 0.5 * x3 +
-    rnorm(600, sd = 0.4)
-  data.frame(
-    outcome = outcome,
-    trt = trt,
-    x1 = x1,
-    x2 = x2,
-    x3 = x3,
-    true_effect = true_effect
-  )
-})
+```r
+fit()
+predict()
+evaluate()
+tune()
+compare_learners()
+interpret()
+estimate()
 ```
 
-## 1. Inspect the learner catalog
+## Explore the registry
 
-`list_*()` follow a compact registry style by default.
+`funcml` exposes a session-aware registry of learners, metrics, and interpretation methods.
 
-```{r learner-catalog}
+```{r registry}
 list_learners()
 ```
 
-
-```{r learner-catalog-preview}
+```{r registry-tunable}
 list_tunable_learners()
 ```
 
-```{r learner-id-preview}
-list_learners(
-  classification = TRUE,
-  prob = TRUE,
-  )
-```
-
-```{r interpretability-catalog}
-list_interpretability_methods()
-```
-
-```{r metrics-catalog}
+```{r registry-metrics}
 list_metrics()
 ```
 
-## 2. Fit one model and inspect the fitted object
+```{r registry-interpret}
+list_interpretability_methods()
+```
 
-`fit()` is the entry point for training a single learner. It returns a compact `funcml_fit` object that stores the learner id, formula, encoded feature layout, and prediction machinery.
+## Example data
+
+This README uses `funcml::arthritis` as the main running example.
+
+Here, `status` is the outcome for a binary classification task.
+
+```{r demo-data}
+demo_dat <- funcml::arthritis
+demo_dat$status <- as.factor(demo_dat$status)
+levels(demo_dat$status)
+```
+
+## Fit a classification model
+
+`fit()` trains a model and returns a `funcml_fit` object.
 
 ```{r fit-model}
 xgb_spec <- list(
@@ -159,8 +103,8 @@ xgb_spec <- list(
 )
 
 fit_obj <- fit(
-  mpg ~ wt + hp + qsec + drat,
-  data = demo_reg,
+  status ~ age + gender + bmi + diabetes + smoke + covered_health,
+  data = demo_dat,
   model = "xgboost",
   spec = xgb_spec,
   seed = 42
@@ -169,18 +113,32 @@ fit_obj <- fit(
 fit_obj
 ```
 
-```{r fit-predict}
-predict(fit_obj, demo_reg[1:6, ])
+## Generate predictions
+
+The same fitted object can produce class predictions or class probabilities.
+
+```{r predict-class}
+predict(fit_obj, demo_dat[1:6, ])
 ```
 
-## 3. Validate performance with resampling
+```{r predict-prob}
+pred_prob <- predict(
+  fit_obj,
+  demo_dat[1:6, ],
+  type = "prob"
+)
 
-`evaluate()` applies the same learner interface under a resampling plan and returns fold-level results plus uncertainty summaries.
+pred_prob
+```
 
-```{r evaluate}
+## Evaluate predictive performance
+
+`evaluate()` applies the same learner under a resampling plan and returns fold-level results with summary statistics.
+
+```{r evaluate-model}
 eval_obj <- evaluate(
-  data = demo_reg,
-  formula = mpg ~ wt + hp + qsec + drat,
+  data = demo_dat,
+  formula = status ~ age + gender + bmi + diabetes + smoke + covered_health,
   model = "xgboost",
   spec = xgb_spec,
   resampling = cv(v = 4, seed = 42)
@@ -189,18 +147,17 @@ eval_obj <- evaluate(
 eval_obj
 ```
 
-```{r eval-plot}
+```{r evaluate-plot}
 plot(eval_obj)
 ```
 
-The same resampling interface also handles grouped CV, rolling time splits, and plain holdout validation through `group_cv()`, `time_cv()`, and
-`holdout()`.
+`funcml` also supports grouped cross-validation, time-based resampling, and holdout validation through `group_cv()`, `time_cv()`, and `holdout()`.
 
-## 4. Tune hyperparameters and compare learners
+## Tune hyperparameters
 
-`tune()` searches a grid or random sample of hyperparameters using the same evaluation machinery. `compare_learners()` then puts multiple learners under the same resampling design for an apples-to-apples comparison.
+`tune()` searches candidate hyperparameter settings using the same evaluation framework.
 
-```{r tune}
+```{r tune-model}
 tune_grid <- expand.grid(
   max_depth = c(2, 3),
   eta = c(0.05, 0.1),
@@ -208,12 +165,12 @@ tune_grid <- expand.grid(
 )
 
 tune_obj <- tune(
-  data = demo_reg,
-  formula = mpg ~ wt + hp + qsec + drat,
+  data = demo_dat,
+  formula = status ~ age + gender + bmi + diabetes + smoke + covered_health,
   model = "xgboost",
   grid = tune_grid,
   resampling = cv(v = 3, seed = 42),
-  metric = "rmse",
+  metric = "logloss",
   subsample = 1,
   colsample_bytree = 1,
   seed = 42
@@ -226,12 +183,16 @@ tune_obj
 plot(tune_obj)
 ```
 
-```{r compare}
+## Compare learners
+
+`compare_learners()` benchmarks multiple learners under a common resampling design.
+
+```{r compare-models}
 compare_obj <- compare_learners(
-  data = demo_reg,
-  formula = mpg ~ wt + hp + qsec,
+  data = demo_dat,
+  formula = status ~ age + gender + bmi + diabetes + smoke + covered_health,
   models = c("glm", "rpart", "xgboost"),
-  metrics = c("rmse", "mae"),
+  metrics = c("accuracy", "logloss"),
   resampling = cv(v = 4, seed = 42),
   specs = list(xgboost = xgb_spec)
 )
@@ -243,14 +204,14 @@ compare_obj
 plot(compare_obj)
 ```
 
-## 5. Interpret a fitted model
+## Interpret fitted models
 
-The interpretation layer operates directly on fitted `funcml_fit` objects, so you do not need a second modeling interface for explanation tasks.
+`interpret()` operates directly on fitted `funcml_fit` objects.
 
-```{r permute}
+```{r interpret-permute}
 permute_obj <- interpret(
   fit = fit_obj,
-  data = demo_reg,
+  data = demo_dat,
   method = "permute",
   nsim = 20,
   seed = 42
@@ -259,92 +220,56 @@ permute_obj <- interpret(
 summary(permute_obj)
 ```
 
-```{r permute-plot}
+```{r interpret-permute-plot}
 plot(permute_obj)
 ```
 
-```{r ale}
+A second example shows accumulated local effects for one feature from the same fitted model.
+
+```{r interpret-ale}
 ale_obj <- interpret(
   fit = fit_obj,
-  data = demo_reg,
+  data = demo_dat,
   method = "ale",
-  features = c("wt", "hp")
+  features = c("age"),
+  type = "prob"
 )
-```
 
-```{r ale-plot}
 plot(ale_obj)
 ```
 
-```{r shap}
-shap_obj <- interpret(
-  fit = fit_obj,
-  data = demo_reg,
-  method = "shap",
-  newdata = demo_reg[1,],
-  nsim = 30,
-  nsamples = 20,
-  seed = 42
-)
-```
+Other supported methods include PDP, ICE, SHAP, local explanations, surrogate models, interaction diagnostics, and calibration plots.
 
-```{r shap-plot}
-plot(shap_obj, kind = "waterfall")
-```
+## Inspect calibration
 
-Other supported methods include PDP, ICE, local surrogate explanations, global surrogates, interaction strength, ceteris paribus profiles, and calibration diagnostics.
-
-## 6. Inspect class probabilities and calibration
-
-For classification, the same `fit()` object can produce class predictions or
-class-probability matrices with aligned columns.
-
-```{r classification}
-cls_fit <- fit(
-  outcome ~ x1 + x2 + x3,
-  data = demo_cls,
-  model = "glm",
-  seed = 42
-)
-
-cls_prob <- predict(cls_fit, demo_cls_test[1:6, , drop = FALSE], type = "prob")
-
-data.frame(
-  prob_no = cls_prob[, "no"],
-  prob_yes = cls_prob[, "yes"],
-  row.names = NULL
-)
-```
+For classification, the same interface also supports calibration diagnostics.
 
 ```{r calibration}
 calibration_obj <- interpret(
-  fit = cls_fit,
-  data = demo_cls_test,
+  fit = fit_obj,
+  data = demo_dat,
   method = "calibration",
   type = "prob",
-  bins = 8,
+  bins = 10,
   strategy = "quantile"
 )
-```
 
-```{r calibration-plot}
 plot(calibration_obj)
 ```
 
-## 7. Estimate causal effects through the same interface
+## Estimate causal effects
 
-`estimate()` extends the same framework into plug-in g-computation for common binary-treatment estimands.
+`estimate()` extends the same framework to plug-in g-computation estimands such as the ATE.
 
-This synthetic causal example has measured confounding and a known treatment effect centered near `1.2`, so the ATE output has a meaningful target.
+The example below treats `smoke` as the treatment variable and `status` as the outcome, adjusting for the remaining covariates.
 
-```{r estimate}
+```{r estimate-causal}
 est_obj <- estimate(
-  data = demo_causal,
-  formula = outcome ~ trt + x1 + x2 + x3 + trt:x3,
+  data = demo_dat,
+  formula = status ~ smoke + diabetes + age + gender + bmi + covered_health,
   model = "glm",
   estimand = "ATE",
-  treatment_level = 1,
-  control_level = 0,
+  treatment = "smoke",
   interval = "normal",
   seed = 42
 )
@@ -352,48 +277,71 @@ est_obj <- estimate(
 est_obj
 ```
 
-
 ```{r estimate-plot}
 plot(est_obj)
 ```
 
-The same API also supports `ATT`, `CATE`, and `IATE`.
+The same interface also supports `ATT`, `CATE`, and `IATE`.
 
-## 8. Use ensembles as first-class learners
+## Ensembles as first-class learners
 
-`stacking` and `superlearner` live in the same catalog as the base learners, so ensembles are fit through the same API rather than a separate pipeline.
+Ensembles live in the same learner registry as base models.
 
 ```{r ensemble}
 stack_fit <- fit(
-  mpg ~ wt + hp + qsec + drat,
-  data = demo_reg,
-  model = "stacking",
+  status ~ age + gender + bmi + diabetes + smoke + covered_health,
+  data = demo_dat,
+  model = "superlearner", # or "stacking"
   spec = list(
-    learners = c("glm", "rpart", "xgboost"),
+    learners = c("glm", "rpart", "xgboost", "nnet"),
     learner_specs = list(xgboost = xgb_spec),
     meta_model = "glmnet"
   ),
   seed = 42
 )
 
-predict(stack_fit, demo_reg[1:5, ])
+predict(stack_fit, demo_dat[1:5, ], type = "prob")
 ```
 
-## 9. Summary
+## Summary
 
-`funcml` is designed around these core functions: 
+`funcml` provides a compact interface for tabular machine learning in R.
 
-- one-model training with `fit()`
-- prediction with `predict()`
-- resampled validation with `evaluate()`
-- hyperparameter search with `tune()`
-- learner benchmarking with `compare_learners()`
-- model explanation with `interpret()`
-- plug-in g-computation with `estimate()`
+Use it to:
 
-That is the central idea of the package: one explicit API surface for tabular machine learning in R, rather than a stack of modeling wrappers.
+* train models
+* generate predictions
+* validate performance
+* tune hyperparameters
+* compare learners
+* interpret fitted models
+* estimate causal effects
+
+The package is designed to keep the main analysis workflow explicit. 
+
+## Contributing
+
+Contributions are welcome.
+
+For development setup, coding standards, and pull request guidelines, see `CONTRIBUTING.md`.
 
 ## Citation
 
-If you use `funcml` in your work, cite the repository using GitHub's
-`Cite this repository` panel or the metadata in `CITATION.cff`.
+If you use `funcml` in your work, cite the repository using GitHub's `Cite this repository` panel or the metadata in `CITATION.cff`.
+
+APA:
+```
+El Badisy, I. (2026). funcml (Version 0.7.1) [Computer software]. https://github.com/ielbadisy/funcml
+```
+
+BibTeX:
+```
+@software{El_Badisy_funcml_2026, author = {El Badisy, Imad}, 
+license = {GPL-3.0-only},
+month = apr,
+title = {{funcml}},
+url = {https://github.com/ielbadisy/funcml},
+version = {0.7.1},
+year = {2026}
+}
+```
