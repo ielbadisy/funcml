@@ -3,26 +3,22 @@
 
 # funcml
 
-`funcml` is a functional machine learning framework for R with one
-explicit interface for fitting models, validating them, tuning them,
-comparing learners, interpreting predictions, and estimating causal
-effects.
+`funcml` is a functional machine learning framework for tabular data in
+R.
 
-The package is intentionally opinionated: preprocessing happens before
-modeling, inputs stay explicit, and the API stays compact instead of
-expanding into a large orchestration framework.
+It provides one explicit interface for the core modeling workflow:
 
-## Why `funcml`?
+- fit models with `fit()`
+- generate predictions with `predict()`
+- validate performance with `evaluate()`
+- tune hyperparameters with `tune()`
+- compare learners with `compare_learners()`
+- interpret fitted models with `interpret()`
+- estimate causal effects with `estimate()`
 
-- One surface for the full modeling loop: `fit()`, `predict()`,
-  `evaluate()`, `tune()`, `compare_learners()`, `interpret()`, and
-  `estimate()`.
-- Session-aware learner catalog via `list_learners()`, including
-  capability and availability metadata.
-- Plot-ready outputs across validation, tuning, comparison, explanation,
-  calibration, and treatment-effect workflows.
-- Native support for stacked and superlearner ensembles through the same
-  interface as base learners.
+The package is intentionally compact and opinionated: preprocessing
+happens before modeling, inputs stay explicit, and the API stays small
+instead of expanding into a large orchestration layer.
 
 ## Installation
 
@@ -31,88 +27,24 @@ install.packages("remotes")
 remotes::install_github("ielbadisy/funcml")
 ```
 
-After installation, inspect the learner catalog with `list_learners()`.
-This shows which learner ids are exposed through the compact `funcml`
-API and which backends are available in the current R session.
+## Core API
 
-## API Overview
-
-| Task                 | Main functions                                               | Returned object                        | Typical use                                                         |
-|----------------------|--------------------------------------------------------------|----------------------------------------|---------------------------------------------------------------------|
-| Learner discovery    | `list_learners()`                                            | `data.frame`                           | Inspect learner ids, capabilities, and engine availability          |
-| Model fitting        | `fit()`, `predict()`                                         | `funcml_fit`                           | Train one learner and generate predictions                          |
-| Resampled validation | `cv()`, `holdout()`, `group_cv()`, `time_cv()`, `evaluate()` | `funcml_eval`                          | Estimate out-of-sample performance with uncertainty                 |
-| Model selection      | `tune()`, `compare_learners()`                               | `funcml_tune`, `funcml_compare`        | Search hyperparameters and compare learners under common resampling |
-| Interpretation       | `interpret()`                                                | method-specific interpretation classes | Explain fitted models with global and local diagnostics             |
-| Causal estimation    | `estimate()`                                                 | `funcml_estimand`                      | Estimate plug-in g-computation estimands                            |
-
-## Demo data used below
-
-The README uses one regression problem, one binary classification
-problem, and one synthetic causal example so the same API can be shown
-across the package surface.
+The design of `funcml` centers on a small set of functions:
 
 ``` r
-demo_reg <- transform(
-  mtcars,
-  car = rownames(mtcars)
-)
-
-demo_cls <- local({
-  x1 <- rnorm(500)
-  x2 <- rnorm(500)
-  x3 <- runif(500, -1, 1)
-  eta <- -0.4 + 1.0 * x1 - 0.8 * x2 + 0.7 * x3
-  data.frame(
-    outcome = factor(
-      ifelse(runif(500) < stats::plogis(eta), "yes", "no"),
-      levels = c("no", "yes")
-    ),
-    x1 = x1,
-    x2 = x2,
-    x3 = x3
-  )
-})
-
-demo_cls_test <- local({
-  x1 <- rnorm(250)
-  x2 <- rnorm(250)
-  x3 <- runif(250, -1, 1)
-  eta <- -0.4 + 1.0 * x1 - 0.8 * x2 + 0.7 * x3
-  data.frame(
-    outcome = factor(
-      ifelse(runif(250) < stats::plogis(eta), "yes", "no"),
-      levels = c("no", "yes")
-    ),
-    x1 = x1,
-    x2 = x2,
-    x3 = x3
-  )
-})
-
-demo_causal <- local({
-  x1 <- rnorm(600)
-  x2 <- rnorm(600)
-  x3 <- runif(600, -1, 1)
-  p_trt <- stats::plogis(-0.2 + 0.7 * x1 - 0.5 * x2 + 0.4 * x3)
-  trt <- rbinom(600, 1, p_trt)
-  true_effect <- 1.2 + 0.6 * x3
-  outcome <- 3 + true_effect * trt + 0.8 * x1 - 0.7 * x2 + 0.5 * x3 +
-    rnorm(600, sd = 0.4)
-  data.frame(
-    outcome = outcome,
-    trt = trt,
-    x1 = x1,
-    x2 = x2,
-    x3 = x3,
-    true_effect = true_effect
-  )
-})
+fit()
+predict()
+evaluate()
+tune()
+compare_learners()
+interpret()
+estimate()
 ```
 
-## 1. Inspect the learner catalog
+## Explore the registry
 
-`list_*()` follow a compact registry style by default.
+`funcml` exposes a session-aware registry of learners, metrics, and
+interpretation methods.
 
 ``` r
 list_learners()
@@ -175,56 +107,6 @@ list_tunable_learners()
 ```
 
 ``` r
-list_learners(
-  classification = TRUE,
-  prob = TRUE,
-  )
-#>         learner   fit   predict   tune has_fit has_predict has_tune available
-#> 15     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 22         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 9           C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 18      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 17        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 6     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 11        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 12          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 8           gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 1           glm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 3        glmnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 10         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 19          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 21     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 13   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 5          nnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 20          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 7  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 4        ranger fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 2         rpart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 24     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 25 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 23      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-```
-
-``` r
-list_interpretability_methods()
-#>                                  compute   plot has_compute has_plot
-#> 1              interpret(method = "vip") plot()        TRUE     TRUE
-#> 2          interpret(method = "permute") plot()        TRUE     TRUE
-#> 3              interpret(method = "pdp") plot()        TRUE     TRUE
-#> 4              interpret(method = "ice") plot()        TRUE     TRUE
-#> 5              interpret(method = "ale") plot()        TRUE     TRUE
-#> 6            interpret(method = "local") plot()        TRUE     TRUE
-#> 7             interpret(method = "lime") plot()        TRUE     TRUE
-#> 8             interpret(method = "shap") plot()        TRUE     TRUE
-#> 9      interpret(method = "local_model") plot()        TRUE     TRUE
-#> 10     interpret(method = "interaction") plot()        TRUE     TRUE
-#> 11       interpret(method = "surrogate") plot()        TRUE     TRUE
-#> 12         interpret(method = "profile") plot()        TRUE     TRUE
-#> 13 interpret(method = "ceteris_paribus") plot()        TRUE     TRUE
-#> 14     interpret(method = "calibration") plot()        TRUE     TRUE
-```
-
-``` r
 list_metrics()
 #>               metric direction
 #> 1               rmse  minimize
@@ -266,11 +148,41 @@ list_metrics()
 #> 18       Maximum calibration error for binary classification.    [0, 1]
 ```
 
-## 2. Fit one model and inspect the fitted object
+``` r
+list_interpretability_methods()
+#>                                  compute   plot has_compute has_plot
+#> 1              interpret(method = "vip") plot()        TRUE     TRUE
+#> 2          interpret(method = "permute") plot()        TRUE     TRUE
+#> 3              interpret(method = "pdp") plot()        TRUE     TRUE
+#> 4              interpret(method = "ice") plot()        TRUE     TRUE
+#> 5              interpret(method = "ale") plot()        TRUE     TRUE
+#> 6            interpret(method = "local") plot()        TRUE     TRUE
+#> 7             interpret(method = "lime") plot()        TRUE     TRUE
+#> 8             interpret(method = "shap") plot()        TRUE     TRUE
+#> 9      interpret(method = "local_model") plot()        TRUE     TRUE
+#> 10     interpret(method = "interaction") plot()        TRUE     TRUE
+#> 11       interpret(method = "surrogate") plot()        TRUE     TRUE
+#> 12         interpret(method = "profile") plot()        TRUE     TRUE
+#> 13 interpret(method = "ceteris_paribus") plot()        TRUE     TRUE
+#> 14     interpret(method = "calibration") plot()        TRUE     TRUE
+```
 
-`fit()` is the entry point for training a single learner. It returns a
-compact `funcml_fit` object that stores the learner id, formula, encoded
-feature layout, and prediction machinery.
+## Example data
+
+This README uses `funcml::arthritis` as the main running example.
+
+Here, `status` is the outcome for a binary classification task.
+
+``` r
+demo_dat <- funcml::arthritis
+demo_dat$status <- as.factor(demo_dat$status)
+levels(demo_dat$status)
+#> [1] "No"  "Yes"
+```
+
+## Fit a classification model
+
+`fit()` trains a model and returns a `funcml_fit` object.
 
 ``` r
 xgb_spec <- list(
@@ -282,65 +194,103 @@ xgb_spec <- list(
 )
 
 fit_obj <- fit(
-  mpg ~ wt + hp + qsec + drat,
-  data = demo_reg,
+  status ~ age + gender + bmi + diabetes + smoke + covered_health,
+  data = demo_dat,
   model = "xgboost",
   spec = xgb_spec,
   seed = 42
 )
 
 fit_obj
-#> <funcml_fit> regression model: xgboost
-#> Formula: mpg ~ wt + hp + qsec + drat
-#> Features: 4 | Obs: 32
+#> <funcml_fit> classification model: xgboost
+#> Formula: status ~ age + gender + bmi + diabetes + smoke + covered_health
+#> Features: 6 | Obs: 4856
+```
+
+## Generate predictions
+
+The same fitted object can produce class predictions or class
+probabilities.
+
+``` r
+predict(fit_obj, demo_dat[1:6, ])
+#> [1] Yes No  No  No  No  No 
+#> Levels: No Yes
 ```
 
 ``` r
-predict(fit_obj, demo_reg[1:6, ])
-#> [1] 21.20948 21.20948 22.52156 21.27151 17.83478 18.34501
+pred_prob <- predict(
+  fit_obj,
+  demo_dat[1:6, ],
+  type = "prob"
+)
+
+pred_prob
+#>             No        Yes
+#> [1,] 0.4382392 0.56176078
+#> [2,] 0.5414010 0.45859897
+#> [3,] 0.8288925 0.17110750
+#> [4,] 0.9638367 0.03616334
+#> [5,] 0.5076765 0.49232352
+#> [6,] 0.5064105 0.49358952
 ```
 
-## 3. Validate performance with resampling
+## Evaluate predictive performance
 
-`evaluate()` applies the same learner interface under a resampling plan
-and returns fold-level results plus uncertainty summaries.
+`evaluate()` applies the same learner under a resampling plan and
+returns fold-level results with summary statistics.
 
 ``` r
 eval_obj <- evaluate(
-  data = demo_reg,
-  formula = mpg ~ wt + hp + qsec + drat,
+  data = demo_dat,
+  formula = status ~ age + gender + bmi + diabetes + smoke + covered_health,
   model = "xgboost",
   spec = xgb_spec,
   resampling = cv(v = 4, seed = 42)
 )
 
 eval_obj
-#> <funcml_eval> model: xgboost | task: regression
-#>   metric       mean         sd n  std_error conf_level    conf_low  conf_high
-#> 1   rmse  3.3098266 1.52367053 4 0.76183527       0.95  0.88532681  5.7343265
-#> 2    mae  2.6666687 1.24734293 4 0.62367146       0.95  0.68186772  4.6514696
-#> 3    mse 12.6961313 9.89521740 4 4.94760870       0.95 -3.04936773 28.4416303
-#> 4  medae  2.3683064 1.37102015 4 0.68551008       0.95  0.18670736  4.5499054
-#> 5   mape  0.1375875 0.05773173 4 0.02886587       0.95  0.04572342  0.2294516
-#> 6    rsq  0.4117001 0.80640932 4 0.40320466       0.95 -0.87147708  1.6948773
+#> <funcml_eval> model: xgboost | task: classification
+#>               metric       mean          sd n   std_error conf_level   conf_low
+#> 1           accuracy 0.74732290 0.014617703 4 0.007308852       0.95 0.72406287
+#> 2          precision 0.69316319 0.023420234 4 0.011710117       0.95 0.65589637
+#> 3             recall 0.64049156 0.017832484 4 0.008916242       0.95 0.61211610
+#> 4        specificity 0.64049156 0.017832484 4 0.008916242       0.95 0.61211610
+#> 5                 f1 0.66573813 0.019521730 4 0.009760865       0.95 0.63467470
+#> 6  balanced_accuracy 0.64049156 0.017832484 4 0.008916242       0.95 0.61211610
+#> 7            logloss 0.49248120 0.008783385 4 0.004391692       0.95 0.47850488
+#> 8              brier 0.32776953 0.007550594 4 0.003775297       0.95 0.31575485
+#> 9                auc 0.78694529 0.011843752 4 0.005921876       0.95 0.76809924
+#> 10               ece 0.03590688 0.004195513 4 0.002097757       0.95 0.02923089
+#> 11               mce 0.08002388 0.013678803 4 0.006839402       0.95 0.05825786
+#>     conf_high
+#> 1  0.77058293
+#> 2  0.73043001
+#> 3  0.66886702
+#> 4  0.66886702
+#> 5  0.69680156
+#> 6  0.66886702
+#> 7  0.50645753
+#> 8  0.33978421
+#> 9  0.80579135
+#> 10 0.04258288
+#> 11 0.10178991
 ```
 
 ``` r
 plot(eval_obj)
 ```
 
-![](README_files/figure-gfm/eval-plot-1.png)<!-- -->
+![](README_files/figure-gfm/evaluate-plot-1.png)<!-- -->
 
-The same resampling interface also handles grouped CV, rolling time
-splits, and plain holdout validation through `group_cv()`, `time_cv()`,
-and `holdout()`.
+`funcml` also supports grouped cross-validation, time-based resampling,
+and holdout validation through `group_cv()`, `time_cv()`, and
+`holdout()`.
 
-## 4. Tune hyperparameters and compare learners
+## Tune hyperparameters
 
-`tune()` searches a grid or random sample of hyperparameters using the
-same evaluation machinery. `compare_learners()` then puts multiple
-learners under the same resampling design for an apples-to-apples
-comparison.
+`tune()` searches candidate hyperparameter settings using the same
+evaluation framework.
 
 ``` r
 tune_grid <- expand.grid(
@@ -350,24 +300,24 @@ tune_grid <- expand.grid(
 )
 
 tune_obj <- tune(
-  data = demo_reg,
-  formula = mpg ~ wt + hp + qsec + drat,
+  data = demo_dat,
+  formula = status ~ age + gender + bmi + diabetes + smoke + covered_health,
   model = "xgboost",
   grid = tune_grid,
   resampling = cv(v = 3, seed = 42),
-  metric = "rmse",
+  metric = "logloss",
   subsample = 1,
   colsample_bytree = 1,
   seed = 42
 )
 
 tune_obj
-#> <funcml_tune> metric=rmse direction=min search=grid
+#> <funcml_tune> metric=logloss direction=min search=grid
 #> Best:
-#>   max_depth eta nrounds     mean       sd n std_error conf_level    conf_low
-#> 7         2 0.1      30 2.938398 1.205848 3 0.6961968       0.95 -0.05709457
+#>   max_depth eta nrounds      mean       sd n   std_error conf_level conf_low
+#> 8         3 0.1      30 0.4932667 0.011934 3 0.006890096       0.95 0.463621
 #>   conf_high
-#> 7  5.933891
+#> 8 0.5229124
 ```
 
 ``` r
@@ -376,32 +326,37 @@ plot(tune_obj)
 
 ![](README_files/figure-gfm/tune-plot-1.png)<!-- -->
 
+## Compare learners
+
+`compare_learners()` benchmarks multiple learners under a common
+resampling design.
+
 ``` r
 compare_obj <- compare_learners(
-  data = demo_reg,
-  formula = mpg ~ wt + hp + qsec,
+  data = demo_dat,
+  formula = status ~ age + gender + bmi + diabetes + smoke + covered_health,
   models = c("glm", "rpart", "xgboost"),
-  metrics = c("rmse", "mae"),
+  metrics = c("accuracy", "logloss"),
   resampling = cv(v = 4, seed = 42),
   specs = list(xgboost = xgb_spec)
 )
 
 compare_obj
-#> <funcml_compare> task: regression | tuned: FALSE
-#>     model metric     mean        sd n std_error conf_level  conf_low conf_high
-#> 1     glm   rmse 2.823282 0.8391539 4 0.4195769       0.95 1.4880008  4.158563
-#> 2     glm    mae 2.324837 0.6977166 4 0.3488583       0.95 1.2146141  3.435060
-#> 3   rpart   rmse 4.589988 0.5112815 4 0.2556408       0.95 3.7764255  5.403552
-#> 4   rpart    mae 3.781101 0.3039781 4 0.1519891       0.95 3.2974042  4.264798
-#> 5 xgboost   rmse 3.374909 1.4559200 4 0.7279600       0.95 1.0582155  5.691603
-#> 6 xgboost    mae 2.734509 1.1846891 4 0.5923445       0.95 0.8494044  4.619614
-#>   tuned rank
-#> 1 FALSE    1
-#> 2 FALSE    1
-#> 3 FALSE    3
-#> 4 FALSE    3
-#> 5 FALSE    2
-#> 6 FALSE    2
+#> <funcml_compare> task: classification | tuned: FALSE
+#>     model   metric      mean          sd n   std_error conf_level  conf_low
+#> 1     glm accuracy 0.7450577 0.017034681 4 0.008517341       0.95 0.7179517
+#> 2     glm  logloss 0.4897129 0.013140445 4 0.006570223       0.95 0.4688036
+#> 3   rpart accuracy 0.7337315 0.016711299 4 0.008355649       0.95 0.7071401
+#> 4   rpart  logloss 0.5310715 0.012975648 4 0.006487824       0.95 0.5104243
+#> 5 xgboost accuracy 0.7473229 0.014617703 4 0.007308852       0.95 0.7240629
+#> 6 xgboost  logloss 0.4924812 0.008783385 4 0.004391692       0.95 0.4785049
+#>   conf_high tuned rank
+#> 1 0.7721636 FALSE    2
+#> 2 0.5106223 FALSE    1
+#> 3 0.7603229 FALSE    3
+#> 4 0.5517186 FALSE    3
+#> 5 0.7705829 FALSE    1
+#> 6 0.5064575 FALSE    2
 ```
 
 ``` r
@@ -410,143 +365,98 @@ plot(compare_obj)
 
 ![](README_files/figure-gfm/compare-plot-1.png)<!-- -->
 
-## 5. Interpret a fitted model
+## Interpret fitted models
 
-The interpretation layer operates directly on fitted `funcml_fit`
-objects, so you do not need a second modeling interface for explanation
-tasks.
+`interpret()` operates directly on fitted `funcml_fit` objects.
 
 ``` r
 permute_obj <- interpret(
   fit = fit_obj,
-  data = demo_reg,
+  data = demo_dat,
   method = "permute",
   nsim = 20,
   seed = 42
 )
 
 summary(permute_obj)
-#>   feature importance    std_dev
-#> 1      wt  5.0435220 0.66524640
-#> 2      hp  2.4062084 0.21645730
-#> 3    qsec  0.7493847 0.26214864
-#> 4    drat  0.3088876 0.09418153
+#>          feature   importance      std_dev
+#> 1            age 0.0768121911 0.0039101175
+#> 2         gender 0.0192030478 0.0032380942
+#> 3            bmi 0.0175658979 0.0038212586
+#> 4 covered_health 0.0056013180 0.0021176594
+#> 5          smoke 0.0053953871 0.0017159311
+#> 6       diabetes 0.0005663097 0.0003398597
 ```
 
 ``` r
 plot(permute_obj)
 ```
 
-![](README_files/figure-gfm/permute-plot-1.png)<!-- -->
+![](README_files/figure-gfm/interpret-permute-plot-1.png)<!-- -->
+
+A second example shows accumulated local effects for one feature from
+the same fitted model.
 
 ``` r
 ale_obj <- interpret(
   fit = fit_obj,
-  data = demo_reg,
+  data = demo_dat,
   method = "ale",
-  features = c("wt", "hp")
+  features = c("age"),
+  type = "prob"
 )
-```
 
-``` r
 plot(ale_obj)
 ```
 
-![](README_files/figure-gfm/ale-plot-1.png)<!-- -->
+![](README_files/figure-gfm/interpret-ale-1.png)<!-- -->
 
-``` r
-shap_obj <- interpret(
-  fit = fit_obj,
-  data = demo_reg,
-  method = "shap",
-  newdata = demo_reg[1,],
-  nsim = 30,
-  nsamples = 20,
-  seed = 42
-)
-```
+Other supported methods include PDP, ICE, SHAP, local explanations,
+surrogate models, interaction diagnostics, and calibration plots.
 
-``` r
-plot(shap_obj, kind = "waterfall")
-```
+## Inspect calibration
 
-![](README_files/figure-gfm/shap-plot-1.png)<!-- -->
-
-Other supported methods include PDP, ICE, local surrogate explanations,
-global surrogates, interaction strength, ceteris paribus profiles, and
-calibration diagnostics.
-
-## 6. Inspect class probabilities and calibration
-
-For classification, the same `fit()` object can produce class
-predictions or class-probability matrices with aligned columns.
-
-``` r
-cls_fit <- fit(
-  outcome ~ x1 + x2 + x3,
-  data = demo_cls,
-  model = "glm",
-  seed = 42
-)
-
-cls_prob <- predict(cls_fit, demo_cls_test[1:6, , drop = FALSE], type = "prob")
-
-data.frame(
-  prob_no = cls_prob[, "no"],
-  prob_yes = cls_prob[, "yes"],
-  row.names = NULL
-)
-#>     prob_no  prob_yes
-#> 1 0.5783619 0.4216381
-#> 2 0.3225988 0.6774012
-#> 3 0.8395363 0.1604637
-#> 4 0.4916897 0.5083103
-#> 5 0.7620232 0.2379768
-#> 6 0.5671560 0.4328440
-```
+For classification, the same interface also supports calibration
+diagnostics.
 
 ``` r
 calibration_obj <- interpret(
-  fit = cls_fit,
-  data = demo_cls_test,
+  fit = fit_obj,
+  data = demo_dat,
   method = "calibration",
   type = "prob",
-  bins = 8,
+  bins = 10,
   strategy = "quantile"
 )
-```
 
-``` r
 plot(calibration_obj)
 ```
 
-![](README_files/figure-gfm/calibration-plot-1.png)<!-- -->
+![](README_files/figure-gfm/calibration-1.png)<!-- -->
 
-## 7. Estimate causal effects through the same interface
+## Estimate causal effects
 
-`estimate()` extends the same framework into plug-in g-computation for
-common binary-treatment estimands.
+`estimate()` extends the same framework to plug-in g-computation
+estimands such as the ATE.
 
-This synthetic causal example has measured confounding and a known
-treatment effect centered near `1.2`, so the ATE output has a meaningful
-target.
+The example below treats `smoke` as the treatment variable and `status`
+as the outcome, adjusting for the remaining covariates.
 
 ``` r
 est_obj <- estimate(
-  data = demo_causal,
-  formula = outcome ~ trt + x1 + x2 + x3 + trt:x3,
+  data = demo_dat,
+  formula = status ~ smoke + diabetes + age + gender + bmi + covered_health,
   model = "glm",
   estimand = "ATE",
-  treatment_level = 1,
-  control_level = 0,
+  treatment = "smoke",
   interval = "normal",
   seed = 42
 )
 
 est_obj
 #> <funcml_estimand> ATE via g-computation
-#> Treatment: trt (1 vs 0)
-#> Estimate: 1.2149 | SE: 0.0123 | 95% normal CI [1.1907, 1.2390]
+#> Treatment: smoke (Yes vs No)
+#> Estimate: 0.0897 | SE: 0.0006 | 95% normal CI [0.0886, 0.0908]
 ```
 
 ``` r
@@ -555,47 +465,73 @@ plot(est_obj)
 
 ![](README_files/figure-gfm/estimate-plot-1.png)<!-- -->
 
-The same API also supports `ATT`, `CATE`, and `IATE`.
+The same interface also supports `ATT`, `CATE`, and `IATE`.
 
-## 8. Use ensembles as first-class learners
+## Ensembles as first-class learners
 
-`stacking` and `superlearner` live in the same catalog as the base
-learners, so ensembles are fit through the same API rather than a
-separate pipeline.
+Ensembles live in the same learner registry as base models.
 
 ``` r
 stack_fit <- fit(
-  mpg ~ wt + hp + qsec + drat,
-  data = demo_reg,
-  model = "stacking",
+  status ~ age + gender + bmi + diabetes + smoke + covered_health,
+  data = demo_dat,
+  model = "superlearner", # or "stacking"
   spec = list(
-    learners = c("glm", "rpart", "xgboost"),
+    learners = c("glm", "rpart", "xgboost", "nnet"),
     learner_specs = list(xgboost = xgb_spec),
     meta_model = "glmnet"
   ),
   seed = 42
 )
 
-predict(stack_fit, demo_reg[1:5, ])
-#> [1] 21.33335 21.39537 22.18028 21.60285 17.50703
+predict(stack_fit, demo_dat[1:5, ], type = "prob")
+#>             No        Yes
+#> [1,] 0.3184784 0.68152164
+#> [2,] 0.5011472 0.49885283
+#> [3,] 0.8758539 0.12414610
+#> [4,] 0.9258312 0.07416884
+#> [5,] 0.4985016 0.50149842
 ```
 
-## 9. Summary
+## Summary
 
-`funcml` is designed around these core functions:
+`funcml` provides a compact interface for tabular machine learning in R.
 
-- one-model training with `fit()`
-- prediction with `predict()`
-- resampled validation with `evaluate()`
-- hyperparameter search with `tune()`
-- learner benchmarking with `compare_learners()`
-- model explanation with `interpret()`
-- plug-in g-computation with `estimate()`
+Use it to:
 
-That is the central idea of the package: one explicit API surface for
-tabular machine learning in R, rather than a stack of modeling wrappers.
+- train models
+- generate predictions
+- validate performance
+- tune hyperparameters
+- compare learners
+- interpret fitted models
+- estimate causal effects
+
+The package is designed to keep the main analysis workflow explicit.
+
+## Contributing
+
+Contributions are welcome.
+
+For development setup, coding standards, and pull request guidelines,
+see `CONTRIBUTING.md`.
 
 ## Citation
 
 If you use `funcml` in your work, cite the repository using GitHub’s
 `Cite this repository` panel or the metadata in `CITATION.cff`.
+
+APA:
+
+    El Badisy, I. (2026). funcml (Version 0.7.1) [Computer software]. https://github.com/ielbadisy/funcml
+
+BibTeX:
+
+    @software{El_Badisy_funcml_2026, author = {El Badisy, Imad}, 
+    license = {GPL-3.0-only},
+    month = apr,
+    title = {{funcml}},
+    url = {https://github.com/ielbadisy/funcml},
+    version = {0.7.1},
+    year = {2026}
+    }
