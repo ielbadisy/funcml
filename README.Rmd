@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
   message = FALSE
 )
 knitr::opts_knit$set(
-  base.url = "https://raw.githubusercontent.com/ielbadisy/funcml/main/"
+  base.url = "https://github.com/ielbadisy/funcml/raw/main/"
 )
 pkgload::load_all(".", export_all = FALSE, helpers = FALSE, quiet = TRUE)
 ggplot2::theme_set(theme_funcml())
