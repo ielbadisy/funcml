@@ -281,7 +281,7 @@ eval_obj
 plot(eval_obj)
 ```
 
-![](https://raw.githubusercontent.com/ielbadisy/funcml/main/man/figures/README-evaluate-plot-1.png)<!-- -->
+![](https://github.com/ielbadisy/funcml/blob/main/man/figures/README-evaluate-plot-1.png?raw=1)<!-- -->
 
 `funcml` also supports grouped cross-validation, time-based resampling,
 and holdout validation through `group_cv()`, `time_cv()`, and
@@ -324,7 +324,7 @@ tune_obj
 plot(tune_obj)
 ```
 
-![](https://raw.githubusercontent.com/ielbadisy/funcml/main/man/figures/README-tune-plot-1.png)<!-- -->
+![](https://github.com/ielbadisy/funcml/blob/main/man/figures/README-tune-plot-1.png?raw=1)<!-- -->
 
 ## Compare learners
 
@@ -363,7 +363,7 @@ compare_obj
 plot(compare_obj)
 ```
 
-![](https://raw.githubusercontent.com/ielbadisy/funcml/main/man/figures/README-compare-plot-1.png)<!-- -->
+![](https://github.com/ielbadisy/funcml/blob/main/man/figures/README-compare-plot-1.png?raw=1)<!-- -->
 
 ## Interpret fitted models
 
@@ -392,7 +392,7 @@ summary(permute_obj)
 plot(permute_obj)
 ```
 
-![](https://raw.githubusercontent.com/ielbadisy/funcml/main/man/figures/README-interpret-permute-plot-1.png)<!-- -->
+![](https://github.com/ielbadisy/funcml/blob/main/man/figures/README-interpret-permute-plot-1.png?raw=1)<!-- -->
 
 A second example shows accumulated local effects for one feature from
 the same fitted model.
@@ -409,7 +409,7 @@ ale_obj <- interpret(
 plot(ale_obj)
 ```
 
-![](https://raw.githubusercontent.com/ielbadisy/funcml/main/man/figures/README-interpret-ale-1.png)<!-- -->
+![](https://github.com/ielbadisy/funcml/blob/main/man/figures/README-interpret-ale-1.png?raw=1)<!-- -->
 
 Other supported methods include PDP, ICE, SHAP, local explanations,
 surrogate models, interaction diagnostics, and calibration plots.
@@ -432,7 +432,7 @@ calibration_obj <- interpret(
 plot(calibration_obj)
 ```
 
-![](https://raw.githubusercontent.com/ielbadisy/funcml/main/man/figures/README-calibration-1.png)<!-- -->
+![](https://github.com/ielbadisy/funcml/blob/main/man/figures/README-calibration-1.png?raw=1)<!-- -->
 
 ## Estimate causal effects
 
@@ -463,7 +463,7 @@ est_obj
 plot(est_obj)
 ```
 
-![](https://raw.githubusercontent.com/ielbadisy/funcml/main/man/figures/README-estimate-plot-1.png)<!-- -->
+![](https://github.com/ielbadisy/funcml/blob/main/man/figures/README-estimate-plot-1.png?raw=1)<!-- -->
 
 The same interface also supports `ATT`, `CATE`, and `IATE`.
 
