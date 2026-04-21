@@ -135,6 +135,8 @@ metric_direction <- function(metric) {
 #' @param x A `funcml_tune` object.
 #' @param object A `funcml_tune` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `print()` and `summary()` return the input object or results table
+#'   invisibly. `plot()` returns a `ggplot2` object.
 #'
 #' @name tune-methods
 #' @aliases print.funcml_tune summary.funcml_tune plot.funcml_tune

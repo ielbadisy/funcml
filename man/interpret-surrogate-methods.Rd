@@ -20,6 +20,11 @@
 
 \item{object}{A \code{funcml_surrogate} object.}
 }
+\value{
+\code{plot()} returns a \code{ggplot2} object. \code{print()} returns the input
+object invisibly. \code{summary()} returns the surrogate model summary object
+invisibly.
+}
 \description{
 These methods provide the standard \code{print()}, \code{summary()}, and \code{plot()}
 interfaces for \code{funcml_surrogate} objects returned by

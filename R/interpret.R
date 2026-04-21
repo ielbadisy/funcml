@@ -458,6 +458,9 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' @param bins Number of bins for calibration diagnostics.
 #' @param strategy Binning strategy for calibration diagnostics.
 #' @param ... Additional method-specific args.
+#' @return An interpretation object whose class depends on `method`.
+#'   Returned objects contain computed explanation values and metadata used
+#'   for printing, summarizing, and plotting.
 #' @examples
 #' fit_obj <- fit(
 #'   mpg ~ wt + hp + disp,
@@ -1243,6 +1246,9 @@ plot_vi <- function(df, ylab, title) {
 #' @param x A `funcml_permute` object.
 #' @param object A `funcml_permute` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `plot()` returns a `ggplot2` object. `print()` returns the input
+#'   object invisibly. `summary()` returns the permutation importance table
+#'   invisibly.
 #'
 #' @name interpret-permute-methods
 #' @aliases plot.funcml_permute print.funcml_permute summary.funcml_permute
@@ -1327,6 +1333,9 @@ summary.funcml_permute <- function(object, ...) {
 #' @param x A `funcml_pdp` object.
 #' @param object A `funcml_pdp` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `plot()` returns a `ggplot2` object. `print()` returns the input
+#'   object invisibly. `summary()` returns the partial dependence table
+#'   invisibly.
 #'
 #' @name interpret-pdp-methods
 #' @aliases plot.funcml_pdp print.funcml_pdp summary.funcml_pdp
@@ -1397,6 +1406,8 @@ summary.funcml_pdp <- function(object, ...) {
 #' @param x A `funcml_ice` object.
 #' @param object A `funcml_ice` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `plot()` returns a `ggplot2` object. `print()` returns the input
+#'   object invisibly. `summary()` returns the ICE curve table invisibly.
 #'
 #' @name interpret-ice-methods
 #' @aliases plot.funcml_ice print.funcml_ice summary.funcml_ice
@@ -1456,6 +1467,8 @@ summary.funcml_ice <- function(object, ...) {
 #' @param x A `funcml_ale` object.
 #' @param object A `funcml_ale` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `plot()` returns a `ggplot2` object. `print()` returns the input
+#'   object invisibly. `summary()` returns the ALE curve table invisibly.
 #'
 #' @name interpret-ale-methods
 #' @aliases plot.funcml_ale print.funcml_ale summary.funcml_ale
@@ -1527,6 +1540,9 @@ summary.funcml_ale <- function(object, ...) {
 #' @param x A `funcml_local` object.
 #' @param object A `funcml_local` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `plot()` returns a `ggplot2` object. `print()` returns the input
+#'   object invisibly. `summary()` returns the local explanation payload
+#'   invisibly.
 #'
 #' @name interpret-local-methods
 #' @aliases plot.funcml_local print.funcml_local summary.funcml_local
@@ -1572,6 +1588,9 @@ summary.funcml_local <- function(object, ...) {
 #' @param x A `funcml_iml_local_model` object.
 #' @param object A `funcml_iml_local_model` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `plot()` returns a `ggplot2` object. `print()` returns the input
+#'   object invisibly. `summary()` returns the local model explanation payload
+#'   invisibly.
 #'
 #' @name interpret-local-model-methods
 #' @aliases plot.funcml_iml_local_model print.funcml_iml_local_model summary.funcml_iml_local_model plot.funcml_lime
@@ -1641,6 +1660,9 @@ summary.funcml_iml_local_model <- function(object, ...) {
 #' @param object A `funcml_calibration` object.
 #' @param style Plot style: `"curve"` or `"histogram"`.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `plot()` returns a `ggplot2` object. `print()` returns the input
+#'   object invisibly. `summary()` returns a list with calibration curve and
+#'   summary diagnostics invisibly.
 #'
 #' @name interpret-calibration-methods
 #' @aliases plot.funcml_calibration print.funcml_calibration summary.funcml_calibration
@@ -1726,6 +1748,9 @@ summary.funcml_calibration <- function(object, ...) {
 #'   `"summary"`, `"beeswarm"`, `"importance"`, `"bar"`, `"dependence"`,
 #'   `"dependence2d"`, or `"interaction"`.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `plot()` returns a visualization object (typically a `ggplot2`
+#'   object) from `shapviz`. `print()` returns the input object invisibly.
+#'   `summary()` returns the SHAP contribution table invisibly.
 #'
 #' @name interpret-shap-methods
 #' @aliases plot.funcml_shap print.funcml_shap summary.funcml_shap
@@ -1842,6 +1867,9 @@ summary.funcml_shap <- function(object, ...) {
 #' @param x A `funcml_surrogate` object.
 #' @param object A `funcml_surrogate` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `plot()` returns a `ggplot2` object. `print()` returns the input
+#'   object invisibly. `summary()` returns the surrogate model summary object
+#'   invisibly.
 #'
 #' @name interpret-surrogate-methods
 #' @aliases plot.funcml_surrogate print.funcml_surrogate summary.funcml_surrogate
@@ -1907,6 +1935,9 @@ summary.funcml_surrogate <- function(object, ...) {
 #' @param x A `funcml_interaction` object.
 #' @param object A `funcml_interaction` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `plot()` returns a `ggplot2` object. `print()` returns the input
+#'   object invisibly. `summary()` returns the interaction summary table
+#'   invisibly.
 #'
 #' @name interpret-interaction-methods
 #' @aliases plot.funcml_interaction print.funcml_interaction summary.funcml_interaction
