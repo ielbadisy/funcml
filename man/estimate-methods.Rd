@@ -20,6 +20,10 @@
 
 \item{object}{A \code{funcml_estimand} object.}
 }
+\value{
+\code{print()} and \code{summary()} return the input object or summary table
+invisibly. \code{plot()} returns a \code{ggplot2} object.
+}
 \description{
 These methods provide the standard \code{print()}, \code{summary()}, and \code{plot()}
 interfaces for \code{funcml_estimand} objects.

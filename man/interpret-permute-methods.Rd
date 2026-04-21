@@ -20,6 +20,11 @@
 
 \item{object}{A \code{funcml_permute} object.}
 }
+\value{
+\code{plot()} returns a \code{ggplot2} object. \code{print()} returns the input
+object invisibly. \code{summary()} returns the permutation importance table
+invisibly.
+}
 \description{
 These methods provide the standard \code{print()}, \code{summary()}, and \code{plot()}
 interfaces for \code{funcml_permute} objects returned by \code{interpret(method = "permute")}.

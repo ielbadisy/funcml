@@ -133,6 +133,8 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
 #' @param x A `funcml_eval` object.
 #' @param object A `funcml_eval` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `print()` and `summary()` return the input object or summary
+#'   table invisibly. `plot()` returns a `ggplot2` object.
 #'
 #' @name evaluate-methods
 #' @aliases print.funcml_eval summary.funcml_eval plot.funcml_eval
