@@ -26,6 +26,8 @@ Description: A compact and explicit machine learning framework for
     contracts, and compact interfaces rather than feature-by-feature
     competition with larger machine learning ecosystems.
 License: GPL-3
+URL: https://github.com/ielbadisy/funcml
+BugReports: https://github.com/ielbadisy/funcml/issues
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
