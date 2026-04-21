@@ -83,6 +83,11 @@ local neighborhood.}
 
 \item{...}{Additional method-specific args.}
 }
+\value{
+An interpretation object whose class depends on \code{method}.
+Returned objects contain computed explanation values and metadata used
+for printing, summarizing, and plotting.
+}
 \description{
 Implements native permutation VI, PDP/ICE/ALE, SHAP approximations, local
 surrogate explanations, interaction strength, and global surrogate models.

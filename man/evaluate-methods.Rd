@@ -20,6 +20,10 @@
 
 \item{object}{A \code{funcml_eval} object.}
 }
+\value{
+\code{print()} and \code{summary()} return the input object or summary
+table invisibly. \code{plot()} returns a \code{ggplot2} object.
+}
 \description{
 These methods provide the standard \code{print()} and \code{summary()} interfaces for
 \code{funcml_eval} objects, plus a \code{plot()} method for fold-level diagnostics.

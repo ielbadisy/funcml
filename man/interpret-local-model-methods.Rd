@@ -23,6 +23,11 @@
 
 \item{object}{A \code{funcml_iml_local_model} object.}
 }
+\value{
+\code{plot()} returns a \code{ggplot2} object. \code{print()} returns the input
+object invisibly. \code{summary()} returns the local model explanation payload
+invisibly.
+}
 \description{
 These methods provide the standard \code{print()}, \code{summary()}, and \code{plot()}
 interfaces for \code{funcml_iml_local_model} objects returned by

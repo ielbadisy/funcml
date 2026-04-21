@@ -315,6 +315,9 @@ list_tunable_learners <- function(...) {
 #' @param pos_level Alias for the binary positive class.
 #' @param na_action NA handling for new data.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `print()` and `summary()` return the input object invisibly.
+#'   `predict()` returns predictions in the requested format. `coef()`
+#'   returns a named numeric coefficient vector when available.
 #'
 #' @name fit-methods
 #' @aliases print.funcml_fit summary.funcml_fit predict.funcml_fit coef.funcml_fit

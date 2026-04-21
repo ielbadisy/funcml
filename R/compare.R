@@ -199,6 +199,8 @@ compare_learners <- function(data, formula, models, specs = NULL,
 #' @param x A `funcml_compare` object.
 #' @param object A `funcml_compare` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `print()` and `summary()` return the input object or results table
+#'   invisibly. `plot()` returns a `ggplot2` object.
 #'
 #' @name compare-methods
 #' @aliases print.funcml_compare summary.funcml_compare plot.funcml_compare
