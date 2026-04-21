@@ -41,6 +41,11 @@
 
 \item{na_action}{NA handling for new data.}
 }
+\value{
+\code{print()} and \code{summary()} return the input object invisibly.
+\code{predict()} returns predictions in the requested format. \code{coef()}
+returns a named numeric coefficient vector when available.
+}
 \description{
 These methods provide the standard \code{print()}, \code{summary()}, \code{predict()}, and
 \code{coef()} interfaces for \code{funcml_fit} objects.

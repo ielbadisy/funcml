@@ -29,6 +29,11 @@
 
 \item{object}{A \code{funcml_shap} object.}
 }
+\value{
+\code{plot()} returns a visualization object (typically a \code{ggplot2}
+object) from \code{shapviz}. \code{print()} returns the input object invisibly.
+\code{summary()} returns the SHAP contribution table invisibly.
+}
 \description{
 These methods provide the standard \code{print()}, \code{summary()}, and \code{plot()}
 interfaces for \code{funcml_shap} objects returned by \code{interpret(method = "shap")}.

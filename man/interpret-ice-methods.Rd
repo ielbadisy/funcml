@@ -20,6 +20,10 @@
 
 \item{object}{A \code{funcml_ice} object.}
 }
+\value{
+\code{plot()} returns a \code{ggplot2} object. \code{print()} returns the input
+object invisibly. \code{summary()} returns the ICE curve table invisibly.
+}
 \description{
 These methods provide the standard \code{print()}, \code{summary()}, and \code{plot()}
 interfaces for \code{funcml_ice} objects returned by \code{interpret(method = "ice")}

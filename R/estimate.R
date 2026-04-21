@@ -303,6 +303,8 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
 #' @param x A `funcml_estimand` object.
 #' @param object A `funcml_estimand` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @return `print()` and `summary()` return the input object or summary table
+#'   invisibly. `plot()` returns a `ggplot2` object.
 #'
 #' @name estimate-methods
 #' @aliases print.funcml_estimand summary.funcml_estimand plot.funcml_estimand
