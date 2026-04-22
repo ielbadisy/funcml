@@ -18,9 +18,13 @@ The package is intentionally compact and opinionated: preprocessing
 happens before modeling, inputs stay explicit, and the API stays small
 instead of expanding into a large orchestration layer.
 
+A companion paper for `funcml` is submitted to JMLR.
+
 ## Installation
 
 ``` r
+install.packages("funcml")
+
 install.packages("remotes")
 remotes::install_github("ielbadisy/funcml")
 ```
