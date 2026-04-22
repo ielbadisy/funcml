@@ -1,3 +1,10 @@
+# funcml 0.7.2
+
+- Added CRAN installation instructions to the README and kept the GitHub
+  installation path for development snapshots.
+- Added a README note that the `funcml` companion paper is submitted to
+  JMLR.
+
 # funcml 0.7.1
 
 - Refined the README into a more detailed progressive API walkthrough with
