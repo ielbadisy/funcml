@@ -34,7 +34,7 @@ An object of class \code{funcml_fit}.
 }
 \description{
 Registered learner ids currently include:
-regression and classification: \code{glm}, \code{rpart}, \code{glmnet}, \code{ranger}, \code{nnet},
+regression and classification: \code{glm}, \code{rpart}, \code{glmnet}, \code{ranger}, \code{nnet}, \code{mlp},
 \code{e1071_svm}, \code{randomForest}, \code{gbm}, \code{kknn}, \code{ctree}, \code{cforest},
 \code{lightgbm}, \code{xgboost}, \code{stacking}, \code{superlearner};
 regression plus binary classification: \code{gam}, \code{bart};
