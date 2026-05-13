@@ -1,5 +1,7 @@
 # funcml 0.7.2
 
+- Added `mlp` as an internal torch-backed learner for regression, binary
+  classification, and multiclass classification.
 - Added CRAN installation instructions to the README and kept the GitHub
   installation path for development snapshots.
 - Added a README note that the `funcml` companion paper is submitted to
