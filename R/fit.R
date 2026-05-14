@@ -35,6 +35,10 @@ fit <- function(formula, data, model, spec = NULL, seed = NULL, na_action = stat
   if (identical(task, "classification") && length(encoded$levels) > 2L && !isTRUE(adapter$supports$multiclass)) {
     stop(sprintf("Model '%s' does not support multiclass classification.", model), call. = FALSE)
   }
+  engine_pkg <- adapter$package %||% NA_character_
+  if (!is.na(engine_pkg) && !identical(engine_pkg, "stats")) {
+    assert_package(engine_pkg, model)
+  }
 
   spec_full <- merge_spec(adapter$defaults, spec, list(...))
   state <- adapter$fit_xy(encoded$X, encoded$y, spec_full, task = task, levels = encoded$levels)
