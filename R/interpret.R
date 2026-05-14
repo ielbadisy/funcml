@@ -315,6 +315,7 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 }
 
 .as_shapviz_object <- function(df, S_inter = NULL) {
+  assert_package("shapviz", "shap")
   obs_ids <- sort(unique(df$observation))
   features <- unique(df$feature)
   shap_mat <- sapply(features, function(feat) {

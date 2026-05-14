@@ -6,6 +6,8 @@ Depends: R (>= 3.5.0)
 Authors@R: c(
     person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
   )
+Author: Imad El Badisy
+Maintainer: Imad El Badisy <elbadisyimad@gmail.com>
 Description: A compact and explicit machine learning framework for
     supervised learning, resampling-based evaluation, hyperparameter
     tuning, learner comparison, interpretation, and plug-in
@@ -32,12 +34,11 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools,
-    MASS, mgcv, nnet, rpart, glmnet, ranger, e1071, randomForest, gbm,
-    C50, kknn, earth, naivebayes, mda, ada, pls, partykit, dbarts, torch,
-    xgboost, lightgbm, shapviz
+Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools
 Suggests: testthat (>= 3.1.0), knitr, rmarkdown, roxygen2, gggenes,
-    ggfittext
+    ggfittext, MASS, mgcv, nnet, rpart, glmnet, ranger, e1071,
+    randomForest, gbm, C50, kknn, earth, naivebayes, mda, ada, pls,
+    partykit, dbarts, torch, xgboost, lightgbm, shapviz
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 NeedsCompilation: no
