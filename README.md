@@ -461,6 +461,11 @@ est_obj
 #> Estimate: 0.0897 | SE: 0.0006 | 95% normal CI [0.0886, 0.0908]
 ```
 
+By default, `plot()` shows the model-implied potential outcome
+distributions under treatment and control, with dashed lines marking the
+corresponding means. The unit-level effect histogram remains available
+with `plot(est_obj, style = "effects")`.
+
 ``` r
 plot(est_obj)
 ```

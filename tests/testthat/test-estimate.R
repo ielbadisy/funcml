@@ -29,13 +29,18 @@ test_that("estimate supports binary outcome probabilities", {
 
   est <- estimate(dat, y ~ trt + x1 + x2, model = "glm", estimand = "ATE")
   p <- plot(est)
+  p_effects <- plot(est, style = "effects")
 
   expect_s3_class(est, "funcml_estimand")
   expect_true(is.finite(est$estimate))
   expect_s3_class(p, "ggplot")
-  expect_equal(p$labels$x, "Estimated unit-level effect")
-  expect_equal(p$labels$y, "Count")
-  expect_match(p$labels$title, "ATE estimate")
+  expect_equal(p$labels$x, "Predicted outcome")
+  expect_equal(p$labels$y, "Density")
+  expect_match(p$labels$title, "ATE potential outcome distributions")
+  expect_s3_class(p_effects, "ggplot")
+  expect_equal(p_effects$labels$x, "Estimated unit-level effect")
+  expect_equal(p_effects$labels$y, "Count")
+  expect_match(p_effects$labels$title, "ATE estimate")
 })
 
 test_that("CATE requires newdata and returns weighted average over target rows", {
