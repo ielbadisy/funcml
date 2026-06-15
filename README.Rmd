@@ -28,6 +28,7 @@ set.seed(42)
 [![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/funcml)](https://cran.r-project.org/package=funcml)
 [![License: GPL-3](https://img.shields.io/badge/license-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![CRAN Task View: Machine Learning](https://img.shields.io/badge/CRAN%20Task%20View-Machine%20Learning-2c7fb8)](https://cran.r-project.org/web/views/MachineLearning.html)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20707605.svg)](https://doi.org/10.5281/zenodo.20707605)
 
 `funcml` is a functional machine learning framework for tabular data in R.
 
@@ -346,20 +347,26 @@ For development setup, coding standards, and pull request guidelines, see `CONTR
 
 ## Citation
 
-If you use `funcml` in your work, cite the repository using GitHub's `Cite this repository` panel or the metadata in `CITATION.cff`.
+If you use `funcml` in your work, please cite it using one of the references below.
 
-APA:
+**Zenodo (preferred, citable archive):**
+```
+EL BADISY, I. (2026). funcml: Functional Machine Learning Software for R. https://doi.org/10.5281/zenodo.20707605
+```
+
+**GitHub repository:**
 ```
 El Badisy, I. (2026). funcml (Version 0.7.1) [Computer software]. https://github.com/ielbadisy/funcml
 ```
 
 BibTeX:
 ```
-@software{El_Badisy_funcml_2026, author = {El Badisy, Imad}, 
+@software{El_Badisy_funcml_2026, author = {El Badisy, Imad},
 license = {GPL-3.0-only},
 month = apr,
 title = {{funcml}},
-url = {https://github.com/ielbadisy/funcml},
+doi = {10.5281/zenodo.20707605},
+url = {https://doi.org/10.5281/zenodo.20707605},
 version = {0.7.1},
 year = {2026}
 }

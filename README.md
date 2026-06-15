@@ -2,11 +2,17 @@
 # funcml
 
 [![R-CMD-check](https://github.com/ielbadisy/funcml/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ielbadisy/funcml/actions/workflows/R-CMD-check.yaml)
-[![CRAN status](https://www.r-pkg.org/badges/version/funcml)](https://CRAN.R-project.org/package=funcml)
-[![CRAN checks](https://badges.cranchecks.info/worst/funcml.svg)](https://cran.r-project.org/web/checks/check_results_funcml.html)
-[![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/funcml)](https://cran.r-project.org/package=funcml)
-[![License: GPL-3](https://img.shields.io/badge/license-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![CRAN Task View: Machine Learning](https://img.shields.io/badge/CRAN%20Task%20View-Machine%20Learning-2c7fb8)](https://cran.r-project.org/web/views/MachineLearning.html)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/funcml)](https://CRAN.R-project.org/package=funcml)
+[![CRAN
+checks](https://badges.cranchecks.info/worst/funcml.svg)](https://cran.r-project.org/web/checks/check_results_funcml.html)
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/grand-total/funcml)](https://cran.r-project.org/package=funcml)
+[![License:
+GPL-3](https://img.shields.io/badge/license-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![CRAN Task View: Machine
+Learning](https://img.shields.io/badge/CRAN%20Task%20View-Machine%20Learning-2c7fb8)](https://cran.r-project.org/web/views/MachineLearning.html)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20707605.svg)](https://doi.org/10.5281/zenodo.20707605)
 
 `funcml` is a functional machine learning framework for tabular data in
 R.
@@ -62,61 +68,63 @@ interpretation methods.
 ``` r
 list_learners()
 #>         learner   fit   predict   tune has_fit has_predict has_tune available
-#> 15     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 22         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 9           C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 18      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 17        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 6     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 11        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 14          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 12          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 8           gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 16     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 23         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 10          C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 19      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 18        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 7     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 12        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 15          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 13          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 9           gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 1           glm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 3        glmnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 10         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 19          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 21     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 13   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 11         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 20          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 22     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 6           mlp fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 14   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 5          nnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 16          pls fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 20          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 7  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 17          pls fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 21          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 8  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 4        ranger fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 2         rpart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 24     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 25 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 23      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 25     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 26 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 24      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 ```
 
 ``` r
 list_tunable_learners()
 #>         learner   fit   predict   tune has_fit has_predict has_tune available
-#> 15     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 22         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 9           C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 18      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 17        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 6     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 11        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 14          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 12          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 8           gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 16     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 23         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 10          C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 19      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 18        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 7     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 12        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 15          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 13          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 9           gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 1           glm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 3        glmnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 10         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 19          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 21     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 13   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 11         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 20          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 22     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 6           mlp fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 14   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 5          nnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 16          pls fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 20          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 7  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 17          pls fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 21          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 8  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 4        ranger fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 2         rpart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 24     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 25 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 23      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 25     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 26 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 24      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 ```
 
 ``` r
@@ -536,20 +544,25 @@ see `CONTRIBUTING.md`.
 
 ## Citation
 
-If you use `funcml` in your work, cite the repository using GitHub’s
-`Cite this repository` panel or the metadata in `CITATION.cff`.
+If you use `funcml` in your work, please cite it using one of the
+references below.
 
-APA:
+**Zenodo (preferred, citable archive):**
+
+    EL BADISY, I. (2026). funcml: Functional Machine Learning Software for R. https://doi.org/10.5281/zenodo.20707605
+
+**GitHub repository:**
 
     El Badisy, I. (2026). funcml (Version 0.7.1) [Computer software]. https://github.com/ielbadisy/funcml
 
 BibTeX:
 
-    @software{El_Badisy_funcml_2026, author = {El Badisy, Imad}, 
+    @software{El_Badisy_funcml_2026, author = {El Badisy, Imad},
     license = {GPL-3.0-only},
     month = apr,
     title = {{funcml}},
-    url = {https://github.com/ielbadisy/funcml},
+    doi = {10.5281/zenodo.20707605},
+    url = {https://doi.org/10.5281/zenodo.20707605},
     version = {0.7.1},
     year = {2026}
     }
