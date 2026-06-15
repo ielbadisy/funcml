@@ -4,6 +4,10 @@
 `funcml` is a functional machine learning framework for tabular data in
 R.
 
+`funcml` is listed in the [CRAN Task View: Machine Learning &
+Statistical
+Learning](https://cran.r-project.org/web/views/MachineLearning.html).
+
 It provides one explicit interface for the core modeling workflow:
 
 - fit models with `fit()`
