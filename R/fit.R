@@ -144,6 +144,19 @@ learners <- function() {
   paste(methods, collapse = ", ")
 }
 
+.learner_engine_available <- function(id, engine_pkg) {
+  if (is.na(engine_pkg)) {
+    return(TRUE)
+  }
+  if (!requireNamespace(engine_pkg, quietly = TRUE)) {
+    return(FALSE)
+  }
+  if (identical(id, "mlp")) {
+    return(isTRUE(tryCatch(torch::torch_is_installed(), error = function(e) FALSE)))
+  }
+  TRUE
+}
+
 .learner_catalog <- function() {
   reg <- funcml_registry()
   ids <- names(reg)
@@ -153,7 +166,7 @@ learners <- function() {
     adapter <- reg[[id]]
     engine_pkg <- unname(pkg_map[[id]] %||% NA_character_)
     has_tune <- TRUE
-    available <- if (is.na(engine_pkg)) TRUE else requireNamespace(engine_pkg, quietly = TRUE)
+    available <- .learner_engine_available(id, engine_pkg)
 
     data.frame(
       learner = id,
