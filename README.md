@@ -1,6 +1,13 @@
 
 # funcml
 
+[![R-CMD-check](https://github.com/ielbadisy/funcml/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ielbadisy/funcml/actions/workflows/R-CMD-check.yaml)
+[![CRAN status](https://www.r-pkg.org/badges/version/funcml)](https://CRAN.R-project.org/package=funcml)
+[![CRAN checks](https://badges.cranchecks.info/worst/funcml.svg)](https://cran.r-project.org/web/checks/check_results_funcml.html)
+[![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/funcml)](https://cran.r-project.org/package=funcml)
+[![License: GPL-3](https://img.shields.io/badge/license-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![CRAN Task View: Machine Learning](https://img.shields.io/badge/CRAN%20Task%20View-Machine%20Learning-2c7fb8)](https://cran.r-project.org/web/views/MachineLearning.html)
+
 `funcml` is a functional machine learning framework for tabular data in
 R.
 
