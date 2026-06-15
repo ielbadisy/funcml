@@ -281,6 +281,11 @@ est_obj <- estimate(
 est_obj
 ```
 
+By default, `plot()` shows the model-implied potential outcome distributions
+under treatment and control, with dashed lines marking the corresponding means.
+The unit-level effect histogram remains available with
+`plot(est_obj, style = "effects")`.
+
 ```{r estimate-plot}
 plot(est_obj)
 ```
