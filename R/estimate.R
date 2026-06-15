@@ -302,6 +302,11 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
 #'
 #' @param x A `funcml_estimand` object.
 #' @param object A `funcml_estimand` object.
+#' @param style Plot style. `"outcomes"` shows the model-implied potential
+#'   outcome distributions under treatment and control. `"effects"` shows the
+#'   existing histogram of estimated unit-level effects.
+#' @param bins Number of bins used when `style = "effects"`.
+#' @param alpha Fill opacity used when `style = "outcomes"`.
 #' @param ... Additional arguments passed to the underlying method.
 #' @return `print()` and `summary()` return the input object or summary table
 #'   invisibly. `plot()` returns a `ggplot2` object.
@@ -364,13 +369,22 @@ summary.funcml_estimand <- function(object, ...) {
 
 #' @rdname estimate-methods
 #' @export
-plot.funcml_estimand <- function(x, ...) {
+plot.funcml_estimand <- function(x, style = c("outcomes", "effects"), bins = 24, alpha = 0.45, ...) {
+  style <- match.arg(style)
+  if (style == "effects") {
+    return(.plot_estimand_effects(x, bins = bins))
+  }
+
+  .plot_estimand_outcomes(x, alpha = alpha)
+}
+
+.plot_estimand_effects <- function(x, bins = 24) {
   df <- x$effects
   center_line <- if (x$estimand == "IATE") mean(df$effect) else x$estimate
   estimate_label <- if (x$estimand == "IATE") "Mean individualized effect" else "Estimated average effect"
   ggplot2::ggplot(df, ggplot2::aes(x = effect)) +
     ggplot2::geom_histogram(
-      bins = 24,
+      bins = bins,
       fill = "white",
       colour = "grey35",
       linewidth = 0.4
@@ -398,4 +412,74 @@ plot.funcml_estimand <- function(x, ...) {
       )
     ) +
     .publication_theme()
+}
+
+.plot_estimand_outcomes <- function(x, alpha = 0.45) {
+  df <- x$effects
+  df <- df[is.finite(df$mu1) & is.finite(df$mu0) & is.finite(df$weight) & df$weight > 0, , drop = FALSE]
+  if (nrow(df) < 2L) {
+    stop("Outcome distribution plots require at least two finite weighted rows.", call. = FALSE)
+  }
+
+  plot_df <- rbind(
+    data.frame(
+      outcome_value = df$mu0,
+      scenario = sprintf("Control (%s)", x$control_level),
+      weight = df$weight,
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      outcome_value = df$mu1,
+      scenario = sprintf("Treatment (%s)", x$treatment_level),
+      weight = df$weight,
+      stringsAsFactors = FALSE
+    )
+  )
+  plot_df$scenario <- factor(
+    plot_df$scenario,
+    levels = c(sprintf("Treatment (%s)", x$treatment_level), sprintf("Control (%s)", x$control_level))
+  )
+  split_df <- split(plot_df, plot_df$scenario)
+  mean_df <- data.frame(
+    scenario = factor(names(split_df), levels = levels(plot_df$scenario)),
+    mean = vapply(split_df, function(z) stats::weighted.mean(z$outcome_value, w = z$weight), numeric(1)),
+    stringsAsFactors = FALSE
+  )
+  effect_value <- if (x$estimand == "IATE") {
+    mean(df$effect)
+  } else {
+    x$estimate
+  }
+  effect_label <- if (x$estimand == "IATE") "Mean individualized effect" else "Estimated average effect"
+
+  ggplot2::ggplot(plot_df, ggplot2::aes(x = outcome_value, fill = scenario, colour = scenario, weight = weight)) +
+    ggplot2::geom_density(alpha = alpha, linewidth = 0.65, adjust = 1.05) +
+    ggplot2::geom_vline(
+      data = mean_df,
+      ggplot2::aes(xintercept = mean, colour = scenario),
+      linewidth = 0.75,
+      linetype = "dashed",
+      show.legend = FALSE
+    ) +
+    ggplot2::scale_fill_manual(
+      values = stats::setNames(c(.funcml_palette$accent, .funcml_palette$positive), levels(plot_df$scenario)),
+      name = NULL
+    ) +
+    ggplot2::scale_colour_manual(
+      values = stats::setNames(c(.funcml_palette$accent, .funcml_palette$positive), levels(plot_df$scenario)),
+      name = NULL
+    ) +
+    ggplot2::labs(
+      x = "Predicted outcome",
+      y = "Density",
+      title = sprintf("%s potential outcome distributions", x$estimand),
+      subtitle = sprintf(
+        "%s: %s vs %s | %s = %.3f",
+        x$treatment, x$treatment_level, x$control_level,
+        effect_label,
+        effect_value
+      )
+    ) +
+    .publication_theme() +
+    ggplot2::theme(legend.position = "bottom")
 }
