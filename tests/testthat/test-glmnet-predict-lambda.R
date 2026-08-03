@@ -37,3 +37,26 @@ test_that("glmnet predict_xy uses the same lambda that was actually fit when spe
 
   expect_gt(length(unique(round(p_pred, 6))), 1L)
 })
+
+test_that("glmnet fit_xy always fits the full regularization path, never a single cold lambda", {
+  # Requesting a single lambda directly in glmnet::glmnet() (rather than fitting the
+  # full path and extracting via predict(..., s=)) relies on cold-starting the
+  # coordinate-descent solver with no warm start. On wide/high-cardinality design
+  # matrices this can fail to converge and glmnet silently returns an empty,
+  # all-zero-coefficient model (fit$lambda == Inf), which then predicts a constant
+  # probability for every observation regardless of predict_xy's lambda selection.
+  # This test asserts the underlying invariant that prevents that failure mode by
+  # construction: fit_xy must always produce a multi-point path.
+  set.seed(20260427)
+  n <- 300; p <- 6
+  X <- matrix(rnorm(n * p), n, p)
+  beta <- c(1.5, -1.5, 1, rep(0, p - 3))
+  y <- factor(ifelse(rbinom(n, 1, plogis(X %*% beta)) == 1, "pos", "neg"), levels = c("neg", "pos"))
+  df <- data.frame(y = y, X)
+
+  fit <- funcml::fit(y ~ ., data = df, model = "glmnet", spec = list(alpha = 0.5, lambda = 0.05))
+
+  expect_gt(length(fit$state$state$lambda), 1L)
+  expect_true(is.finite(fit$state$state$lambda[1]))
+  expect_equal(fit$state$lambda, 0.05)
+})

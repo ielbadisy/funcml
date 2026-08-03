@@ -350,13 +350,22 @@ build_registry <- function() {
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("glmnet", "glmnet")
         family <- if (task == "regression") "gaussian" else if (length(unique(y)) > 2) "multinomial" else "binomial"
-        fit <- glmnet::glmnet(x = X, y = y, family = family, alpha = spec$alpha, lambda = spec$lambda)
-        # Record the lambda actually intended for this fit. When spec$lambda is a single
-        # value, that value should always be reused at predict time. When spec$lambda is
-        # NULL, glmnet fits its full regularization path (ordered largest-to-smallest); the
-        # least-regularized (smallest) lambda is the closest analogue to "no shrinkage
-        # requested" and is used as the default, rather than the largest (most-shrunk,
-        # near-null-model) value.
+        # Always fit the full regularization path rather than requesting a single lambda
+        # directly. glmnet's coordinate-descent solver relies on warm-starting each lambda
+        # from the solution at the previous (larger) one along the path; fitting a single
+        # small lambda "cold" (no path) can fail to converge on wide/high-cardinality design
+        # matrices (e.g. many one-hot-encoded categorical predictors) and silently return an
+        # empty, all-zero-coefficient model (glmnet reports this as
+        # "an empty model has been returned; probably a convergence issue" and sets
+        # fit$lambda to Inf), which then predicts a constant probability for every
+        # observation. Fitting the full path and extracting the desired point via `s=` at
+        # predict time uses the same warm-started path either way and does not have this
+        # failure mode.
+        fit <- glmnet::glmnet(x = X, y = y, family = family, alpha = spec$alpha)
+        # Record the lambda actually intended for prediction. When spec$lambda is a single
+        # value, that value is used (via `s=` interpolation) at predict time. When
+        # spec$lambda is NULL, the least-regularized (smallest) lambda in the path is used
+        # as the default, rather than the largest (most-shrunk, near-null-model) value.
         lambda_fit <- if (!is.null(spec$lambda)) spec$lambda else fit$lambda[length(fit$lambda)]
         list(state = fit, family = family, lambda = lambda_fit)
       },
