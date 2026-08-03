@@ -1,3 +1,16 @@
+# funcml 0.7.3
+
+- Fixed a bug in the `glmnet` learner's `predict_xy` where, if `spec$lambda`
+  was not supplied at prediction time, prediction silently fell back to
+  `state$state$lambda[1]` -- the *largest* (most-regularized) value in
+  glmnet's default lambda path, rather than the lambda actually used or
+  intended at fit time. This could collapse predictions toward the
+  intercept-only (null) model when a learner was fit with a full default
+  regularization path (`lambda = NULL`), producing near-constant predicted
+  probabilities and chance-level discrimination downstream. The lambda used
+  to fit is now recorded explicitly at `fit_xy` time and always reused at
+  `predict_xy` time.
+
 # funcml 0.7.2
 
 - Added `mlp` as an internal torch-backed learner for regression, binary
