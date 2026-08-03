@@ -1,7 +1,7 @@
 Package: funcml
 Type: Package
 Title: Functional Machine Learning Framework
-Version: 0.7.2
+Version: 0.7.3
 Depends: R (>= 3.5.0)
 Authors@R: c(
     person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
@@ -28,7 +28,7 @@ Description: A compact and explicit machine learning framework for
     contracts, and compact interfaces rather than feature-by-feature
     competition with larger machine learning ecosystems.
 License: GPL-3
-URL: https://github.com/ielbadisy/funcml
+URL: https://CRAN.R-project.org/package=funcml
 BugReports: https://github.com/ielbadisy/funcml/issues
 Encoding: UTF-8
 LazyData: true
