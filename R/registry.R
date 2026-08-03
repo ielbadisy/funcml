@@ -351,10 +351,21 @@ build_registry <- function() {
         assert_package("glmnet", "glmnet")
         family <- if (task == "regression") "gaussian" else if (length(unique(y)) > 2) "multinomial" else "binomial"
         fit <- glmnet::glmnet(x = X, y = y, family = family, alpha = spec$alpha, lambda = spec$lambda)
-        list(state = fit, family = family)
+        # Record the lambda actually intended for this fit. When spec$lambda is a single
+        # value, that value should always be reused at predict time. When spec$lambda is
+        # NULL, glmnet fits its full regularization path (ordered largest-to-smallest); the
+        # least-regularized (smallest) lambda is the closest analogue to "no shrinkage
+        # requested" and is used as the default, rather than the largest (most-shrunk,
+        # near-null-model) value.
+        lambda_fit <- if (!is.null(spec$lambda)) spec$lambda else fit$lambda[length(fit$lambda)]
+        list(state = fit, family = family, lambda = lambda_fit)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
-        lambda_use <- spec$lambda %||% state$state$lambda[1]
+        # Always use the lambda recorded at fit time. Previously this fell back to
+        # state$state$lambda[1] when spec$lambda was absent at predict time, which is the
+        # *largest* (most-regularized) value in glmnet's default path rather than the
+        # tuned/intended one -- silently collapsing predictions toward the null model.
+        lambda_use <- state$lambda %||% spec$lambda %||% state$state$lambda[length(state$state$lambda)]
         if (is.null(levels)) {
           p <- stats::predict(state$state, newx = Xnew, type = "response", s = lambda_use)
           return(as.numeric(p))
