@@ -10,6 +10,17 @@
   probabilities and chance-level discrimination downstream. The lambda used
   to fit is now recorded explicitly at `fit_xy` time and always reused at
   `predict_xy` time.
+- Fixed a related, more fundamental bug in the `glmnet` learner's `fit_xy`:
+  requesting a single lambda value directly in `glmnet::glmnet(..., lambda =
+  spec$lambda)` cold-starts the coordinate-descent solver with no warm start
+  along the regularization path. On wide or high-cardinality design matrices
+  (e.g. many one-hot-encoded categorical predictors) this can fail to
+  converge, and glmnet silently returns an empty, all-zero-coefficient model
+  (`fit$lambda == Inf`) that predicts a constant probability for every
+  observation -- independent of, and not fixed by, the `predict_xy` change
+  above. `fit_xy` now always fits the full regularization path and the
+  desired lambda is extracted via `s=` at predict time, matching how the
+  path is intended to be used.
 
 # funcml 0.7.2
 
