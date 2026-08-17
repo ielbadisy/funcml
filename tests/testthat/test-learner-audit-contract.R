@@ -127,7 +127,7 @@ audit_datasets <- list(
 test_that("learner registry support metadata is coherent", {
   reg <- funcml:::funcml_registry()
 
-  expect_equal(length(reg), 26L)
+  expect_equal(length(reg), 27L)
   expect_true(all(vapply(reg, function(x) is.character(x$package) && nzchar(x$package), logical(1))))
   expect_true(all(vapply(reg, function(x) is.list(x$supports), logical(1))))
   expect_true(all(vapply(reg, function(x) is.function(x$fit_xy), logical(1))))

@@ -488,6 +488,41 @@ build_registry <- function() {
         .mlp_predict_torch(state = state, Xnew = Xnew, type = type, levels = levels)
       }
     ),
+    densemlp = list(
+      package = "densemlp",
+      tasks = c("regression", "classification"),
+      defaults = list(
+        hidden_units = c(64L, 32L),
+        activation = "relu",
+        dropout = 0,
+        batch_norm = TRUE,
+        residual = FALSE,
+        gated = FALSE,
+        input_projection = NULL,
+        epochs = 100L,
+        batch_size = 32L,
+        lr = 1e-3,
+        optimizer = "adam",
+        lr_schedule = "none",
+        weight_decay = 0,
+        validation = 0.2,
+        early_stopping = TRUE,
+        patience = 10L,
+        min_delta = 0,
+        label_smoothing = 0,
+        focal_gamma = 2,
+        seed = 1L,
+        verbose = FALSE,
+        device = "auto"
+      ),
+      supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
+      fit_xy = function(X, y, spec, task, levels, ...) {
+        .densemlp_fit(X = X, y = y, spec = spec, task = task, levels = levels)
+      },
+      predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        .densemlp_predict(state = state, Xnew = Xnew, type = type, levels = levels)
+      }
+    ),
     e1071_svm = list(
       package = "e1071",
       tasks = c("regression", "classification"),

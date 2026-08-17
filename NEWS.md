@@ -1,3 +1,11 @@
+# funcml 0.8.0
+
+- Added `densemlp` as a new learner, wrapping the published `densemlp`
+  CRAN package. It complements the existing built-in `mlp` learner with
+  richer architecture options (residual connections, gated blocks, input
+  projection, focal loss, label smoothing, LR schedules) for regression
+  and classification.
+
 # funcml 0.7.2
 
 - Added `mlp` as an internal torch-backed learner for regression, binary
