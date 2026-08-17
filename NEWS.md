@@ -1,3 +1,12 @@
+# funcml 0.7.3
+
+- Reworked `theme_funcml()` to match the CLAVUS Nature Medicine figure
+  style: `theme_classic()` base, Okabe-Ito colorblind-safe palette, bold
+  unboxed strip labels, and `grey92` major gridlines. All package plots
+  (`interpret()`, `evaluate()`, `compare_learners()`, `tune()`,
+  `estimate()`) now share this theme instead of each building its own
+  ad-hoc `theme_bw()`/`theme_minimal()` variant.
+
 # funcml 0.7.2
 
 - Added `mlp` as an internal torch-backed learner for regression, binary

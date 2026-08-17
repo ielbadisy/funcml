@@ -256,15 +256,8 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 }
 
 .publication_theme <- function() {
-  ggplot2::theme_bw() +
-    ggplot2::theme(
-      panel.grid.minor = ggplot2::element_blank(),
-      panel.grid.major.x = ggplot2::element_line(colour = "grey88", linewidth = 0.3),
-      panel.grid.major.y = ggplot2::element_blank(),
-      strip.background = ggplot2::element_rect(fill = "grey95", colour = "grey80"),
-      plot.title = ggplot2::element_text(face = "bold"),
-      legend.title = ggplot2::element_text(face = "bold")
-    )
+  theme_funcml() +
+    ggplot2::theme(legend.title = ggplot2::element_text(face = "bold"))
 }
 
 .prediction_axis_label <- function(task, type, context = c("prediction", "pdp", "ice", "ale")) {

@@ -4,7 +4,7 @@
 \alias{theme_funcml}
 \title{FuncML plotting theme.}
 \usage{
-theme_funcml(base_size = 11)
+theme_funcml(base_size = 10)
 }
 \arguments{
 \item{base_size}{Base text size passed to the theme.}
@@ -13,8 +13,9 @@ theme_funcml(base_size = 11)
 A ggplot2 theme object.
 }
 \description{
-A custom ggplot2 theme used across \code{funcml} plots. It keeps a clean
-light background, restrained grid lines, and high-contrast labels so
+A custom ggplot2 theme used across \code{funcml} plots, built on
+\code{theme_classic()} with an Okabe-Ito colorblind-safe palette. It keeps a
+clean background, restrained grid lines, and high-contrast labels so
 package figures remain consistent and publication-friendly.
 }
 \examples{

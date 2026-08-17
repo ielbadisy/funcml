@@ -183,14 +183,13 @@ plot.funcml_tune <- function(x, ...) {
   ggplot2::ggplot(df, ggplot2::aes(x = mean, y = config_label)) +
     ggplot2::geom_segment(ggplot2::aes(x = conf_low, xend = conf_high, yend = config_label), linewidth = 0.45, colour = "#2b8cbe") +
     ggplot2::geom_point(size = 2.2, colour = "black") +
-    ggplot2::geom_point(data = df[df$config_label == best_label, , drop = FALSE], size = 2.8, colour = "#2b8cbe") +
+    ggplot2::geom_point(data = df[df$config_label == best_label, , drop = FALSE], size = 2.8, colour = .funcml_palette$accent) +
     ggplot2::labs(
       x = sprintf("%s (%s)", toupper(x$metric), x$direction),
       y = NULL,
       title = sprintf("%s search results", tools::toTitleCase(x$search))
     ) +
-  ggplot2::theme_bw() +
-  ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
+  theme_funcml()
 }
 
 .nested_resampling_summary <- function(data, formula, model, grid, resampling,

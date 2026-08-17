@@ -187,11 +187,10 @@ plot.funcml_eval <- function(x, ...) {
       mapping = ggplot2::aes(x = conf_low, xend = conf_high, y = metric, yend = metric),
       inherit.aes = FALSE,
       linewidth = 0.45,
-      colour = "#2b8cbe"
+      colour = .funcml_palette$accent
     ) +
     ggplot2::labs(x = "Cross-validated metric value", y = NULL, title = "Cross-validation performance") +
-    ggplot2::theme_bw() +
-    ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
+    theme_funcml()
 }
 
 .summarize_metric_uncertainty <- function(folds_df, conf_level = 0.95) {

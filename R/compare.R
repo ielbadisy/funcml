@@ -234,7 +234,7 @@ summary.funcml_compare <- function(object, ...) {
 plot.funcml_compare <- function(x, ...) {
   df <- x$results
   ggplot2::ggplot(df, ggplot2::aes(x = mean, y = stats::reorder(model, mean))) +
-    ggplot2::geom_segment(ggplot2::aes(x = conf_low, xend = conf_high, yend = stats::reorder(model, mean)), linewidth = 0.45, colour = "#2b8cbe") +
+    ggplot2::geom_segment(ggplot2::aes(x = conf_low, xend = conf_high, yend = stats::reorder(model, mean)), linewidth = 0.45, colour = .funcml_palette$accent) +
     ggplot2::geom_point(size = 2.4, colour = "black") +
     ggplot2::coord_flip() +
     ggplot2::facet_wrap(~metric, scales = "free_x") +
@@ -243,6 +243,5 @@ plot.funcml_compare <- function(x, ...) {
       y = NULL,
       title = if (x$tuned) "Tuned learner comparison" else "Learner comparison"
     ) +
-    ggplot2::theme_bw() +
-    ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
+    theme_funcml()
 }
