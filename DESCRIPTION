@@ -1,7 +1,7 @@
 Package: funcml
 Type: Package
 Title: Functional Machine Learning Framework
-Version: 0.7.2
+Version: 0.7.3
 Depends: R (>= 3.5.0)
 Authors@R: c(
     person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
@@ -26,7 +26,9 @@ Description: A compact and explicit machine learning framework for
     opinionated: preprocessing is expected to occur outside the modeling
     step, and the API emphasizes explicit inputs, consistent object
     contracts, and compact interfaces rather than feature-by-feature
-    competition with larger machine learning ecosystems.
+    competition with larger machine learning ecosystems. Plug-in
+    g-computation follows Naimi, Cole, and Kennedy (2016)
+    <doi:10.1093/ije/dyw323>.
 License: GPL-3
 URL: https://github.com/ielbadisy/funcml
 BugReports: https://github.com/ielbadisy/funcml/issues

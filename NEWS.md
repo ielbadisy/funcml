@@ -1,3 +1,9 @@
+# funcml 0.7.3
+
+- Added a citation for Naimi, Cole, and Kennedy (2016)
+  <doi:10.1093/ije/dyw323> to `DESCRIPTION`, covering the plug-in
+  g-computation method.
+
 # funcml 0.7.2
 
 - Added `mlp` as an internal torch-backed learner for regression, binary
