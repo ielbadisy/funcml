@@ -1,3 +1,10 @@
+# funcml 0.7.3
+
+- `plot.funcml_pdp()` now fixes the y-axis to the [0, 1] probability scale
+  for classification PDPs (`type = "prob"`), instead of auto-scaling to the
+  local range of the curve, which could visually exaggerate small effects.
+  Regression PDPs are unaffected.
+
 # funcml 0.7.2
 
 - Added `mlp` as an internal torch-backed learner for regression, binary

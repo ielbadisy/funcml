@@ -1370,6 +1370,9 @@ plot.funcml_pdp <- function(x, ...) {
       title = "Partial dependence plot"
     ) +
     .publication_theme()
+  if (x$task != "regression" && identical(x$type, "prob")) {
+    p <- p + ggplot2::coord_cartesian(ylim = c(0, 1))
+  }
   if (!is.null(support)) {
     p <- p + ggplot2::geom_rug(
       data = support,
