@@ -85,7 +85,7 @@ compare_learners <- function(data, formula, models, specs = NULL,
       out$tuned <- FALSE
       out
     }, ncores = ncores)
-    results <- do.call(rbind, rows)
+    results <- .rbind_dt(rows)
     results <- results[, c("model", "metric", "mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high", "tuned")]
     rownames(results) <- NULL
     results$rank <- .compare_rank(results)
@@ -135,7 +135,7 @@ compare_learners <- function(data, formula, models, specs = NULL,
       out$opt_metric <- optimize_metric
       out
     }, ncores = ncores)
-    results <- do.call(rbind, rows)
+    results <- .rbind_dt(rows)
     results <- results[, c("model", "metric", "mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high", "tuned", "best_spec", "opt_metric")]
     rownames(results) <- NULL
     results$rank <- .compare_rank(results)

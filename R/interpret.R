@@ -309,7 +309,7 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
   if (!length(rows)) {
     return(NULL)
   }
-  out <- do.call(rbind, rows)
+  out <- .rbind_dt(rows)
   rownames(out) <- NULL
   out
 }
@@ -763,7 +763,7 @@ interpret_pdp <- function(fit, data, features, type, class_level, pos_level, gri
     }, numeric(1))
     data.frame(feature = feat, value = values, yhat = yhat, stringsAsFactors = FALSE)
   })
-  curves <- do.call(rbind, curves)
+  curves <- .rbind_dt(curves)
   rownames(curves) <- NULL
   .interpret_result(
     payload = list(curves = curves, grid = grid, support = .support_frame(data_use, features)),
@@ -797,9 +797,9 @@ interpret_ice <- function(fit, data, features, type, class_level, pos_level, gri
       }
       data.frame(id = i, feature = feat, value = values, yhat = preds, stringsAsFactors = FALSE)
     })
-    do.call(rbind, out)
+    .rbind_dt(out)
   })
-  curves <- do.call(rbind, curves)
+  curves <- .rbind_dt(curves)
   rownames(curves) <- NULL
   .interpret_result(
     payload = list(curves = curves, grid = grid, support = .support_frame(data_use, features)),
@@ -846,7 +846,7 @@ interpret_ale <- function(fit, data, features, type, class_level, pos_level, gri
     data.frame(feature = feat, value = mids, effect = centered, stringsAsFactors = FALSE)
   })
   out <- Filter(Negate(is.null), out)
-  curves <- if (length(out)) do.call(rbind, out) else data.frame(feature = character(), value = numeric(), effect = numeric())
+  curves <- if (length(out)) .rbind_dt(out) else data.frame(feature = character(), value = numeric(), effect = numeric())
   .interpret_result(
     payload = list(curves = curves, grid = grid, support = .support_frame(data_use, features)),
     diagnostics = list(reference = "native ALE")
@@ -971,7 +971,7 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
       stringsAsFactors = FALSE
     )
   })
-  result <- do.call(rbind, rows)
+  result <- .rbind_dt(rows)
   rownames(result) <- NULL
   .interpret_result(
     payload = result,
@@ -1128,7 +1128,7 @@ interpret_interaction <- function(fit, data, features, type, class_level, pos_le
     )
   } else {
     pair_grid <- utils::combn(features, 2, simplify = FALSE)
-    pairwise <- do.call(rbind, lapply(pair_grid, function(pair) {
+    pairwise <- .rbind_dt(lapply(pair_grid, function(pair) {
       val <- .interaction_pair(fit, data_use, pair[1], pair[2], type, class_level, pos_level, grid_size)
       data.frame(feature_x = pair[1], feature_y = pair[2], interaction = val, stringsAsFactors = FALSE)
     }))

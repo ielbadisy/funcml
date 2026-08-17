@@ -87,7 +87,7 @@ tune <- function(data, formula, model, grid, resampling = cv(5),
       conf_high = summary_row$conf_high
     )
   }, ncores = ncores)
-  results_df <- do.call(rbind, lapply(results, function(x) as.data.frame(as.list(x), stringsAsFactors = FALSE)))
+  results_df <- .rbind_dt(lapply(results, function(x) as.data.frame(as.list(x), stringsAsFactors = FALSE)))
   best_idx <- if (dirs == "min") which.min(results_df$mean) else which.max(results_df$mean)
   best_spec <- as.list(search_grid[best_idx, , drop = FALSE])
   fit_best <- fit(formula, data, model, spec = best_spec, ...)
@@ -246,7 +246,7 @@ plot.funcml_tune <- function(x, ...) {
       stringsAsFactors = FALSE
     )
   }, ncores = ncores)
-  outer_folds <- do.call(rbind, outer_folds)
+  outer_folds <- .rbind_dt(outer_folds)
   list(
     folds = outer_folds,
     summary = .summarize_metric_uncertainty(outer_folds),

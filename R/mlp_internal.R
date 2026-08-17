@@ -276,7 +276,7 @@
     y_center = outcome$center,
     y_scale = outcome$scale,
     device = device,
-    history = do.call(rbind, Filter(Negate(is.null), history)),
+    history = .rbind_dt(history),
     best_epoch = best_epoch,
     best_validation_loss = best_loss,
     best_validation_metric = best_metric

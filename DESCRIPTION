@@ -1,7 +1,7 @@
 Package: funcml
 Type: Package
 Title: Functional Machine Learning Framework
-Version: 0.7.2
+Version: 0.7.3
 Depends: R (>= 3.5.0)
 Authors@R: c(
     person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
@@ -34,7 +34,8 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools
+Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools,
+    data.table
 Suggests: testthat (>= 3.1.0), knitr, rmarkdown, roxygen2, gggenes,
     ggfittext, MASS, mgcv, nnet, rpart, glmnet, ranger, e1071,
     randomForest, gbm, C50, kknn, earth, naivebayes, mda, ada, pls,

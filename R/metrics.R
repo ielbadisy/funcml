@@ -382,7 +382,7 @@ calibration_curve <- function(truth, prob, bins = 10, strategy = c("quantile", "
       stringsAsFactors = FALSE
     )
   })
-  do.call(rbind, out)
+  .rbind_dt(out)
 }
 
 #' @rdname metrics

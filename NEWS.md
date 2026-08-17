@@ -1,3 +1,12 @@
+# funcml 0.7.3
+
+- Migrated internal row-accumulation (resampling folds, tuning grids,
+  learner comparisons, PDP/ICE/ALE curves, permutation importance,
+  interaction grids, MLP training history) from `do.call(rbind, ...)` to
+  `data.table::rbindlist()` for faster combination of many small result
+  frames. All public return objects remain plain `data.frame`s; no API
+  or behavior change.
+
 # funcml 0.7.2
 
 - Added `mlp` as an internal torch-backed learner for regression, binary
