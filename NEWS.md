@@ -1,3 +1,13 @@
+# funcml 0.7.3
+
+- Moved every learner engine package (`MASS`, `mgcv`, `nnet`, `rpart`,
+  `glmnet`, `ranger`, `e1071`, `randomForest`, `gbm`, `C50`, `kknn`,
+  `earth`, `naivebayes`, `mda`, `ada`, `pls`, `partykit`, `dbarts`,
+  `torch`, `xgboost`, `lightgbm`) from `Suggests` to `Imports`, so a
+  standard installation always has every advertised learner available
+  and `learners()`/`fit()` cannot fail with a missing-package error for
+  a registered model.
+
 # funcml 0.7.2
 
 - Added `mlp` as an internal torch-backed learner for regression, binary
