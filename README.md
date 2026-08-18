@@ -68,63 +68,65 @@ interpretation methods.
 ``` r
 list_learners()
 #>         learner   fit   predict   tune has_fit has_predict has_tune available
-#> 16     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 23         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 10          C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 19      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 18        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 7     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 12        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 15          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 13          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 9           gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 17     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 24         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 11          C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 20      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 19        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 7      densemlp fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 8     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 13        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 16          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 14          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 10          gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 1           glm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 3        glmnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 11         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 20          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 22     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 12         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 21          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 23     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 6           mlp fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 14   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 15   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 5          nnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 17          pls fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 21          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 8  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 18          pls fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 22          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 9  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 4        ranger fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 2         rpart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 25     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 26 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 24      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 26     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 27 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 25      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 ```
 
 ``` r
 list_tunable_learners()
 #>         learner   fit   predict   tune has_fit has_predict has_tune available
-#> 16     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 23         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 10          C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 19      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 18        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 7     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 12        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 15          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 13          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 9           gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 17     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 24         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 11          C50 fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 20      cforest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 19        ctree fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 7      densemlp fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 8     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 13        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 16          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 14          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 10          gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 1           glm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 3        glmnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 11         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 20          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 22     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 12         kknn fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 21          lda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 23     lightgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 6           mlp fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 14   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 15   naivebayes fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 5          nnet fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 17          pls fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 21          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 8  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 18          pls fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 22          qda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 9  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 4        ranger fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 2         rpart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 25     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 26 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 24      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 26     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 27 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 25      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 ```
 
 ``` r
