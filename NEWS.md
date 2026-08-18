@@ -1,3 +1,12 @@
+# funcml 0.7.3
+
+- Removed the `shapviz` dependency. All SHAP plot kinds (`waterfall`,
+  `force`, `summary`/`beeswarm`, `importance`/`bar`, `dependence`,
+  `dependence2d`, `interaction`) are now native `ggplot2` implementations
+  reading directly from funcml's own SHAP result table. The underlying
+  SHAP values were already funcml's own Monte Carlo permutation estimate
+  (`interpret(method = "shap")`); shapviz was only ever used for plotting.
+
 # funcml 0.7.2
 
 - Added `mlp` as an internal torch-backed learner for regression, binary

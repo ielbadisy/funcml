@@ -1,7 +1,7 @@
 Package: funcml
 Type: Package
 Title: Functional Machine Learning Framework
-Version: 0.7.2
+Version: 0.7.3
 Depends: R (>= 3.5.0)
 Authors@R: c(
     person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
@@ -38,7 +38,7 @@ Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools
 Suggests: testthat (>= 3.1.0), knitr, rmarkdown, roxygen2, gggenes,
     ggfittext, MASS, mgcv, nnet, rpart, glmnet, ranger, e1071,
     randomForest, gbm, C50, kknn, earth, naivebayes, mda, ada, pls,
-    partykit, dbarts, torch, xgboost, lightgbm, shapviz
+    partykit, dbarts, torch, xgboost, lightgbm
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 NeedsCompilation: no

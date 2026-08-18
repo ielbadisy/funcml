@@ -314,48 +314,6 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
   out
 }
 
-.as_shapviz_object <- function(df, S_inter = NULL) {
-  assert_package("shapviz", "shap")
-  obs_ids <- sort(unique(df$observation))
-  features <- unique(df$feature)
-  shap_mat <- sapply(features, function(feat) {
-    vals <- df[df$feature == feat, c("observation", "shap"), drop = FALSE]
-    vals <- vals[match(obs_ids, vals$observation), "shap"]
-    as.numeric(vals)
-  })
-  if (!is.matrix(shap_mat)) {
-    shap_mat <- matrix(shap_mat, ncol = length(features))
-  }
-  colnames(shap_mat) <- features
-  rownames(shap_mat) <- obs_ids
-
-  X <- data.frame(row.names = obs_ids, stringsAsFactors = FALSE)
-  for (feat in features) {
-    vals <- df[df$feature == feat, c("observation", "raw_value", "feature_value"), drop = FALSE]
-    vals <- vals[match(obs_ids, vals$observation), , drop = FALSE]
-    if (all(!is.na(vals$raw_value))) {
-      X[[feat]] <- as.numeric(vals$raw_value)
-    } else {
-      X[[feat]] <- vals$feature_value
-    }
-  }
-  baseline <- df[df$feature == features[1], c("observation", "baseline"), drop = FALSE]
-  baseline <- baseline[match(obs_ids, baseline$observation), "baseline"]
-  shapviz::shapviz(
-    shap_mat,
-    X = X,
-    baseline = mean(as.numeric(baseline)),
-    S_inter = S_inter
-  )
-}
-
-.funcml_shapviz_style <- function(plot_obj) {
-  if (inherits(plot_obj, "ggplot")) {
-    return(plot_obj + .publication_theme())
-  }
-  plot_obj
-}
-
 .format_tune_config <- function(df, exclude = c("mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high")) {
   cols <- setdiff(names(df), exclude)
   if (!length(cols)) {
@@ -1749,9 +1707,9 @@ summary.funcml_calibration <- function(object, ...) {
 #'   `"summary"`, `"beeswarm"`, `"importance"`, `"bar"`, `"dependence"`,
 #'   `"dependence2d"`, or `"interaction"`.
 #' @param ... Additional arguments passed to the underlying method.
-#' @return `plot()` returns a visualization object (typically a `ggplot2`
-#'   object) from `shapviz`. `print()` returns the input object invisibly.
-#'   `summary()` returns the SHAP contribution table invisibly.
+#' @return `plot()` returns a `ggplot2` object. `print()` returns the input
+#'   object invisibly. `summary()` returns the SHAP contribution table
+#'   invisibly.
 #'
 #' @name interpret-shap-methods
 #' @aliases plot.funcml_shap print.funcml_shap summary.funcml_shap
@@ -1776,52 +1734,25 @@ plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "force", "summary"
   if (kind == "auto") {
     kind <- if (length(unique(df$observation)) > 1L) "summary" else "waterfall"
   }
-  need_interactions <- identical(kind, "interaction") || isTRUE(dots$interactions)
+  need_interactions <- identical(kind, "interaction") || identical(kind, "dependence2d") || isTRUE(dots$interactions)
   s_inter <- if (need_interactions) .funcml_shap_interaction_array(x, nsim = dots$nsim %||% NULL, seed = dots$seed %||% x$seed) else NULL
-  sv <- .as_shapviz_object(df, S_inter = s_inter)
+
   if (kind == "waterfall") {
-    plot_obj <- shapviz::sv_waterfall(
-      sv,
-      row_id = dots$row_id %||% min(df$observation),
-      fill_colors = c("#2ca25f", "#de2d26")
-    )
-    return(.funcml_shapviz_style(plot_obj))
+    return(shap_plot_waterfall(df, row_id = dots$row_id %||% min(df$observation)))
   }
   if (kind == "force") {
-    plot_obj <- shapviz::sv_force(
-      sv,
-      row_id = dots$row_id %||% min(df$observation),
-      fill_colors = c("#2ca25f", "#de2d26")
-    )
-    return(.funcml_shapviz_style(plot_obj))
+    return(shap_plot_force(df, row_id = dots$row_id %||% min(df$observation)))
   }
   if (kind %in% c("summary", "beeswarm")) {
-    plot_obj <- shapviz::sv_importance(
-      sv,
-      kind = "beeswarm",
-      show_numbers = FALSE
-    )
-    return(.funcml_shapviz_style(plot_obj))
+    return(shap_plot_beeswarm(df))
   }
   if (kind %in% c("importance", "bar")) {
-    plot_obj <- shapviz::sv_importance(
-      sv,
-      kind = "bar",
-      show_numbers = FALSE,
-      fill = "grey35"
-    )
-    return(.funcml_shapviz_style(plot_obj))
+    return(shap_plot_importance(df))
   }
   if (kind == "dependence") {
     v <- dots$v %||% x$features[1]
     color_var <- dots$color_var %||% "auto"
-    plot_obj <- shapviz::sv_dependence(
-      sv,
-      v = v,
-      color_var = color_var,
-      interactions = isTRUE(dots$interactions)
-    )
-    return(.funcml_shapviz_style(plot_obj))
+    return(shap_plot_dependence(df, v = v, color_var = color_var, features = x$features))
   }
   if (kind == "dependence2d") {
     x_var <- dots$feature_x %||% dots$x %||% x$features[1]
@@ -1829,19 +1760,9 @@ plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "force", "summary"
     if (identical(x_var, y_var)) {
       stop("`x` and `y` must refer to two different features for `kind = \"dependence2d\"`.", call. = FALSE)
     }
-    plot_obj <- shapviz::sv_dependence2D(
-      sv,
-      x = x_var,
-      y = y_var,
-      interactions = isTRUE(dots$interactions)
-    )
-    return(.funcml_shapviz_style(plot_obj))
+    return(shap_plot_dependence2d(df, x_var = x_var, y_var = y_var, s_inter = s_inter))
   }
-  plot_obj <- shapviz::sv_interaction(
-    sv,
-    kind = dots$interaction_kind %||% "bar"
-  )
-  .funcml_shapviz_style(plot_obj)
+  shap_plot_interaction(s_inter, kind = dots$interaction_kind %||% "bar")
 }
 
 #' @rdname interpret-shap-methods
