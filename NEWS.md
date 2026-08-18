@@ -5,6 +5,12 @@
   richer architecture options (residual connections, gated blocks, input
   projection, focal loss, label smoothing, LR schedules) for regression
   and classification.
+- Reworked `theme_funcml()` to match the CLAVUS Nature Medicine figure
+  style: `theme_classic()` base, Okabe-Ito colorblind-safe palette, bold
+  unboxed strip labels, and `grey92` major gridlines. All package plots
+  (`interpret()`, `evaluate()`, `compare_learners()`, `tune()`,
+  `estimate()`) now share this theme instead of each building its own
+  ad-hoc `theme_bw()`/`theme_minimal()` variant.
 - Added a citation for Naimi, Cole, and Kennedy (2016)
   <doi:10.1093/ije/dyw323> to `DESCRIPTION`, covering the plug-in
   g-computation method.

@@ -1,19 +1,26 @@
+.funcml_okabe_ito <- c(
+  orange = "#E69F00", sky_blue = "#56B4E9", green = "#009E73",
+  yellow = "#F0E442", blue = "#0072B2", vermillion = "#D55E00",
+  pink = "#CC79A7", black = "#000000", grey = "#999999"
+)
+
 .funcml_palette <- list(
-  ink = "#18212F",
+  ink = "#000000",
   panel = "white",
-  grid = "grey88",
-  accent = "#1F77B4",
-  accent_alt = "#4D4D4D",
-  positive = "#2CA25F",
-  negative = "#D7301F",
-  neutral = "#4D4D4D",
-  context = "#6B6B6B"
+  grid = "grey92",
+  accent = unname(.funcml_okabe_ito["blue"]),
+  accent_alt = unname(.funcml_okabe_ito["grey"]),
+  positive = unname(.funcml_okabe_ito["green"]),
+  negative = unname(.funcml_okabe_ito["vermillion"]),
+  neutral = unname(.funcml_okabe_ito["grey"]),
+  context = unname(.funcml_okabe_ito["grey"])
 )
 
 #' FuncML plotting theme.
 #'
-#' A custom ggplot2 theme used across `funcml` plots. It keeps a clean
-#' light background, restrained grid lines, and high-contrast labels so
+#' A custom ggplot2 theme used across `funcml` plots, built on
+#' `theme_classic()` with an Okabe-Ito colorblind-safe palette. It keeps a
+#' clean background, restrained grid lines, and high-contrast labels so
 #' package figures remain consistent and publication-friendly.
 #'
 #' @param base_size Base text size passed to the theme.
@@ -23,26 +30,14 @@
 #'   ggplot2::geom_point() +
 #'   theme_funcml()
 #' @export
-theme_funcml <- function(base_size = 11) {
-  ggplot2::theme_minimal(base_size = base_size) +
+theme_funcml <- function(base_size = 10) {
+  ggplot2::theme_classic(base_size = base_size, base_family = "sans") +
     ggplot2::theme(
-      plot.title.position = "plot",
-      plot.title = ggplot2::element_text(face = "bold", colour = .funcml_palette$ink, size = base_size + 2.5),
-      plot.subtitle = ggplot2::element_text(colour = .funcml_palette$neutral, margin = ggplot2::margin(b = 8)),
-      axis.title = ggplot2::element_text(colour = .funcml_palette$ink, face = "bold"),
-      axis.text = ggplot2::element_text(colour = .funcml_palette$ink),
-      panel.background = ggplot2::element_rect(fill = .funcml_palette$panel, colour = NA),
-      plot.background = ggplot2::element_rect(fill = "white", colour = NA),
-      plot.margin = ggplot2::margin(10, 14, 10, 10),
-      panel.grid.minor = ggplot2::element_blank(),
-      panel.grid.major = ggplot2::element_line(colour = .funcml_palette$grid, linewidth = 0.4),
-      axis.line = ggplot2::element_line(colour = .funcml_palette$grid, linewidth = 0.35),
-      strip.background = ggplot2::element_rect(fill = "grey92", colour = "grey80"),
-      strip.text = ggplot2::element_text(face = "bold", colour = .funcml_palette$ink, margin = ggplot2::margin(4, 4, 4, 4)),
-      legend.title = ggplot2::element_text(face = "bold", colour = .funcml_palette$ink),
-      legend.text = ggplot2::element_text(colour = .funcml_palette$ink),
-      legend.background = ggplot2::element_rect(fill = grDevices::adjustcolor("white", alpha.f = 0.9), colour = NA),
-      legend.key = ggplot2::element_rect(fill = "white", colour = NA)
+      strip.background = ggplot2::element_blank(),
+      strip.text = ggplot2::element_text(face = "bold"),
+      legend.key.size = ggplot2::unit(0.4, "cm"),
+      plot.title = ggplot2::element_text(face = "bold", size = base_size),
+      panel.grid.major = ggplot2::element_line(colour = .funcml_palette$grid, linewidth = 0.3)
     )
 }
 
