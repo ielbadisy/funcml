@@ -139,7 +139,7 @@ learners <- function() {
 .interpret_methods_for <- function(adapter) {
   methods <- c("vip", "permute", "pdp", "ice", "ale", "local", "lime", "shap", "interaction", "surrogate")
   if ("classification" %in% adapter$tasks) {
-    methods <- c(methods, "calibration")
+    methods <- c(methods, "calibration", "dca")
   }
   paste(methods, collapse = ", ")
 }

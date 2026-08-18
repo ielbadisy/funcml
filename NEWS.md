@@ -1,3 +1,10 @@
+# funcml 0.7.3
+
+- Added decision curve analysis (Vickers and Elkin, 2006): `dca()` computes
+  net benefit across risk thresholds for the model, "treat all", and
+  "treat none" strategies, and `interpret(method = "dca")` runs it directly
+  on a fitted binary classifier with a `plot()` method.
+
 # funcml 0.7.2
 
 - Added `mlp` as an internal torch-backed learner for regression, binary
