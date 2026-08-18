@@ -1,3 +1,12 @@
+# funcml 0.8.7
+
+- Removed the stale hand-written `inst/CITATION`, which hardcoded "R
+  package version 0.7.1" and had drifted six releases behind. R now
+  falls back to the default citation auto-generated from `DESCRIPTION`,
+  which always reflects the installed version.
+- README's Citation section now shows the live `citation("funcml")`
+  output instead of hardcoded text.
+
 # funcml 0.8.6
 
 - Reverted the SHAP/local-surrogate bar plot colors to green = positive,

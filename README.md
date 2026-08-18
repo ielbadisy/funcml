@@ -630,25 +630,24 @@ see `CONTRIBUTING.md`.
 
 ## Citation
 
-If you use `funcml` in your work, please cite it using one of the
-references below.
+If you use `funcml` in your work, please cite it.
 
-**Zenodo (preferred, citable archive):**
-
-    EL BADISY, I. (2026). funcml: Functional Machine Learning Software for R. https://doi.org/10.5281/zenodo.20707605
-
-**GitHub repository:**
-
-    El Badisy, I. (2026). funcml (Version 0.7.1) [Computer software]. https://github.com/ielbadisy/funcml
-
-BibTeX:
-
-    @software{El_Badisy_funcml_2026, author = {El Badisy, Imad},
-    license = {GPL-3.0-only},
-    month = apr,
-    title = {{funcml}},
-    doi = {10.5281/zenodo.20707605},
-    url = {https://doi.org/10.5281/zenodo.20707605},
-    version = {0.7.1},
-    year = {2026}
-    }
+``` r
+pkgload::unload("funcml")
+library(funcml)
+citation("funcml")
+#> To cite package 'funcml' in publications use:
+#> 
+#>   El Badisy I (2026). _funcml: Functional Machine Learning Framework_.
+#>   R package version 0.8.7, <https://github.com/ielbadisy/funcml>.
+#> 
+#> A BibTeX entry for LaTeX users is
+#> 
+#>   @Manual{,
+#>     title = {funcml: Functional Machine Learning Framework},
+#>     author = {Imad {El Badisy}},
+#>     year = {2026},
+#>     note = {R package version 0.8.7},
+#>     url = {https://github.com/ielbadisy/funcml},
+#>   }
+```
