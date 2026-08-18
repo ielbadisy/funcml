@@ -70,9 +70,15 @@
 shap_plot_waterfall <- function(df, row_id = NULL, max_display = 10L) {
   row_id <- row_id %||% min(df$observation)
   built <- .shap_bar_data(df, row_id, max_display = max_display)
+  built$data$hjust <- ifelse(built$data$shap >= 0, -0.15, 1.15)
   ggplot2::ggplot(built$data, ggplot2::aes(y = y, x = shap, fill = sign)) +
     ggplot2::geom_col(width = 0.65) +
     ggplot2::geom_vline(xintercept = 0, colour = "black", linewidth = 0.4) +
+    ggplot2::geom_text(
+      ggplot2::aes(label = sprintf("%+.3f", shap), hjust = hjust),
+      size = 3.1, colour = "grey20"
+    ) +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0.18)) +
     .shap_signed_fill_scale() +
     ggplot2::labs(
       x = "SHAP value",
@@ -114,6 +120,11 @@ shap_plot_importance <- function(df) {
   imp_df$feature <- factor(imp_df$feature, levels = imp_df$feature)
   ggplot2::ggplot(imp_df, ggplot2::aes(x = importance, y = feature)) +
     ggplot2::geom_col(fill = "grey35") +
+    ggplot2::geom_text(
+      ggplot2::aes(label = sprintf("%.3f", importance)),
+      hjust = -0.15, size = 3.1, colour = "grey20"
+    ) +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.15))) +
     ggplot2::labs(x = "Mean |SHAP value|", y = NULL, title = "SHAP feature importance") +
     theme_funcml()
 }
@@ -247,6 +258,11 @@ shap_plot_interaction <- function(s_inter, kind = c("bar", "beeswarm")) {
     return(
       ggplot2::ggplot(pair_df, ggplot2::aes(x = mean_abs, y = pair)) +
         ggplot2::geom_col(fill = "grey35") +
+        ggplot2::geom_text(
+          ggplot2::aes(label = sprintf("%.3f", mean_abs)),
+          hjust = -0.15, size = 3.1, colour = "grey20"
+        ) +
+        ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.15))) +
         ggplot2::labs(x = "Mean |SHAP interaction|", y = NULL, title = "SHAP interaction strength") +
         theme_funcml()
     )
