@@ -28,6 +28,7 @@ interpret(
   seed = NULL,
   bins = 10,
   strategy = c("quantile", "uniform"),
+  ncores = NULL,
   ...
 )
 }
@@ -80,6 +81,10 @@ local neighborhood.}
 \item{bins}{Number of bins for calibration diagnostics.}
 
 \item{strategy}{Binning strategy for calibration diagnostics.}
+
+\item{ncores}{Optional number of CPU cores used to parallelize the
+per-observation SHAP computation (\code{method = "shap"}). \code{NULL} or \code{1}
+runs sequentially. Ignored by other methods.}
 
 \item{...}{Additional method-specific args.}
 }

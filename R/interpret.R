@@ -409,6 +409,9 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' @param seed Optional seed for determinism.
 #' @param bins Number of bins for calibration diagnostics.
 #' @param strategy Binning strategy for calibration diagnostics.
+#' @param ncores Optional number of CPU cores used to parallelize the
+#'   per-observation SHAP computation (`method = "shap"`). `NULL` or `1`
+#'   runs sequentially. Ignored by other methods.
 #' @param ... Additional method-specific args.
 #' @return An interpretation object whose class depends on `method`.
 #'   Returned objects contain computed explanation values and metadata used
@@ -442,10 +445,11 @@ interpret <- function(fit, data, formula = fit$formula,
                       gower_power = NULL,
                       class_level = NULL, pos_level = NULL, newdata = NULL,
                       nsim = NULL, nsamples = NULL, grid = NULL, seed = NULL,
-                      bins = 10, strategy = c("quantile", "uniform"), ...) {
+                      bins = 10, strategy = c("quantile", "uniform"), ncores = NULL, ...) {
   if (!inherits(fit, "funcml_fit")) {
     stop("fit must be a funcml_fit.", call. = FALSE)
   }
+  ncores <- .validate_ncores(ncores)
   type_missing <- missing(type)
   nsamples_missing <- missing(nsamples)
   method <- match.arg(method)
@@ -522,6 +526,7 @@ interpret <- function(fit, data, formula = fit$formula,
     seed = seed, features_was_null = features_was_null, type_missing = type_missing,
     importance_type = importance_type, compare = compare, keep = keep,
     k = k, gower_power = gower_power, bins = bins, strategy = strategy,
+    ncores = ncores,
     ...
   )
   parsed <- .as_interpret_result(result)
@@ -873,7 +878,7 @@ interpret_local_model <- function(fit, data, features, type, class_level, pos_le
 }
 
 interpret_shap <- function(fit, data, features, type, class_level, pos_level, newdata, nsim, nsamples,
-                           seed = NULL, baseline = NULL, ...) {
+                           seed = NULL, baseline = NULL, ncores = NULL, ...) {
   if (is.null(newdata)) {
     newdata <- data[1, , drop = FALSE]
   }
@@ -886,7 +891,13 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
     .predict_numeric_target(fit, df, type = type, class_level = class_level, pos_level = pos_level)
   }
 
-  rows <- lapply(seq_len(nrow(newdata)), function(obs_id) {
+  obs_ids <- seq_len(nrow(newdata))
+  obs_seeds <- .task_seeds(seed, length(obs_ids))
+  rows <- .funcml_map(obs_ids, function(obs_id) {
+    task_seed <- obs_seeds[[obs_id]]
+    if (!is.null(task_seed)) {
+      set.seed(task_seed)
+    }
     x_interest <- newdata[obs_id, , drop = FALSE]
     pred_interest <- pred_one(x_interest)[1]
     contrib <- matrix(0, nrow = nsim, ncol = length(features), dimnames = list(NULL, features))
@@ -922,7 +933,7 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
       feature_label = vapply(features, function(feat) .feature_display_label(feat, x_interest[[feat]][1]), character(1)),
       stringsAsFactors = FALSE
     )
-  })
+  }, ncores = ncores)
   result <- .rbind_dt(rows)
   rownames(result) <- NULL
   .interpret_result(
