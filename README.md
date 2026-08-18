@@ -274,30 +274,18 @@ eval_obj <- evaluate(
 
 eval_obj
 #> <funcml_eval> model: xgboost | task: classification
-#>               metric       mean          sd n   std_error conf_level   conf_low
-#> 1           accuracy 0.74732290 0.014617703 4 0.007308852       0.95 0.72406287
-#> 2          precision 0.69316319 0.023420234 4 0.011710117       0.95 0.65589637
-#> 3             recall 0.64049156 0.017832484 4 0.008916242       0.95 0.61211610
-#> 4        specificity 0.64049156 0.017832484 4 0.008916242       0.95 0.61211610
-#> 5                 f1 0.66573813 0.019521730 4 0.009760865       0.95 0.63467470
-#> 6  balanced_accuracy 0.64049156 0.017832484 4 0.008916242       0.95 0.61211610
-#> 7            logloss 0.49248120 0.008783385 4 0.004391692       0.95 0.47850488
-#> 8              brier 0.32776953 0.007550594 4 0.003775297       0.95 0.31575485
-#> 9                auc 0.78694529 0.011843752 4 0.005921876       0.95 0.76809924
-#> 10               ece 0.03590688 0.004195513 4 0.002097757       0.95 0.02923089
-#> 11               mce 0.08002388 0.013678803 4 0.006839402       0.95 0.05825786
-#>     conf_high
-#> 1  0.77058293
-#> 2  0.73043001
-#> 3  0.66886702
-#> 4  0.66886702
-#> 5  0.69680156
-#> 6  0.66886702
-#> 7  0.50645753
-#> 8  0.33978421
-#> 9  0.80579135
-#> 10 0.04258288
-#> 11 0.10178991
+#>               metric   mean     sd n std_error conf_level conf_low conf_high
+#> 1           accuracy 0.7473 0.0146 4    0.0073       0.95   0.7241    0.7706
+#> 2          precision 0.6932 0.0234 4    0.0117       0.95   0.6559    0.7304
+#> 3             recall 0.6405 0.0178 4    0.0089       0.95   0.6121    0.6689
+#> 4        specificity 0.6405 0.0178 4    0.0089       0.95   0.6121    0.6689
+#> 5                 f1 0.6657 0.0195 4    0.0098       0.95   0.6347    0.6968
+#> 6  balanced_accuracy 0.6405 0.0178 4    0.0089       0.95   0.6121    0.6689
+#> 7            logloss 0.4925 0.0088 4    0.0044       0.95   0.4785    0.5065
+#> 8              brier 0.3278 0.0076 4    0.0038       0.95   0.3158    0.3398
+#> 9                auc 0.7869 0.0118 4    0.0059       0.95   0.7681    0.8058
+#> 10               ece 0.0359 0.0042 4    0.0021       0.95   0.0292    0.0426
+#> 11               mce 0.0800 0.0137 4    0.0068       0.95   0.0583    0.1018
 ```
 
 ``` r
@@ -337,10 +325,8 @@ tune_obj <- tune(
 tune_obj
 #> <funcml_tune> metric=logloss direction=min search=grid
 #> Best:
-#>   max_depth eta nrounds      mean       sd n   std_error conf_level conf_low
-#> 8         3 0.1      30 0.4932667 0.011934 3 0.006890096       0.95 0.463621
-#>   conf_high
-#> 8 0.5229124
+#>   max_depth eta nrounds   mean     sd n std_error conf_level conf_low conf_high
+#> 8         3 0.1      30 0.4933 0.0119 3    0.0069       0.95   0.4636    0.5229
 ```
 
 ``` r
@@ -366,20 +352,20 @@ compare_obj <- compare_learners(
 
 compare_obj
 #> <funcml_compare> task: classification | tuned: FALSE
-#>     model   metric      mean          sd n   std_error conf_level  conf_low
-#> 1     glm accuracy 0.7450577 0.017034681 4 0.008517341       0.95 0.7179517
-#> 2     glm  logloss 0.4897129 0.013140445 4 0.006570223       0.95 0.4688036
-#> 3   rpart accuracy 0.7337315 0.016711299 4 0.008355649       0.95 0.7071401
-#> 4   rpart  logloss 0.5310715 0.012975648 4 0.006487824       0.95 0.5104243
-#> 5 xgboost accuracy 0.7473229 0.014617703 4 0.007308852       0.95 0.7240629
-#> 6 xgboost  logloss 0.4924812 0.008783385 4 0.004391692       0.95 0.4785049
-#>   conf_high tuned rank
-#> 1 0.7721636 FALSE    2
-#> 2 0.5106223 FALSE    1
-#> 3 0.7603229 FALSE    3
-#> 4 0.5517186 FALSE    3
-#> 5 0.7705829 FALSE    1
-#> 6 0.5064575 FALSE    2
+#>     model   metric   mean     sd n std_error conf_level conf_low conf_high
+#> 1     glm accuracy 0.7451 0.0170 4    0.0085       0.95   0.7180    0.7722
+#> 2     glm  logloss 0.4897 0.0131 4    0.0066       0.95   0.4688    0.5106
+#> 3   rpart accuracy 0.7337 0.0167 4    0.0084       0.95   0.7071    0.7603
+#> 4   rpart  logloss 0.5311 0.0130 4    0.0065       0.95   0.5104    0.5517
+#> 5 xgboost accuracy 0.7473 0.0146 4    0.0073       0.95   0.7241    0.7706
+#> 6 xgboost  logloss 0.4925 0.0088 4    0.0044       0.95   0.4785    0.5065
+#>   tuned rank
+#> 1 FALSE    2
+#> 2 FALSE    1
+#> 3 FALSE    3
+#> 4 FALSE    3
+#> 5 FALSE    1
+#> 6 FALSE    2
 ```
 
 ``` r
@@ -532,8 +518,8 @@ plot(roc_obj)
 
 ``` r
 auc_ci(truth_vec, prob_vec)
-#>         auc  conf_low conf_high conf_level method
-#> 1 0.8055957 0.7928614 0.8183301       0.95 delong
+#>      auc conf_low conf_high conf_level method
+#> 1 0.8056   0.7929    0.8183       0.95 delong
 ```
 
 ## Estimate causal effects
