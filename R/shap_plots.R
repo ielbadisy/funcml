@@ -40,19 +40,43 @@
   ggplot2::scale_colour_manual(values = c(Positive = "#de2d26", Negative = "#2ca25f"))
 }
 
+.shap_signed_fill_scale <- function() {
+  ggplot2::scale_fill_manual(values = c(Positive = "#de2d26", Negative = "#2ca25f"))
+}
+
+.shap_bar_data <- function(df, row_id, max_display = 10L) {
+  row_df <- df[df$observation == row_id, , drop = FALSE]
+  row_df <- row_df[order(-abs(row_df$shap)), , drop = FALSE]
+  prediction <- row_df$prediction[1]
+  baseline <- row_df$baseline[1]
+  if (nrow(row_df) > max_display) {
+    keep <- row_df[seq_len(max_display - 1L), , drop = FALSE]
+    rest <- row_df[-seq_len(max_display - 1L), , drop = FALSE]
+    other <- data.frame(
+      feature_label = sprintf("%d other features", nrow(rest)),
+      shap = sum(rest$shap),
+      stringsAsFactors = FALSE
+    )
+    row_df <- rbind(keep[, c("feature_label", "shap")], other)
+  } else {
+    row_df <- row_df[, c("feature_label", "shap")]
+  }
+  row_df <- row_df[order(abs(row_df$shap)), , drop = FALSE]
+  row_df$sign <- ifelse(row_df$shap >= 0, "Positive", "Negative")
+  row_df$y <- factor(row_df$feature_label, levels = row_df$feature_label)
+  list(data = row_df, baseline = baseline, prediction = prediction)
+}
+
 shap_plot_waterfall <- function(df, row_id = NULL, max_display = 10L) {
   row_id <- row_id %||% min(df$observation)
-  built <- .shap_waterfall_data(df, row_id, max_display = max_display)
-  ggplot2::ggplot(built$data, ggplot2::aes(y = y)) +
-    ggplot2::geom_segment(
-      ggplot2::aes(x = start, xend = end, yend = y, colour = sign),
-      linewidth = 6, lineend = "butt"
-    ) +
-    ggplot2::geom_vline(xintercept = built$baseline, linetype = "dashed", colour = "grey50") +
-    .shap_signed_scale() +
+  built <- .shap_bar_data(df, row_id, max_display = max_display)
+  ggplot2::ggplot(built$data, ggplot2::aes(y = y, x = shap, fill = sign)) +
+    ggplot2::geom_col(width = 0.65) +
+    ggplot2::geom_vline(xintercept = 0, colour = "black", linewidth = 0.4) +
+    .shap_signed_fill_scale() +
     ggplot2::labs(
-      x = sprintf("Prediction (baseline = %.3f)", built$baseline),
-      y = NULL, colour = NULL,
+      x = "SHAP value",
+      y = NULL, fill = NULL,
       title = sprintf("SHAP waterfall (observation %s, prediction = %.3f)", row_id, built$prediction)
     ) +
     theme_funcml()
@@ -94,42 +118,33 @@ shap_plot_importance <- function(df) {
     theme_funcml()
 }
 
-shap_plot_beeswarm <- function(df) {
-  features <- unique(df$feature)
+.shap_beeswarm_colour_scale <- function() {
+  ggplot2::scale_colour_gradient(
+    low = "#1E88E5", high = "#FF0D57", na.value = "grey60",
+    breaks = c(0, 1), labels = c("Low", "High"), name = "Feature value"
+  )
+}
+
+shap_plot_beeswarm <- function(df, v = NULL) {
+  features <- if (!is.null(v)) v else unique(df$feature)
   ord <- .shap_feature_order(df, features)
-  importance <- vapply(ord, function(feat) mean(abs(df$shap[df$feature == feat])), numeric(1))
-  labels <- sprintf("%s  %.3f", ord, importance)
 
   plot_df <- df[df$feature %in% features, , drop = FALSE]
-  plot_df$scaled_value <- stats::ave(plot_df$raw_value, plot_df$feature, FUN = function(v) {
-    if (all(is.na(v)) || diff(range(v, na.rm = TRUE)) == 0) {
-      return(rep(0.5, length(v)))
+  plot_df$scaled_value <- stats::ave(plot_df$raw_value, plot_df$feature, FUN = function(x) {
+    if (all(is.na(x)) || diff(range(x, na.rm = TRUE)) == 0) {
+      return(rep(0.5, length(x)))
     }
-    (v - min(v, na.rm = TRUE)) / diff(range(v, na.rm = TRUE))
+    (x - min(x, na.rm = TRUE)) / diff(range(x, na.rm = TRUE))
   })
-  plot_df$feature <- factor(labels[match(plot_df$feature, ord)], levels = labels)
+  plot_df$feature <- factor(plot_df$feature, levels = ord)
 
   ggplot2::ggplot(plot_df, ggplot2::aes(x = shap, y = feature, colour = scaled_value)) +
     ggplot2::geom_vline(xintercept = 0, colour = "black", linewidth = 0.4) +
     ggplot2::geom_jitter(height = 0.3, width = 0, alpha = 0.85, size = 1.8) +
-    ggplot2::scale_colour_viridis_c(
-      option = "plasma", direction = -1, na.value = "grey60",
-      breaks = c(0, 1), labels = c("Low", "High")
-    ) +
-    ggplot2::labs(
-      x = "SHAP value (impact on model output)", y = NULL, colour = "Feature value",
-      title = "SHAP summary"
-    ) +
+    .shap_beeswarm_colour_scale() +
+    ggplot2::labs(x = "SHAP value (impact on model output)", y = NULL) +
     theme_funcml() +
-    ggplot2::theme(
-      legend.position = "bottom",
-      legend.title = ggplot2::element_text(hjust = 0.5),
-      legend.text = ggplot2::element_text(),
-      axis.text.y = ggplot2::element_text(hjust = 0)
-    ) +
-    ggplot2::guides(colour = ggplot2::guide_colourbar(
-      title.position = "top", barwidth = ggplot2::unit(6, "cm"), barheight = ggplot2::unit(0.3, "cm")
-    ))
+    ggplot2::theme(axis.text.y = ggplot2::element_text(hjust = 0))
 }
 
 .shap_dependence_color_var <- function(df, v, features) {
