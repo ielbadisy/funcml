@@ -5,6 +5,11 @@
   richer architecture options (residual connections, gated blocks, input
   projection, focal loss, label smoothing, LR schedules) for regression
   and classification.
+- Added `roc_curve()` and `auc_ci()`, backed by the `pROC` package:
+  `roc_curve()` returns the full sensitivity/specificity curve plus a
+  `plot()` method, and `auc_ci()` reports AUC with a DeLong (default) or
+  bootstrap confidence interval. funcml's own fast `auc()` is unchanged
+  and remains what resampling/tuning use internally.
 - Reworked `theme_funcml()` to match the CLAVUS Nature Medicine figure
   style: `theme_classic()` base, Okabe-Ito colorblind-safe palette, bold
   unboxed strip labels, and `grey92` major gridlines. All package plots
