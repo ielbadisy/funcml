@@ -6,12 +6,14 @@
 \alias{plot.funcml_roc}
 \title{Methods for ROC curve results.}
 \usage{
-\method{print}{funcml_roc}(x, ...)
+\method{print}{funcml_roc}(x, digits = 4L, ...)
 
 \method{plot}{funcml_roc}(x, ...)
 }
 \arguments{
 \item{x}{A \code{funcml_roc} object.}
+
+\item{digits}{Number of digits numeric columns are rounded to when printed.}
 
 \item{...}{Additional arguments (unused).}
 }

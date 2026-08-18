@@ -134,6 +134,7 @@ metric_direction <- function(metric) {
 #'
 #' @param x A `funcml_tune` object.
 #' @param object A `funcml_tune` object.
+#' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments passed to the underlying method.
 #' @return `print()` and `summary()` return the input object or results table
 #'   invisibly. `plot()` returns a `ggplot2` object.
@@ -153,21 +154,21 @@ metric_direction <- function(metric) {
 #' summary(tune_obj)
 #' plot(tune_obj)
 #' @export
-print.funcml_tune <- function(x, ...) {
+print.funcml_tune <- function(x, digits = 4L, ...) {
   cat(sprintf("<funcml_tune> metric=%s direction=%s search=%s\n", x$metric, x$direction, x$search))
   cat("Best:\n")
-  print(x$best)
+  print(.round_numeric_df(x$best, digits = digits))
   if (!is.null(x$nested)) {
     cat("Nested resampling:\n")
-    print(x$nested$summary)
+    print(.round_numeric_df(x$nested$summary, digits = digits))
   }
   invisible(x)
 }
 
 #' @rdname tune-methods
 #' @export
-summary.funcml_tune <- function(object, ...) {
-  print(object$results)
+summary.funcml_tune <- function(object, digits = 4L, ...) {
+  print(.round_numeric_df(object$results, digits = digits))
   invisible(object$results)
 }
 

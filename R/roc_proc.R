@@ -61,6 +61,7 @@ roc_curve <- function(truth, prob, positive = NULL) {
 #' @param conf_level Confidence level.
 #' @param method `"delong"` (default, analytic) or `"bootstrap"`.
 #' @param boot_n Number of bootstrap replicates when `method = "bootstrap"`.
+#' @param digits Number of digits numeric columns are rounded to.
 #' @return A one-row data frame with `auc`, `conf_low`, `conf_high`,
 #'   `conf_level`, and `method`.
 #' @examples
@@ -72,7 +73,7 @@ roc_curve <- function(truth, prob, positive = NULL) {
 #' }
 #' @export
 auc_ci <- function(truth, prob, positive = NULL, conf_level = 0.95,
-                   method = c("delong", "bootstrap"), boot_n = 2000L) {
+                   method = c("delong", "bootstrap"), boot_n = 2000L, digits = 4L) {
   assert_package("pROC", "auc_ci")
   method <- match.arg(method)
   parsed <- .binary_truth_prob(truth, prob, positive = positive)
@@ -83,28 +84,29 @@ auc_ci <- function(truth, prob, positive = NULL, conf_level = 0.95,
   ci_obj <- pROC::ci.auc(
     roc_obj, conf.level = conf_level, method = method, boot.n = boot_n
   )
-  data.frame(
+  .round_numeric_df(data.frame(
     auc = as.numeric(pROC::auc(roc_obj)),
     conf_low = as.numeric(ci_obj[1]),
     conf_high = as.numeric(ci_obj[3]),
     conf_level = conf_level,
     method = method,
     stringsAsFactors = FALSE
-  )
+  ), digits = digits)
 }
 
 #' Methods for ROC curve results.
 #'
 #' @param x A `funcml_roc` object.
+#' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments (unused).
 #' @return `print()` returns the input object invisibly. `plot()` returns a
 #'   `ggplot2` object.
 #' @name roc-methods
 #' @aliases print.funcml_roc plot.funcml_roc
 #' @export
-print.funcml_roc <- function(x, ...) {
+print.funcml_roc <- function(x, digits = 4L, ...) {
   cat(sprintf("<funcml_roc> AUC: %.4f\n", x$auc))
-  print(utils::head(x$curve, 10))
+  print(.round_numeric_df(utils::head(x$curve, 10), digits = digits))
   invisible(x)
 }
 

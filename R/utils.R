@@ -25,6 +25,15 @@ assert_package <- function(pkg, model_id) {
   )
 }
 
+.round_numeric_df <- function(df, digits = 4L) {
+  if (!is.data.frame(df)) {
+    return(df)
+  }
+  num_cols <- vapply(df, is.numeric, logical(1))
+  df[num_cols] <- lapply(df[num_cols], round, digits = digits)
+  df
+}
+
 infer_task <- function(y) {
   if (is.factor(y) || is.character(y) || is.logical(y)) return("classification")
   "regression"

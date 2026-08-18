@@ -9,9 +9,9 @@
 \usage{
 \method{plot}{funcml_calibration}(x, style = c("curve", "histogram"), ...)
 
-\method{print}{funcml_calibration}(x, ...)
+\method{print}{funcml_calibration}(x, digits = 4L, ...)
 
-\method{summary}{funcml_calibration}(object, ...)
+\method{summary}{funcml_calibration}(object, digits = 4L, ...)
 }
 \arguments{
 \item{x}{A \code{funcml_calibration} object.}
@@ -19,6 +19,8 @@
 \item{style}{Plot style: \code{"curve"} or \code{"histogram"}.}
 
 \item{...}{Additional arguments passed to the underlying method.}
+
+\item{digits}{Number of digits numeric columns are rounded to when printed.}
 
 \item{object}{A \code{funcml_calibration} object.}
 }
