@@ -1,3 +1,11 @@
+# funcml 0.7.3
+
+- Added `roc_curve()` and `auc_ci()`, backed by the `pROC` package:
+  `roc_curve()` returns the full sensitivity/specificity curve plus a
+  `plot()` method, and `auc_ci()` reports AUC with a DeLong (default) or
+  bootstrap confidence interval. funcml's own fast `auc()` is unchanged
+  and remains what resampling/tuning use internally.
+
 # funcml 0.7.2
 
 - Added `mlp` as an internal torch-backed learner for regression, binary
