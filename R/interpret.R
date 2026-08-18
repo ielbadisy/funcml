@@ -411,7 +411,10 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' @param strategy Binning strategy for calibration diagnostics.
 #' @param ncores Optional number of CPU cores used to parallelize the
 #'   per-observation SHAP computation (`method = "shap"`). `NULL` or `1`
-#'   runs sequentially. Ignored by other methods.
+#'   runs sequentially. Ignored by other methods, and ignored (with a
+#'   warning) for `xgboost`, `lightgbm`, `mlp`, `densemlp`, and `bart`
+#'   fits on Unix, since reusing their fitted state across a forked
+#'   process is unsafe.
 #' @param ... Additional method-specific args.
 #' @return An interpretation object whose class depends on `method`.
 #'   Returned objects contain computed explanation values and metadata used
@@ -879,6 +882,7 @@ interpret_local_model <- function(fit, data, features, type, class_level, pos_le
 
 interpret_shap <- function(fit, data, features, type, class_level, pos_level, newdata, nsim, nsamples,
                            seed = NULL, baseline = NULL, ncores = NULL, ...) {
+  ncores <- .safe_ncores_for_fit(fit, ncores)
   if (is.null(newdata)) {
     newdata <- data[1, , drop = FALSE]
   }
