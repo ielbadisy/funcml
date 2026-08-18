@@ -4,18 +4,26 @@
 
 ## R CMD check results
 
-* `R CMD check --as-cran --no-manual funcml_0.7.1.tar.gz`
+* `R CMD check --as-cran funcml_0.8.8.tar.gz`
   * 0 errors
   * 0 warnings
-  * 2 notes
+  * 0 notes
 
 ## Notes
 
-* `New submission`
-  * This is the first CRAN submission of `funcml`.
-  * `funcml` is a unified machine learning framework that exposes a broad learner registry and a single stable API for fitting, evaluation, tuning, interpretation, and causal estimation. The imported packages correspond to the supported learner backends and plotting/explanation infrastructure exposed by the package interface.
-  * We reviewed the dependency set and kept only packages that are required for advertised runtime functionality. Optional authoring and test tooling remains in `Suggests`.
-
-* `checking for future file timestamps ... NOTE`
-  * `unable to verify current time`
-  * This note is environment-specific from the local check host and not package-specific.
+* This is a resubmission. The previous CRAN version was 0.7.1.
+* `checking package dependencies ... INFO`
+  * `Imports includes 25 non-default packages.`
+  * This is deliberate: every advertised learner's backend package (e.g.
+    `xgboost`, `ranger`, `torch`, `densemlp`) was moved from `Suggests` to
+    `Imports` so that a standard installation always has every learner
+    listed by `learners()` available, and `fit()` cannot fail at call time
+    with a missing-package error for a registered model. All of these
+    packages are already on CRAN.
+* Summary of changes since 0.7.1 (full detail in `NEWS.md`): added the
+  `densemlp` learner; added `roc_curve()`/`auc_ci()` (pROC-backed);
+  added decision curve analysis (`dca()`, `interpret(method = "dca")`);
+  removed the `shapviz` runtime dependency in favor of native ggplot2
+  SHAP plots; reworked the plotting theme; migrated internal row
+  aggregation to `data.table`; parallelized SHAP computation via
+  `functionals`; various plotting and printing fixes.

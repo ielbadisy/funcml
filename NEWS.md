@@ -1,3 +1,12 @@
+# funcml 0.8.8
+
+- Prepared for CRAN resubmission (previous CRAN version: 0.7.1):
+  removed the redundant `Author`/`Maintainer` DESCRIPTION fields (they
+  had drifted out of sync with `Authors@R`, triggering a `R CMD check`
+  NOTE) in favor of deriving them from `Authors@R`, and fixed a
+  non-canonical CRAN task view URL in the README. `R CMD check
+  --as-cran` now passes with 0 errors, 0 warnings, 0 notes.
+
 # funcml 0.8.7
 
 - Removed the stale hand-written `inst/CITATION`, which hardcoded "R

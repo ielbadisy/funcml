@@ -11,15 +11,14 @@ downloads](https://cranlogs.r-pkg.org/badges/grand-total/funcml)](https://cran.r
 [![License:
 GPL-3](https://img.shields.io/badge/license-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![CRAN Task View: Machine
-Learning](https://img.shields.io/badge/CRAN%20Task%20View-Machine%20Learning-2c7fb8)](https://cran.r-project.org/web/views/MachineLearning.html)
+Learning](https://img.shields.io/badge/CRAN%20Task%20View-Machine%20Learning-2c7fb8)](https://CRAN.R-project.org/view=MachineLearning)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20707605.svg)](https://doi.org/10.5281/zenodo.20707605)
 
 `funcml` is a functional machine learning framework for tabular data in
 R.
 
 `funcml` is listed in the [CRAN Task View: Machine Learning &
-Statistical
-Learning](https://cran.r-project.org/web/views/MachineLearning.html).
+Statistical Learning](https://CRAN.R-project.org/view=MachineLearning).
 
 It provides one explicit interface for the core modeling workflow:
 
@@ -639,7 +638,7 @@ citation("funcml")
 #> To cite package 'funcml' in publications use:
 #> 
 #>   El Badisy I (2026). _funcml: Functional Machine Learning Framework_.
-#>   R package version 0.8.7, <https://github.com/ielbadisy/funcml>.
+#>   R package version 0.8.8, <https://github.com/ielbadisy/funcml>.
 #> 
 #> A BibTeX entry for LaTeX users is
 #> 
@@ -647,7 +646,7 @@ citation("funcml")
 #>     title = {funcml: Functional Machine Learning Framework},
 #>     author = {Imad {El Badisy}},
 #>     year = {2026},
-#>     note = {R package version 0.8.7},
+#>     note = {R package version 0.8.8},
 #>     url = {https://github.com/ielbadisy/funcml},
 #>   }
 ```

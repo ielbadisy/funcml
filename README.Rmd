@@ -27,13 +27,13 @@ set.seed(42)
 [![CRAN checks](https://badges.cranchecks.info/worst/funcml.svg)](https://cran.r-project.org/web/checks/check_results_funcml.html)
 [![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/funcml)](https://cran.r-project.org/package=funcml)
 [![License: GPL-3](https://img.shields.io/badge/license-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![CRAN Task View: Machine Learning](https://img.shields.io/badge/CRAN%20Task%20View-Machine%20Learning-2c7fb8)](https://cran.r-project.org/web/views/MachineLearning.html)
+[![CRAN Task View: Machine Learning](https://img.shields.io/badge/CRAN%20Task%20View-Machine%20Learning-2c7fb8)](https://CRAN.R-project.org/view=MachineLearning)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20707605.svg)](https://doi.org/10.5281/zenodo.20707605)
 
 `funcml` is a functional machine learning framework for tabular data in R.
 
 `funcml` is listed in the
-[CRAN Task View: Machine Learning & Statistical Learning](https://cran.r-project.org/web/views/MachineLearning.html).
+[CRAN Task View: Machine Learning & Statistical Learning](https://CRAN.R-project.org/view=MachineLearning).
 
 It provides one explicit interface for the core modeling workflow:
 
