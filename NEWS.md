@@ -1,5 +1,10 @@
-# funcml 0.7.3
+# funcml 0.8.0
 
+- Added `densemlp` as a new learner, wrapping the published `densemlp`
+  CRAN package. It complements the existing built-in `mlp` learner with
+  richer architecture options (residual connections, gated blocks, input
+  projection, focal loss, label smoothing, LR schedules) for regression
+  and classification.
 - Added a citation for Naimi, Cole, and Kennedy (2016)
   <doi:10.1093/ije/dyw323> to `DESCRIPTION`, covering the plug-in
   g-computation method.
@@ -10,10 +15,10 @@
 - Moved every learner engine package (`MASS`, `mgcv`, `nnet`, `rpart`,
   `glmnet`, `ranger`, `e1071`, `randomForest`, `gbm`, `C50`, `kknn`,
   `earth`, `naivebayes`, `mda`, `ada`, `pls`, `partykit`, `dbarts`,
-  `torch`, `xgboost`, `lightgbm`) from `Suggests` to `Imports`, so a
-  standard installation always has every advertised learner available
-  and `learners()`/`fit()` cannot fail with a missing-package error for
-  a registered model.
+  `torch`, `xgboost`, `lightgbm`, `densemlp`) from `Suggests` to
+  `Imports`, so a standard installation always has every advertised
+  learner available and `learners()`/`fit()` cannot fail with a
+  missing-package error for a registered model.
 
 # funcml 0.7.2
 

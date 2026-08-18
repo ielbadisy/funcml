@@ -2,7 +2,7 @@
 #'
 #' Registered learner ids currently include:
 #' regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `mlp`,
-#' `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
+#' `densemlp`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
 #' `lightgbm`, `xgboost`, `stacking`, `superlearner`;
 #' regression plus binary classification: `gam`, `bart`;
 #' classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`;
@@ -88,7 +88,7 @@ create_predict <- function(obj, adapter, state) {
 #'
 #' `learners()` returns the registry keys accepted by [fit()]. Task support is:
 #' regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `mlp`,
-#' `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
+#' `densemlp`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
 #' `lightgbm`, `xgboost`, `stacking`, `superlearner`;
 #' regression plus binary classification: `gam`, `bart`, `earth`;
 #' classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`;
@@ -113,6 +113,7 @@ learners <- function() {
     ranger = "ranger",
     nnet = "nnet",
     mlp = "torch",
+    densemlp = "densemlp",
     e1071_svm = "e1071",
     randomForest = "randomForest",
     gbm = "gbm",
@@ -151,7 +152,7 @@ learners <- function() {
   if (!requireNamespace(engine_pkg, quietly = TRUE)) {
     return(FALSE)
   }
-  if (identical(id, "mlp")) {
+  if (identical(id, "mlp") || identical(id, "densemlp")) {
     return(isTRUE(tryCatch(torch::torch_is_installed(), error = function(e) FALSE)))
   }
   TRUE
