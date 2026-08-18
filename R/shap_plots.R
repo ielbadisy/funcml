@@ -37,11 +37,11 @@
 }
 
 .shap_signed_scale <- function() {
-  ggplot2::scale_colour_manual(values = c(Positive = "#de2d26", Negative = "#2ca25f"))
+  ggplot2::scale_colour_manual(values = c(Positive = "#2ca25f", Negative = "#de2d26"))
 }
 
 .shap_signed_fill_scale <- function() {
-  ggplot2::scale_fill_manual(values = c(Positive = "#de2d26", Negative = "#2ca25f"))
+  ggplot2::scale_fill_manual(values = c(Positive = "#2ca25f", Negative = "#de2d26"))
 }
 
 .shap_bar_data <- function(df, row_id, max_display = 10L) {
