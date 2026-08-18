@@ -1,3 +1,15 @@
+# funcml 0.8.2
+
+- `interpret(method = "shap")` gained an `ncores` argument that
+  parallelizes the per-observation Monte Carlo SHAP computation via
+  `functionals::fmap()` (the same backend already used by
+  `evaluate()`/`tune()`/`compare_learners()`). Each observation is now
+  seeded independently (`seed + observation_index - 1`) so results are
+  identical whether run sequentially or in parallel; this changes the
+  exact values produced by a seeded `interpret(method = "shap")` call
+  compared to earlier releases, though the estimator itself (Monte
+  Carlo permutation SHAP) is unchanged.
+
 # funcml 0.8.1
 
 - Printed result tables (`evaluate()`, `compare_learners()`, `tune()`,
