@@ -475,7 +475,7 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 interpret <- function(fit, data, formula = fit$formula,
                       method = c("vip", "permute", "pdp", "ice", "ale", "local", "lime", "shap",
                                  "local_model", "interaction", "surrogate",
-                                 "profile", "ceteris_paribus", "calibration"),
+                                 "profile", "ceteris_paribus", "calibration", "dca"),
                       features = NULL, type = NULL, metric = NULL,
                       importance_type = c("permute", "model", "auto"),
                       compare = c("difference", "ratio"),
@@ -553,7 +553,8 @@ interpret <- function(fit, data, formula = fit$formula,
     interaction = interpret_interaction,
     surrogate = interpret_surrogate,
     profile = interpret_profile,
-    calibration = interpret_calibration
+    calibration = interpret_calibration,
+    dca = interpret_dca
   )
 
   result <- dispatcher(
@@ -1204,6 +1205,36 @@ interpret_calibration <- function(fit, data, type, class_level, pos_level, bins 
       reference = "native calibration diagnostics",
       bins = bins,
       strategy = strategy,
+      positive = positive
+    )
+  )
+}
+
+interpret_dca <- function(fit, data, type, class_level, pos_level, ...) {
+  if (fit$task != "classification") {
+    stop("Decision curve analysis is available only for classification models.", call. = FALSE)
+  }
+  if (length(fit$levels) != 2L) {
+    stop("Decision curve analysis is currently implemented for binary classification only.", call. = FALSE)
+  }
+  dots <- list(...)
+  thresholds <- dots$thresholds %||% seq(0.01, 0.99, by = 0.01)
+  positive <- class_level %||% pos_level %||% fit$levels[2L]
+  truth <- stats::model.response(stats::model.frame(fit$formula, data))
+  prob_matrix <- .normalize_prob_matrix(
+    predict(fit, data, type = "prob", class_level = positive, pos_level = pos_level),
+    fit$levels
+  )
+  prob <- prob_matrix[, positive]
+  curve <- dca(truth, prob, positive = positive, thresholds = thresholds)
+  .interpret_result(
+    payload = list(
+      curve = curve,
+      positive = positive,
+      prevalence = mean(as.integer(factor(truth, levels = fit$levels) == positive))
+    ),
+    diagnostics = list(
+      reference = "Vickers and Elkin (2006) decision curve analysis",
       positive = positive
     )
   )

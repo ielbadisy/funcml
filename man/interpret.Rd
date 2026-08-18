@@ -10,7 +10,7 @@ interpret(
   formula = fit$formula,
   method = c("vip", "permute", "pdp", "ice", "ale", "local", "lime", "shap",
     "local_model", "interaction", "surrogate", "profile", "ceteris_paribus",
-    "calibration"),
+    "calibration", "dca"),
   features = NULL,
   type = NULL,
   metric = NULL,

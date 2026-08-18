@@ -10,6 +10,10 @@
   `plot()` method, and `auc_ci()` reports AUC with a DeLong (default) or
   bootstrap confidence interval. funcml's own fast `auc()` is unchanged
   and remains what resampling/tuning use internally.
+- Added decision curve analysis (Vickers and Elkin, 2006): `dca()` computes
+  net benefit across risk thresholds for the model, "treat all", and
+  "treat none" strategies, and `interpret(method = "dca")` runs it directly
+  on a fitted binary classifier with a `plot()` method.
 - Reworked `theme_funcml()` to match the CLAVUS Nature Medicine figure
   style: `theme_classic()` base, Okabe-Ito colorblind-safe palette, bold
   unboxed strip labels, and `grey92` major gridlines. All package plots
