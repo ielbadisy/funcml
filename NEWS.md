@@ -1,3 +1,9 @@
+# funcml 0.8.6
+
+- Reverted the SHAP/local-surrogate bar plot colors to green = positive,
+  red = negative (the original convention), after the two intermediate
+  swaps in 0.8.1 and 0.8.5.
+
 # funcml 0.8.5
 
 - Added numeric value labels to every bar-chart-style plot for easier

@@ -1621,7 +1621,7 @@ plot.funcml_iml_local_model <- function(x, ...) {
       size = 3.1, colour = "grey20"
     ) +
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0.18)) +
-    ggplot2::scale_fill_manual(values = c(`TRUE` = "#de2d26", `FALSE` = "#2ca25f")) +
+    ggplot2::scale_fill_manual(values = c(`TRUE` = "#2ca25f", `FALSE` = "#de2d26")) +
     ggplot2::labs(
       x = "Approximate local contribution",
       y = NULL,
