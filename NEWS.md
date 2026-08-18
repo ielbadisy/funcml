@@ -11,6 +11,12 @@
   (`interpret()`, `evaluate()`, `compare_learners()`, `tune()`,
   `estimate()`) now share this theme instead of each building its own
   ad-hoc `theme_bw()`/`theme_minimal()` variant.
+- Migrated internal row-accumulation (resampling folds, tuning grids,
+  learner comparisons, PDP/ICE/ALE curves, permutation importance,
+  interaction grids, MLP training history) from `do.call(rbind, ...)` to
+  `data.table::rbindlist()` for faster combination of many small result
+  frames. All public return objects remain plain `data.frame`s; no API
+  or behavior change.
 - Added a citation for Naimi, Cole, and Kennedy (2016)
   <doi:10.1093/ije/dyw323> to `DESCRIPTION`, covering the plug-in
   g-computation method.

@@ -105,7 +105,7 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
     )
   }, ncores = ncores)
 
-  folds_df <- do.call(rbind, folds_out)
+  folds_df <- .rbind_dt(folds_out)
   # Aggregate fold metrics into mean/sd columns explicitly to avoid the
   # list/matrix column shape that `aggregate()` produces when the function
   # returns a vector. The previous approach created a 2-column matrix inside a
@@ -215,5 +215,5 @@ plot.funcml_eval <- function(x, ...) {
       stringsAsFactors = FALSE
     )
   })
-  do.call(rbind, out)
+  .rbind_dt(out)
 }

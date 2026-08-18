@@ -191,7 +191,7 @@ learners <- function() {
     )
   })
 
-  out <- do.call(rbind, rows)
+  out <- .rbind_dt(rows)
   rownames(out) <- NULL
   out[order(out$learner), , drop = FALSE]
 }
