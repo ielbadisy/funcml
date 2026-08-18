@@ -434,8 +434,47 @@ plot(ale_obj)
 
 <img src="man/figures/README-interpret-ale-1.png" alt="" width="100%" />
 
-Other supported methods include PDP, ICE, SHAP, local explanations,
-surrogate models, interaction diagnostics, and calibration plots.
+Partial dependence shows the model-implied effect of one feature,
+averaged over the rest of the data.
+
+``` r
+pdp_obj <- interpret(
+  fit = fit_obj,
+  data = demo_dat,
+  method = "pdp",
+  features = c("age"),
+  type = "prob"
+)
+
+plot(pdp_obj)
+```
+
+<img src="man/figures/README-interpret-pdp-1.png" alt="" width="100%" />
+
+SHAP values explain an individual prediction.
+`interpret(method = "shap")` computes them with funcml’s own Monte Carlo
+permutation estimate (no external SHAP dependency); `plot()` supports
+waterfall, force, beeswarm/summary, importance, dependence,
+dependence2d, and interaction views.
+
+``` r
+shap_obj <- interpret(
+  fit = fit_obj,
+  data = demo_dat,
+  method = "shap",
+  newdata = demo_dat[1, , drop = FALSE],
+  nsim = 30,
+  type = "prob",
+  seed = 42
+)
+
+plot(shap_obj, kind = "waterfall")
+```
+
+<img src="man/figures/README-interpret-shap-1.png" alt="" width="100%" />
+
+Other supported methods include ICE, local explanations, surrogate
+models, and interaction diagnostics.
 
 ## Inspect calibration
 
@@ -456,6 +495,46 @@ plot(calibration_obj)
 ```
 
 <img src="man/figures/README-calibration-1.png" alt="" width="100%" />
+
+## Decision curve analysis
+
+`interpret(method = "dca")` reports net benefit across risk thresholds
+against the “treat all” and “treat none” strategies (Vickers and Elkin,
+2006).
+
+``` r
+dca_obj <- interpret(
+  fit = fit_obj,
+  data = demo_dat,
+  method = "dca"
+)
+
+plot(dca_obj)
+```
+
+<img src="man/figures/README-interpret-dca-1.png" alt="" width="100%" />
+
+## ROC curve and AUC confidence interval
+
+`roc_curve()` and `auc_ci()` are standalone metric functions (backed by
+`pROC`) for a full ROC curve and a DeLong or bootstrap confidence
+interval on AUC.
+
+``` r
+truth_vec <- demo_dat$status
+prob_vec <- predict(fit_obj, demo_dat, type = "prob")[, "Yes"]
+
+roc_obj <- roc_curve(truth_vec, prob_vec)
+plot(roc_obj)
+```
+
+<img src="man/figures/README-roc-curve-1.png" alt="" width="100%" />
+
+``` r
+auc_ci(truth_vec, prob_vec)
+#>         auc  conf_low conf_high conf_level method
+#> 1 0.8055957 0.7928614 0.8183301       0.95 delong
+```
 
 ## Estimate causal effects
 
