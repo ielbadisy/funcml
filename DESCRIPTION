@@ -36,11 +36,12 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools
+Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools,
+    MASS, mgcv, nnet, rpart, glmnet, ranger, e1071, randomForest, gbm,
+    C50, kknn, earth, naivebayes, mda, ada, pls, partykit, dbarts,
+    torch, xgboost, lightgbm
 Suggests: testthat (>= 3.1.0), knitr, rmarkdown, roxygen2, gggenes,
-    ggfittext, MASS, mgcv, nnet, rpart, glmnet, ranger, e1071,
-    randomForest, gbm, C50, kknn, earth, naivebayes, mda, ada, pls,
-    partykit, dbarts, torch, xgboost, lightgbm, shapviz
+    ggfittext, shapviz
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 NeedsCompilation: no
