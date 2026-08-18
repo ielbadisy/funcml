@@ -1,3 +1,12 @@
+# funcml 0.8.5
+
+- Added numeric value labels to every bar-chart-style plot for easier
+  reading: SHAP waterfall (`+0.148`/`-0.089` style, signed), SHAP
+  feature importance, SHAP interaction strength, and local surrogate
+  (`interpret(method = "local_model")`) contributions. The local
+  surrogate plot's colors were also swapped to match the SHAP
+  convention (positive = red, negative = green).
+
 # funcml 0.8.4
 
 - Fixed a hang introduced in 0.8.2: `interpret(method = "shap", ncores

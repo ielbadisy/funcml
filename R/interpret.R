@@ -1612,10 +1612,16 @@ summary.funcml_local <- function(object, ...) {
 plot.funcml_iml_local_model <- function(x, ...) {
   df <- x$result$results
   df$feature <- factor(df$feature.value, levels = rev(df$feature.value))
+  df$hjust <- ifelse(df$effect >= 0, -0.15, 1.15)
   ggplot2::ggplot(df, ggplot2::aes(x = effect, y = feature, fill = effect >= 0)) +
     ggplot2::geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.4) +
     ggplot2::geom_col(width = 0.7, colour = NA, show.legend = FALSE) +
-    ggplot2::scale_fill_manual(values = c(`TRUE` = "#2ca25f", `FALSE` = "#de2d26")) +
+    ggplot2::geom_text(
+      ggplot2::aes(label = sprintf("%+.3f", effect), hjust = hjust),
+      size = 3.1, colour = "grey20"
+    ) +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0.18)) +
+    ggplot2::scale_fill_manual(values = c(`TRUE` = "#de2d26", `FALSE` = "#2ca25f")) +
     ggplot2::labs(
       x = "Approximate local contribution",
       y = NULL,
