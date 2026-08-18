@@ -14,6 +14,12 @@
   net benefit across risk thresholds for the model, "treat all", and
   "treat none" strategies, and `interpret(method = "dca")` runs it directly
   on a fitted binary classifier with a `plot()` method.
+- Removed the `shapviz` dependency. All SHAP plot kinds (`waterfall`,
+  `force`, `summary`/`beeswarm`, `importance`/`bar`, `dependence`,
+  `dependence2d`, `interaction`) are now native `ggplot2` implementations
+  reading directly from funcml's own SHAP result table. The underlying
+  SHAP values were already funcml's own Monte Carlo permutation estimate
+  (`interpret(method = "shap")`); shapviz was only ever used for plotting.
 - Reworked `theme_funcml()` to match the CLAVUS Nature Medicine figure
   style: `theme_classic()` base, Okabe-Ito colorblind-safe palette, bold
   unboxed strip labels, and `grey92` major gridlines. All package plots
