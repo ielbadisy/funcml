@@ -1645,6 +1645,7 @@ summary.funcml_iml_local_model <- function(object, ...) {
 #' @param x A `funcml_calibration` object.
 #' @param object A `funcml_calibration` object.
 #' @param style Plot style: `"curve"` or `"histogram"`.
+#' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments passed to the underlying method.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns a list with calibration curve and
@@ -1704,19 +1705,19 @@ plot.funcml_calibration <- function(x, style = c("curve", "histogram"), ...) {
 
 #' @rdname interpret-calibration-methods
 #' @export
-print.funcml_calibration <- function(x, ...) {
+print.funcml_calibration <- function(x, digits = 4L, ...) {
   cat("<funcml_calibration>\n")
-  print(x$result$curve)
+  print(.round_numeric_df(x$result$curve, digits = digits))
   invisible(x)
 }
 
 #' @rdname interpret-calibration-methods
 #' @export
-summary.funcml_calibration <- function(object, ...) {
+summary.funcml_calibration <- function(object, digits = 4L, ...) {
   out <- list(
-    curve = object$result$curve,
-    ece = object$result$ece,
-    mce = object$result$mce,
+    curve = .round_numeric_df(object$result$curve, digits = digits),
+    ece = round(object$result$ece, digits = digits),
+    mce = round(object$result$mce, digits = digits),
     positive = object$result$positive
   )
   print(out)

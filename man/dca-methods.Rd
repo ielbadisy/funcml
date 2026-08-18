@@ -6,12 +6,14 @@
 \alias{plot.funcml_dca}
 \title{Methods for decision curve analysis results.}
 \usage{
-\method{print}{funcml_dca}(x, ...)
+\method{print}{funcml_dca}(x, digits = 4L, ...)
 
 \method{plot}{funcml_dca}(x, ...)
 }
 \arguments{
 \item{x}{A \code{funcml_dca} object.}
+
+\item{digits}{Number of digits numeric columns are rounded to when printed.}
 
 \item{...}{Additional arguments (unused).}
 }

@@ -58,15 +58,16 @@ dca <- function(truth, prob, positive = NULL, thresholds = seq(0.01, 0.99, by = 
 #' `funcml_dca` objects returned by `interpret(method = "dca")`.
 #'
 #' @param x A `funcml_dca` object.
+#' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments (unused).
 #' @return `print()` returns the input object invisibly. `plot()` returns a
 #'   `ggplot2` object.
 #' @name dca-methods
 #' @aliases print.funcml_dca plot.funcml_dca
 #' @export
-print.funcml_dca <- function(x, ...) {
+print.funcml_dca <- function(x, digits = 4L, ...) {
   cat(sprintf("<funcml_dca> positive: %s\n", x$result$positive %||% "NA"))
-  print(utils::head(x$result$curve, 10))
+  print(.round_numeric_df(utils::head(x$result$curve, 10), digits = digits))
   invisible(x)
 }
 

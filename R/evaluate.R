@@ -132,6 +132,7 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
 #'
 #' @param x A `funcml_eval` object.
 #' @param object A `funcml_eval` object.
+#' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments passed to the underlying method.
 #' @return `print()` and `summary()` return the input object or summary
 #'   table invisibly. `plot()` returns a `ggplot2` object.
@@ -150,16 +151,16 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
 #' summary(eval_obj)
 #' plot(eval_obj)
 #' @export
-print.funcml_eval <- function(x, ...) {
+print.funcml_eval <- function(x, digits = 4L, ...) {
   cat(sprintf("<funcml_eval> model: %s | task: %s\n", x$model, x$task))
-  print(x$summary)
+  print(.round_numeric_df(x$summary, digits = digits))
   invisible(x)
 }
 
 #' @rdname evaluate-methods
 #' @export
-summary.funcml_eval <- function(object, ...) {
-  print(object$summary)
+summary.funcml_eval <- function(object, digits = 4L, ...) {
+  print(.round_numeric_df(object$summary, digits = digits))
   invisible(object$summary)
 }
 

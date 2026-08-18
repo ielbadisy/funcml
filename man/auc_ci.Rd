@@ -10,7 +10,8 @@ auc_ci(
   positive = NULL,
   conf_level = 0.95,
   method = c("delong", "bootstrap"),
-  boot_n = 2000L
+  boot_n = 2000L,
+  digits = 4L
 )
 }
 \arguments{
@@ -27,6 +28,8 @@ factor level.}
 \item{method}{\code{"delong"} (default, analytic) or \code{"bootstrap"}.}
 
 \item{boot_n}{Number of bootstrap replicates when \code{method = "bootstrap"}.}
+
+\item{digits}{Number of digits numeric columns are rounded to.}
 }
 \value{
 A one-row data frame with \code{auc}, \code{conf_low}, \code{conf_high},

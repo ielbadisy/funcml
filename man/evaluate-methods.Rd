@@ -7,14 +7,16 @@
 \alias{plot.funcml_eval}
 \title{Methods for cross-validation results.}
 \usage{
-\method{print}{funcml_eval}(x, ...)
+\method{print}{funcml_eval}(x, digits = 4L, ...)
 
-\method{summary}{funcml_eval}(object, ...)
+\method{summary}{funcml_eval}(object, digits = 4L, ...)
 
 \method{plot}{funcml_eval}(x, ...)
 }
 \arguments{
 \item{x}{A \code{funcml_eval} object.}
+
+\item{digits}{Number of digits numeric columns are rounded to when printed.}
 
 \item{...}{Additional arguments passed to the underlying method.}
 

@@ -198,6 +198,7 @@ compare_learners <- function(data, formula, models, specs = NULL,
 #'
 #' @param x A `funcml_compare` object.
 #' @param object A `funcml_compare` object.
+#' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments passed to the underlying method.
 #' @return `print()` and `summary()` return the input object or results table
 #'   invisibly. `plot()` returns a `ggplot2` object.
@@ -216,16 +217,16 @@ compare_learners <- function(data, formula, models, specs = NULL,
 #' summary(cmp)
 #' plot(cmp)
 #' @export
-print.funcml_compare <- function(x, ...) {
+print.funcml_compare <- function(x, digits = 4L, ...) {
   cat(sprintf("<funcml_compare> task: %s | tuned: %s\n", x$task, x$tuned))
-  print(x$results)
+  print(.round_numeric_df(x$results, digits = digits))
   invisible(x)
 }
 
 #' @rdname compare-methods
 #' @export
-summary.funcml_compare <- function(object, ...) {
-  print(object$results)
+summary.funcml_compare <- function(object, digits = 4L, ...) {
+  print(.round_numeric_df(object$results, digits = digits))
   invisible(object$results)
 }
 

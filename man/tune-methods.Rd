@@ -7,14 +7,16 @@
 \alias{plot.funcml_tune}
 \title{Methods for tuning results.}
 \usage{
-\method{print}{funcml_tune}(x, ...)
+\method{print}{funcml_tune}(x, digits = 4L, ...)
 
-\method{summary}{funcml_tune}(object, ...)
+\method{summary}{funcml_tune}(object, digits = 4L, ...)
 
 \method{plot}{funcml_tune}(x, ...)
 }
 \arguments{
 \item{x}{A \code{funcml_tune} object.}
+
+\item{digits}{Number of digits numeric columns are rounded to when printed.}
 
 \item{...}{Additional arguments passed to the underlying method.}
 

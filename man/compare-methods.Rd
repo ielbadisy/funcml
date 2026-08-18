@@ -7,14 +7,16 @@
 \alias{plot.funcml_compare}
 \title{Methods for learner comparison results.}
 \usage{
-\method{print}{funcml_compare}(x, ...)
+\method{print}{funcml_compare}(x, digits = 4L, ...)
 
-\method{summary}{funcml_compare}(object, ...)
+\method{summary}{funcml_compare}(object, digits = 4L, ...)
 
 \method{plot}{funcml_compare}(x, ...)
 }
 \arguments{
 \item{x}{A \code{funcml_compare} object.}
+
+\item{digits}{Number of digits numeric columns are rounded to when printed.}
 
 \item{...}{Additional arguments passed to the underlying method.}
 

@@ -37,7 +37,7 @@
 }
 
 .shap_signed_scale <- function() {
-  ggplot2::scale_colour_manual(values = c(Positive = "#2ca25f", Negative = "#de2d26"))
+  ggplot2::scale_colour_manual(values = c(Positive = "#de2d26", Negative = "#2ca25f"))
 }
 
 shap_plot_waterfall <- function(df, row_id = NULL, max_display = 10L) {
@@ -97,23 +97,39 @@ shap_plot_importance <- function(df) {
 shap_plot_beeswarm <- function(df) {
   features <- unique(df$feature)
   ord <- .shap_feature_order(df, features)
+  importance <- vapply(ord, function(feat) mean(abs(df$shap[df$feature == feat])), numeric(1))
+  labels <- sprintf("%s  %.3f", ord, importance)
+
   plot_df <- df[df$feature %in% features, , drop = FALSE]
-  plot_df$feature <- factor(plot_df$feature, levels = ord)
-  plot_df$scaled_value <- unlist(lapply(split(plot_df$raw_value, plot_df$feature), function(v) {
+  plot_df$scaled_value <- stats::ave(plot_df$raw_value, plot_df$feature, FUN = function(v) {
     if (all(is.na(v)) || diff(range(v, na.rm = TRUE)) == 0) {
       return(rep(0.5, length(v)))
     }
     (v - min(v, na.rm = TRUE)) / diff(range(v, na.rm = TRUE))
-  }), use.names = FALSE)
+  })
+  plot_df$feature <- factor(labels[match(plot_df$feature, ord)], levels = labels)
+
   ggplot2::ggplot(plot_df, ggplot2::aes(x = shap, y = feature, colour = scaled_value)) +
-    ggplot2::geom_vline(xintercept = 0, colour = "grey70", linewidth = 0.3) +
-    ggplot2::geom_jitter(height = 0.25, width = 0, alpha = 0.7, size = 1.4) +
-    ggplot2::scale_colour_gradient(
-      low = "#0072B2", high = "#D55E00", na.value = "grey60",
+    ggplot2::geom_vline(xintercept = 0, colour = "black", linewidth = 0.4) +
+    ggplot2::geom_jitter(height = 0.3, width = 0, alpha = 0.85, size = 1.8) +
+    ggplot2::scale_colour_viridis_c(
+      option = "plasma", direction = -1, na.value = "grey60",
       breaks = c(0, 1), labels = c("Low", "High")
     ) +
-    ggplot2::labs(x = "SHAP value", y = NULL, colour = "Feature value", title = "SHAP summary") +
-    theme_funcml()
+    ggplot2::labs(
+      x = "SHAP value (impact on model output)", y = NULL, colour = "Feature value",
+      title = "SHAP summary"
+    ) +
+    theme_funcml() +
+    ggplot2::theme(
+      legend.position = "bottom",
+      legend.title = ggplot2::element_text(hjust = 0.5),
+      legend.text = ggplot2::element_text(),
+      axis.text.y = ggplot2::element_text(hjust = 0)
+    ) +
+    ggplot2::guides(colour = ggplot2::guide_colourbar(
+      title.position = "top", barwidth = ggplot2::unit(6, "cm"), barheight = ggplot2::unit(0.3, "cm")
+    ))
 }
 
 .shap_dependence_color_var <- function(df, v, features) {

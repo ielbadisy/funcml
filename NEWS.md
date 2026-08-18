@@ -1,3 +1,20 @@
+# funcml 0.8.1
+
+- Printed result tables (`evaluate()`, `compare_learners()`, `tune()`,
+  `interpret(method = "calibration")`, `interpret(method = "dca")`,
+  `roc_curve()`, `auc_ci()`) now round numeric columns to 4 digits by
+  default (`digits` argument on the relevant `print()`/`summary()`
+  methods and on `auc_ci()`), instead of printing full floating-point
+  precision.
+- Swapped the SHAP waterfall/force colors: positive contributions are
+  now red, negative are green.
+- Reworked the SHAP beeswarm/summary plot (`kind = "beeswarm"` /
+  `"summary"`) to show mean |SHAP value| next to each feature name, a
+  yellow-to-purple `viridis` "plasma" feature-value gradient, and a
+  bottom legend with Low/High endpoints. Also fixed a row-order
+  misalignment bug in the per-feature value scaling introduced by the
+  0.8.0 native SHAP plot rewrite.
+
 # funcml 0.8.0
 
 - Added `densemlp` as a new learner, wrapping the published `densemlp`
