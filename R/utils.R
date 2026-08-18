@@ -65,6 +65,37 @@ infer_task <- function(y) {
   spec
 }
 
+.fork_unsafe_models <- function() {
+  # Models whose fitted state holds a non-serializable external pointer
+  # (a compiled C/C++ handle: xgboost::xgb.Booster, lightgbm's Booster,
+  # torch tensors/modules, dbarts' internal sampler). Reusing an
+  # already-fitted object of one of these across a parallel::mclapply()
+  # fork (what functionals::fmap() uses on ncores > 1 on Unix) hangs or
+  # crashes, because the child's copy of the pointer is invalid. This is
+  # different from evaluate()/tune()/compare_learners(), which each
+  # re-fit a fresh model inside the worker rather than reusing one
+  # created in the parent.
+  c("xgboost", "lightgbm", "mlp", "densemlp", "bart")
+}
+
+.safe_ncores_for_fit <- function(fit, ncores) {
+  ncores <- .validate_ncores(ncores)
+  if (is.null(ncores) || ncores <= 1L) {
+    return(ncores)
+  }
+  if (identical(.Platform$OS.type, "unix") && fit$model %in% .fork_unsafe_models()) {
+    warning(
+      sprintf(
+        "`ncores` is ignored for model '%s': its fitted state cannot be safely reused across a forked process. Running sequentially.",
+        fit$model
+      ),
+      call. = FALSE
+    )
+    return(NULL)
+  }
+  ncores
+}
+
 .funcml_map <- function(.x, .f, ncores = NULL, ...) {
   ncores <- .validate_ncores(ncores)
   if (!length(.x)) {

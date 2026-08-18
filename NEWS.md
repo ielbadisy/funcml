@@ -1,3 +1,13 @@
+# funcml 0.8.4
+
+- Fixed a hang introduced in 0.8.2: `interpret(method = "shap", ncores
+  = <n>)` with `xgboost`, `lightgbm`, `mlp`, `densemlp`, or `bart` on
+  Unix could hang indefinitely, because `functionals::fmap()` forks the
+  process (`parallel::mclapply()`) and those models' fitted state holds
+  a C/C++ handle that is not valid in the forked child. `ncores` is now
+  ignored (with a warning) for those models, falling back to
+  sequential; other models parallelize as before.
+
 # funcml 0.8.3
 
 - SHAP waterfall (`kind = "waterfall"`) is now a zero-anchored per-feature

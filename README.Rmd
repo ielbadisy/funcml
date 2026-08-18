@@ -283,6 +283,22 @@ shap_obj <- interpret(
 plot(shap_obj, kind = "waterfall")
 ```
 
+The beeswarm/summary view explains the model across many observations at once, ordered by mean absolute SHAP value and colored by feature value.
+
+```{r interpret-shap-beeswarm}
+shap_many_obj <- interpret(
+  fit = fit_obj,
+  data = demo_dat,
+  method = "shap",
+  newdata = demo_dat[1:80, , drop = FALSE],
+  nsim = 15,
+  type = "prob",
+  seed = 42
+)
+
+plot(shap_many_obj, kind = "beeswarm")
+```
+
 Other supported methods include ICE, local explanations, surrogate models, and interaction diagnostics.
 
 ## Inspect calibration

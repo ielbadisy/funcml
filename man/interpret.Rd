@@ -84,7 +84,10 @@ local neighborhood.}
 
 \item{ncores}{Optional number of CPU cores used to parallelize the
 per-observation SHAP computation (\code{method = "shap"}). \code{NULL} or \code{1}
-runs sequentially. Ignored by other methods.}
+runs sequentially. Ignored by other methods, and ignored (with a
+warning) for \code{xgboost}, \code{lightgbm}, \code{mlp}, \code{densemlp}, and \code{bart}
+fits on Unix, since reusing their fitted state across a forked
+process is unsafe.}
 
 \item{...}{Additional method-specific args.}
 }
