@@ -25,7 +25,9 @@
 \code{"summary"}, \code{"beeswarm"}, \code{"importance"}, \code{"bar"}, \code{"dependence"},
 \code{"dependence2d"}, or \code{"interaction"}.}
 
-\item{...}{Additional arguments passed to the underlying method.}
+\item{...}{Additional arguments passed to the underlying method. For
+\code{kind = "summary"}/\code{"beeswarm"}, \code{v} restricts the plot to a single
+feature (default: all interpreted features).}
 
 \item{object}{A \code{funcml_shap} object.}
 }

@@ -1745,7 +1745,9 @@ summary.funcml_calibration <- function(object, digits = 4L, ...) {
 #' @param kind Plot kind. One of `"auto"`, `"waterfall"`, `"force"`,
 #'   `"summary"`, `"beeswarm"`, `"importance"`, `"bar"`, `"dependence"`,
 #'   `"dependence2d"`, or `"interaction"`.
-#' @param ... Additional arguments passed to the underlying method.
+#' @param ... Additional arguments passed to the underlying method. For
+#'   `kind = "summary"`/`"beeswarm"`, `v` restricts the plot to a single
+#'   feature (default: all interpreted features).
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the SHAP contribution table
 #'   invisibly.
@@ -1783,7 +1785,7 @@ plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "force", "summary"
     return(shap_plot_force(df, row_id = dots$row_id %||% min(df$observation)))
   }
   if (kind %in% c("summary", "beeswarm")) {
-    return(shap_plot_beeswarm(df))
+    return(shap_plot_beeswarm(df, v = dots$v %||% NULL))
   }
   if (kind %in% c("importance", "bar")) {
     return(shap_plot_importance(df))

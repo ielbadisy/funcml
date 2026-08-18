@@ -1,3 +1,16 @@
+# funcml 0.8.3
+
+- SHAP waterfall (`kind = "waterfall"`) is now a zero-anchored per-feature
+  contribution bar chart instead of a cumulative chained waterfall: every
+  bar starts at 0 and extends to its own SHAP value, so no bar crosses
+  from one side of the reference line to the other. The vertical
+  reference line is fixed at 0 instead of the baseline prediction.
+- SHAP beeswarm/summary (`kind = "summary"`/`"beeswarm"`) now uses the
+  standard SHAP blue (low) to red (high) colorbar on the right, instead
+  of the previous bottom yellow-to-purple legend, and drops the
+  per-feature numeric labels for plain feature names. It also gained a
+  `v` argument to restrict the plot to a single feature.
+
 # funcml 0.8.2
 
 - `interpret(method = "shap")` gained an `ncores` argument that
