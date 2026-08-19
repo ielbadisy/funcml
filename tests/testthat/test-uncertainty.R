@@ -22,10 +22,10 @@ test_that("evaluate reports fold-based uncertainty intervals", {
   expect_true(all(ev$summary$conf_high >= ev$summary$mean))
 })
 
-test_that("compare_learners carries uncertainty columns through summaries", {
+test_that("compare() carries uncertainty columns through summaries", {
   skip_if_not_installed("rpart")
 
-  cmp <- compare_learners(
+  cmp <- compare(
     mtcars,
     mpg ~ wt + hp + qsec,
     models = c("glm", "rpart"),

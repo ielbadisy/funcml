@@ -31,7 +31,7 @@ These methods provide the standard \code{print()}, \code{summary()}, and \code{p
 interfaces for \code{funcml_compare} objects.
 }
 \examples{
-cmp <- compare_learners(
+cmp <- compare(
   data = mtcars,
   formula = mpg ~ wt + hp,
   models = c("glm", "rpart"),

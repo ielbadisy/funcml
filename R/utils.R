@@ -72,7 +72,7 @@ infer_task <- function(y) {
   # already-fitted object of one of these across a parallel::mclapply()
   # fork (what functionals::fmap() uses on ncores > 1 on Unix) hangs or
   # crashes, because the child's copy of the pointer is invalid. This is
-  # different from evaluate()/tune()/compare_learners(), which each
+  # different from evaluate()/tune()/compare(), which each
   # re-fit a fresh model inside the worker rather than reusing one
   # created in the parent.
   c("xgboost", "lightgbm", "mlp", "densemlp", "bart")

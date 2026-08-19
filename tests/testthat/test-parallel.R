@@ -62,10 +62,10 @@ test_that("tune matches sequential results when parallelized across configs and 
   expect_equal(par_tune$nested$summary, seq_tune$nested$summary)
 })
 
-test_that("compare_learners matches sequential results when parallelized across models", {
+test_that("compare() matches sequential results when parallelized across models", {
   skip_if_not_installed("rpart")
 
-  seq_cmp <- compare_learners(
+  seq_cmp <- compare(
     data = mtcars,
     formula = mpg ~ wt + hp + qsec,
     models = c("glm", "rpart"),
@@ -74,7 +74,7 @@ test_that("compare_learners matches sequential results when parallelized across 
     seed = 5
   )
 
-  par_cmp <- compare_learners(
+  par_cmp <- compare(
     data = mtcars,
     formula = mpg ~ wt + hp + qsec,
     models = c("glm", "rpart"),
@@ -87,7 +87,7 @@ test_that("compare_learners matches sequential results when parallelized across 
   expect_equal(par_cmp$results, seq_cmp$results)
 })
 
-test_that("tuned compare_learners matches sequential results when parallelized across models", {
+test_that("tuned compare() matches sequential results when parallelized across models", {
   skip_if_not_installed("rpart")
   skip_if_not_installed("glmnet")
 
@@ -96,7 +96,7 @@ test_that("tuned compare_learners matches sequential results when parallelized a
     glmnet = expand.grid(alpha = c(0, 1), lambda = c(0.01, 0.1), stringsAsFactors = FALSE)
   )
 
-  seq_cmp <- compare_learners(
+  seq_cmp <- compare(
     data = mtcars,
     formula = mpg ~ wt + hp + qsec,
     models = c("rpart", "glmnet"),
@@ -108,7 +108,7 @@ test_that("tuned compare_learners matches sequential results when parallelized a
     seed = 13
   )
 
-  par_cmp <- compare_learners(
+  par_cmp <- compare(
     data = mtcars,
     formula = mpg ~ wt + hp + qsec,
     models = c("rpart", "glmnet"),
@@ -161,7 +161,7 @@ test_that("parallel tuning preserves the downstream workflow pipeline", {
     seed = 23,
     ncores = 2
   )
-  cmp_obj <- compare_learners(
+  cmp_obj <- compare(
     data = mtcars,
     formula = mpg ~ wt + hp + qsec,
     models = c("glm", "rpart"),

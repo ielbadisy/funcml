@@ -1,3 +1,12 @@
+# funcml 0.8.9
+
+- Renamed `compare_learners()` to `compare()` for consistency with the
+  other short, verb-named entry points (`fit()`, `evaluate()`, `tune()`,
+  `interpret()`, `estimate()`). This is a breaking change with no
+  backward-compatible alias: code calling `compare_learners()` must be
+  updated to call `compare()`. Note that `compare()` masks
+  `testthat::compare()` when both packages are attached.
+
 # funcml 0.8.8
 
 - Prepared for CRAN resubmission (previous CRAN version: 0.7.1):

@@ -26,7 +26,7 @@ It provides one explicit interface for the core modeling workflow:
 - generate predictions with `predict()`
 - validate performance with `evaluate()`
 - tune hyperparameters with `tune()`
-- compare learners with `compare_learners()`
+- compare learners with `compare()`
 - interpret fitted models with `interpret()`
 - estimate causal effects with `estimate()`
 
@@ -54,7 +54,7 @@ fit()
 predict()
 evaluate()
 tune()
-compare_learners()
+compare()
 interpret()
 estimate()
 ```
@@ -336,11 +336,11 @@ plot(tune_obj)
 
 ## Compare learners
 
-`compare_learners()` benchmarks multiple learners under a common
-resampling design.
+`compare()` benchmarks multiple learners under a common resampling
+design.
 
 ``` r
-compare_obj <- compare_learners(
+compare_obj <- compare(
   data = demo_dat,
   formula = status ~ age + gender + bmi + diabetes + smoke + covered_health,
   models = c("glm", "rpart", "xgboost"),
@@ -638,7 +638,7 @@ citation("funcml")
 #> To cite package 'funcml' in publications use:
 #> 
 #>   El Badisy I (2026). _funcml: Functional Machine Learning Framework_.
-#>   R package version 0.8.8, <https://github.com/ielbadisy/funcml>.
+#>   R package version 0.8.9, <https://github.com/ielbadisy/funcml>.
 #> 
 #> A BibTeX entry for LaTeX users is
 #> 
@@ -646,7 +646,7 @@ citation("funcml")
 #>     title = {funcml: Functional Machine Learning Framework},
 #>     author = {Imad {El Badisy}},
 #>     year = {2026},
-#>     note = {R package version 0.8.8},
+#>     note = {R package version 0.8.9},
 #>     url = {https://github.com/ielbadisy/funcml},
 #>   }
 ```

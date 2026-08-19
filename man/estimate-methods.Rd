@@ -11,16 +11,14 @@
 
 \method{summary}{funcml_estimand}(object, ...)
 
-\method{plot}{funcml_estimand}(
-  x,
-  style = c("outcomes", "effects"),
-  bins = 24,
-  alpha = 0.45,
-  ...
-)
+\method{plot}{funcml_estimand}(x, style = c("outcomes", "effects"), bins = 24, alpha = 0.45, ...)
 }
 \arguments{
 \item{x}{A \code{funcml_estimand} object.}
+
+\item{...}{Additional arguments passed to the underlying method.}
+
+\item{object}{A \code{funcml_estimand} object.}
 
 \item{style}{Plot style. \code{"outcomes"} shows the model-implied potential
 outcome distributions under treatment and control. \code{"effects"} shows the
@@ -29,10 +27,6 @@ existing histogram of estimated unit-level effects.}
 \item{bins}{Number of bins used when \code{style = "effects"}.}
 
 \item{alpha}{Fill opacity used when \code{style = "outcomes"}.}
-
-\item{...}{Additional arguments passed to the underlying method.}
-
-\item{object}{A \code{funcml_estimand} object.}
 }
 \value{
 \code{print()} and \code{summary()} return the input object or summary table

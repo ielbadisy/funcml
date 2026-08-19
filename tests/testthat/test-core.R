@@ -470,10 +470,10 @@ test_that("xgboost and lightgbm reconstruct multiclass probabilities column-wise
   expect_gt(mean(pred_lgb == dat$Activity), 0.95)
 })
 
-test_that("compare_learners compares multiple models across metrics", {
+test_that("compare() compares multiple models across metrics", {
   skip_if_not_installed("rpart")
 
-  cmp <- compare_learners(
+  cmp <- compare(
     mtcars,
     mpg ~ wt + hp + qsec,
     models = c("glm", "rpart"),
@@ -488,11 +488,11 @@ test_that("compare_learners compares multiple models across metrics", {
   expect_s3_class(plot(cmp), "ggplot")
 })
 
-test_that("compare_learners supports tuned comparisons with multiple reported metrics", {
+test_that("compare() supports tuned comparisons with multiple reported metrics", {
   skip_if_not_installed("rpart")
   skip_if_not_installed("xgboost")
 
-  cmp <- compare_learners(
+  cmp <- compare(
     mtcars,
     mpg ~ wt + hp + qsec,
     models = c("rpart", "xgboost"),

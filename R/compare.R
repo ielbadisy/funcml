@@ -19,7 +19,7 @@
 #' @param ... Additional arguments passed to `evaluate()` or `tune()` / `fit()`.
 #' @return A `funcml_compare` object.
 #' @examples
-#' cmp <- compare_learners(
+#' cmp <- compare(
 #'   data = mtcars,
 #'   formula = mpg ~ wt + hp,
 #'   models = c("glm", "rpart"),
@@ -28,7 +28,7 @@
 #' )
 #' cmp$results
 #' @export
-compare_learners <- function(data, formula, models, specs = NULL,
+compare <- function(data, formula, models, specs = NULL,
                              resampling = cv(5), metrics = NULL, type = NULL,
                              conf_level = 0.95, seed = NULL, ncores = NULL,
                              tune = FALSE, grids = NULL,
@@ -206,7 +206,7 @@ compare_learners <- function(data, formula, models, specs = NULL,
 #' @name compare-methods
 #' @aliases print.funcml_compare summary.funcml_compare plot.funcml_compare
 #' @examples
-#' cmp <- compare_learners(
+#' cmp <- compare(
 #'   data = mtcars,
 #'   formula = mpg ~ wt + hp,
 #'   models = c("glm", "rpart"),
