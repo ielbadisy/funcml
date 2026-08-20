@@ -1,10 +1,10 @@
 Package: funcml
 Type: Package
 Title: Functional Machine Learning Framework
-Version: 0.8.9
+Version: 0.9.0
 Depends: R (>= 3.5.0)
 Authors@R: c(
-    person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
+    person(given = "Imad", family = "EL BADISY", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
   )
 Description: A compact and explicit machine learning framework for
     supervised learning, resampling-based evaluation, hyperparameter
@@ -28,13 +28,13 @@ Description: A compact and explicit machine learning framework for
     g-computation follows Naimi, Cole, and Kennedy (2016)
     <doi:10.1093/ije/dyw323>.
 License: GPL-3
-URL: https://github.com/ielbadisy/funcml
+URL: https://github.com/ielbadisy/funcml, https://CRAN.R-project.org/package=funcml
 BugReports: https://github.com/ielbadisy/funcml/issues
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-Imports: stats, utils, methods, ggplot2, functionals, grDevices, tools,
+Imports: stats, utils, ggplot2, functionals, grDevices, tools,
     data.table, MASS, mgcv, nnet, rpart, glmnet, ranger, e1071,
     randomForest, gbm, C50, kknn, earth, naivebayes, mda, ada, pls,
     partykit, dbarts, torch, xgboost, lightgbm, densemlp
