@@ -28,7 +28,7 @@ Description: A compact and explicit machine learning framework for
     g-computation follows Naimi, Cole, and Kennedy (2016)
     <doi:10.1093/ije/dyw323>.
 License: GPL-3
-URL: https://github.com/ielbadisy/funcml, https://CRAN.R-project.org/package=funcml
+URL: https://CRAN.R-project.org/package=funcml
 BugReports: https://github.com/ielbadisy/funcml/issues
 Encoding: UTF-8
 LazyData: true
