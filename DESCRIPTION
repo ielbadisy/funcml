@@ -4,7 +4,7 @@ Title: Functional Machine Learning Framework
 Version: 0.9.0
 Depends: R (>= 3.5.0)
 Authors@R: c(
-    person(given = "Imad", family = "EL BADISY", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
+    person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")
   )
 Description: A compact and explicit machine learning framework for
     supervised learning, resampling-based evaluation, hyperparameter
