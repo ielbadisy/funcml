@@ -4,10 +4,10 @@
 
 ## R CMD check results
 
-* `R CMD check --as-cran funcml_0.8.8.tar.gz`
+* `R CMD check --as-cran funcml_0.9.0.tar.gz`
   * 0 errors
   * 0 warnings
-  * 0 notes
+  * 0 notes (locally)
 
 ## Notes
 
@@ -26,4 +26,11 @@
   removed the `shapviz` runtime dependency in favor of native ggplot2
   SHAP plots; reworked the plotting theme; migrated internal row
   aggregation to `data.table`; parallelized SHAP computation via
-  `functionals`; various plotting and printing fixes.
+  `functionals`; renamed `compare_learners()` to `compare()` (breaking
+  change, no alias); removed the unused `methods` Import and added
+  explicit `importFrom` declarations for base-generic calls (`predict()`,
+  `model.frame()`, `model.response()`, `setNames()`, `median()`,
+  `tail()`) that R CMD check previously flagged as undefined globals;
+  excluded `LICENSE.md` from the build (package uses the standard
+  `GPL-3` license text bundled by R; the file remains in the GitHub
+  repo only) to resolve a "non-standard file at top level" NOTE.

@@ -1,3 +1,14 @@
+# funcml 0.9.0
+
+- Prepared for CRAN resubmission: removed the unused `methods` package
+  from `Imports`, added explicit `importFrom` declarations for
+  `predict()`, `model.frame()`, `model.response()`, `setNames()`,
+  `median()` (stats) and `tail()` (utils) via a new package-level
+  `R/funcml-package.R`, and excluded `LICENSE.md` from the build (the
+  package uses the standard `GPL-3` license text that R bundles
+  automatically; the file remains in the GitHub repo only). `R CMD
+  check --as-cran` now passes with 0 errors, 0 warnings, 0 notes.
+
 # funcml 0.8.9
 
 - Renamed `compare_learners()` to `compare()` for consistency with the
