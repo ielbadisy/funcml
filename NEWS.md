@@ -1,3 +1,17 @@
+# funcml 1.1.0
+
+- `compare(tune = TRUE)` no longer requires `grids`. Each learner is now
+  tuned over a built-in default grid when none is supplied; a single data
+  frame still applies to every learner, and a named list overrides
+  individual learners while the rest fall back to their defaults. Learners
+  with no tunable hyperparameters (`glm`, `lda`, `qda`, `fda`,
+  `naivebayes`, `gam`) are fitted once and reported with `tuned = FALSE`.
+- New `default_grid()` returns the built-in tuning grid for a learner, so
+  it can be retrieved, edited, and passed back through `grids`.
+- `compare()` gains a `tuned` argument as an alias for `tune`, so
+  `compare(..., tuned = TRUE)` now runs tuning instead of being silently
+  passed through `...` and ignored.
+
 # funcml 1.0.0
 
 - Replaced the `densemlp` learner with `dmlp` (native C++/RcppArmadillo

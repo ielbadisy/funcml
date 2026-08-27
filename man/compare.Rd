@@ -18,6 +18,7 @@ compare(
   tune = FALSE,
   grids = NULL,
   metric = NULL,
+  tuned = NULL,
   ...
 )
 }
@@ -46,10 +47,20 @@ or \code{1} runs sequentially.}
 
 \item{tune}{Logical; if \code{TRUE}, run \code{tune()} for each learner before comparing.}
 
-\item{grids}{Optional tuning grids. Supply either a single data frame to reuse
-across learners or a named list of data frames keyed by learner id.}
+\item{grids}{Optional tuning grids, used only when \code{tune = TRUE}. Leave \code{NULL}
+(the default) to tune each learner over its built-in grid (see
+\code{\link[=default_grid]{default_grid()}}). Supply a single data frame to reuse one grid across every
+learner, or a named list of data frames keyed by learner id to override
+individual learners; any learner absent from the list falls back to its
+built-in grid. Learners with no tunable hyperparameters (e.g. \code{glm}, \code{lda},
+\code{qda}, \code{fda}, \code{naivebayes}, \code{gam}) are fitted once at their defaults and
+reported with \code{tuned = FALSE}.}
 
 \item{metric}{Optimization metric used when \code{tune = TRUE}.}
+
+\item{tuned}{Alias for \code{tune}, kept because the results table and \code{print()}
+output label the column \code{tuned}. If supplied (non-\code{NULL}), it overrides
+\code{tune}.}
 
 \item{...}{Additional arguments passed to \code{evaluate()} or \code{tune()} / \code{fit()}.}
 }
