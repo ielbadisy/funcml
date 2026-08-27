@@ -274,6 +274,50 @@
   as.numeric(pred)
 }
 
+.default_tune_grids <- function() {
+  list(
+    rpart        = expand.grid(cp = c(0.001, 0.01, 0.05), minsplit = c(5L, 20L)),
+    glmnet       = data.frame(alpha = c(0, 0.5, 1)),
+    ranger       = data.frame(min.node.size = c(1L, 5L, 10L)),
+    randomForest = data.frame(nodesize = c(1L, 5L, 10L)),
+    xgboost      = expand.grid(max_depth = c(2L, 4L, 6L), eta = c(0.05, 0.1, 0.3)),
+    lightgbm     = expand.grid(num_leaves = c(15L, 31L, 63L), learning_rate = c(0.01, 0.05)),
+    gbm          = expand.grid(interaction.depth = c(1L, 3L, 5L), shrinkage = c(0.01, 0.1)),
+    nnet         = expand.grid(size = c(3L, 5L, 10L), decay = c(0, 0.01, 0.1)),
+    e1071_svm    = data.frame(cost = c(0.1, 1, 10)),
+    kknn         = data.frame(k = c(3L, 5L, 7L, 11L)),
+    C50          = data.frame(trials = c(1L, 10L, 20L)),
+    earth        = data.frame(degree = c(1L, 2L)),
+    ctree        = data.frame(mincriterion = c(0.90, 0.95, 0.99)),
+    cforest      = data.frame(mincriterion = c(0, 0.9)),
+    adaboost     = data.frame(iter = c(20L, 50L, 100L)),
+    pls          = data.frame(ncomp = c(1L, 2L, 3L, 5L)),
+    mlp          = expand.grid(lr = c(1e-3, 1e-2), dropout = c(0, 0.2)),
+    dmlp         = expand.grid(lr = c(1e-3, 1e-2), dropout = c(0, 0.2)),
+    bart         = data.frame(ntree = c(50L, 200L))
+  )
+}
+
+#' Built-in tuning grid for a learner.
+#'
+#' Returns the small default hyperparameter grid `compare(tune = TRUE)` uses for
+#' a learner when no grid is supplied via `grids`. Learners with no tunable
+#' hyperparameters (e.g. `glm`, `lda`, `qda`, `fda`, `naivebayes`, `gam`) return
+#' `NULL`. The grids are intentionally coarse; retrieve one, edit it, and pass it
+#' back through `grids` for a finer search.
+#'
+#' @param model Learner id, as accepted by [fit()].
+#' @return A data frame of hyperparameter combinations, or `NULL` if the learner
+#'   has no tunable hyperparameters.
+#' @examples
+#' default_grid("ranger")
+#' default_grid("glm")
+#' @export
+default_grid <- function(model) {
+  funcml_registry(model)
+  .default_tune_grids()[[model]]
+}
+
 build_registry <- function() {
   list(
     glm = list(

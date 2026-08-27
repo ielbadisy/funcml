@@ -1,7 +1,7 @@
 Package: funcml
 Type: Package
 Title: Functional Machine Learning Framework
-Version: 1.0.0
+Version: 1.1.0
 Depends: R (>= 3.5.0)
 Authors@R: c(
     person(given = "Imad", family = "El Badisy", role = c("aut", "cre"), email = "elbadisyimad@gmail.com")

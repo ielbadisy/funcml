@@ -13,8 +13,17 @@
 #' @param ncores Optional number of CPU cores used to compare learners. `NULL`
 #'   or `1` runs sequentially.
 #' @param tune Logical; if `TRUE`, run `tune()` for each learner before comparing.
-#' @param grids Optional tuning grids. Supply either a single data frame to reuse
-#'   across learners or a named list of data frames keyed by learner id.
+#' @param tuned Alias for `tune`, kept because the results table and `print()`
+#'   output label the column `tuned`. If supplied (non-`NULL`), it overrides
+#'   `tune`.
+#' @param grids Optional tuning grids, used only when `tune = TRUE`. Leave `NULL`
+#'   (the default) to tune each learner over its built-in grid (see
+#'   [default_grid()]). Supply a single data frame to reuse one grid across every
+#'   learner, or a named list of data frames keyed by learner id to override
+#'   individual learners; any learner absent from the list falls back to its
+#'   built-in grid. Learners with no tunable hyperparameters (e.g. `glm`, `lda`,
+#'   `qda`, `fda`, `naivebayes`, `gam`) are fitted once at their defaults and
+#'   reported with `tuned = FALSE`.
 #' @param metric Optimization metric used when `tune = TRUE`.
 #' @param ... Additional arguments passed to `evaluate()` or `tune()` / `fit()`.
 #' @return A `funcml_compare` object.
@@ -32,7 +41,13 @@ compare <- function(data, formula, models, specs = NULL,
                              resampling = cv(5), metrics = NULL, type = NULL,
                              conf_level = 0.95, seed = NULL, ncores = NULL,
                              tune = FALSE, grids = NULL,
-                             metric = NULL, ...) {
+                             metric = NULL, tuned = NULL, ...) {
+  if (!is.null(tuned)) {
+    if (!is.logical(tuned) || length(tuned) != 1L || is.na(tuned)) {
+      stop("`tuned` must be a single logical value.", call. = FALSE)
+    }
+    tune <- tuned
+  }
   ncores <- .validate_ncores(ncores)
   if (!is.character(models) || !length(models)) {
     stop("`models` must be a non-empty character vector.", call. = FALSE)
@@ -93,6 +108,34 @@ compare <- function(data, formula, models, specs = NULL,
     rows <- .funcml_map(model_ids, function(i) {
       model_id <- models[[i]]
       grid <- .compare_grid_for_model(grids, model_id)
+
+      if (is.null(grid)) {
+        eval_args <- c(
+          list(
+            data = data,
+            formula = formula,
+            model = model_id,
+            spec = specs[[model_id]] %||% list(),
+            resampling = resampling,
+            metrics = metrics_use,
+            type = type,
+            conf_level = conf_level,
+            seed = model_seeds[[i]],
+            ncores = NULL
+          ),
+          dots
+        )
+        eval_obj <- do.call(evaluate, eval_args)
+        details[[model_id]] <<- list(tune = NULL, evaluate = eval_obj)
+
+        out <- eval_obj$summary
+        out$model <- model_id
+        out$tuned <- FALSE
+        out$best_spec <- NA_character_
+        out$opt_metric <- NA_character_
+        return(out)
+      }
+
       tune_args <- c(
         list(
           data = data,
@@ -155,16 +198,13 @@ compare <- function(data, formula, models, specs = NULL,
 }
 
 .compare_grid_for_model <- function(grids, model_id) {
-  if (is.null(grids)) {
-    stop("`grids` must be supplied when `tune = TRUE`.", call. = FALSE)
-  }
   if (is.data.frame(grids)) {
     return(grids)
   }
-  if (!is.list(grids) || is.null(grids[[model_id]])) {
-    stop(sprintf("Missing tuning grid for model '%s'.", model_id), call. = FALSE)
+  if (is.list(grids) && !is.null(grids[[model_id]])) {
+    return(grids[[model_id]])
   }
-  grids[[model_id]]
+  default_grid(model_id)
 }
 
 .format_compare_spec <- function(x, exclude = character()) {
