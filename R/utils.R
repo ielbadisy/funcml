@@ -74,8 +74,10 @@ infer_task <- function(y) {
   # crashes, because the child's copy of the pointer is invalid. This is
   # different from evaluate()/tune()/compare(), which each
   # re-fit a fresh model inside the worker rather than reusing one
-  # created in the parent.
-  c("xgboost", "lightgbm", "mlp", "densemlp", "bart")
+  # created in the parent. `dmlp`'s fitted state is plain R matrices/lists
+  # (no external pointer, unlike `densemlp`'s torch tensors), so it is
+  # fork-safe and deliberately excluded here.
+  c("xgboost", "lightgbm", "mlp", "bart")
 }
 
 .safe_ncores_for_fit <- function(fit, ncores) {

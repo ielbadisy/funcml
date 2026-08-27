@@ -1,3 +1,15 @@
+# funcml 1.0.0
+
+- Replaced the `densemlp` learner with `dmlp` (native C++/RcppArmadillo
+  dense MLP, no `torch`/`libtorch` dependency, faster to fit than
+  `densemlp`). `model = "dmlp"` in `fit()`/`learners()`; `model =
+  "densemlp"` is no longer available. `densemlp` dropped from `Imports`
+  in favor of `dmlp`. `dmlp`'s fitted state is plain R matrices/lists
+  (not torch tensors), so unlike `densemlp` it does not need the
+  `interpret(method = "shap", ncores = <n>)` fork-safety workaround
+  documented in 0.8.4 — `dmlp` fits now parallelize normally under
+  `ncores > 1` on Unix.
+
 # funcml 0.9.0
 
 - Prepared for CRAN resubmission: removed the unused `methods` package

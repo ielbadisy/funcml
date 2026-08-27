@@ -412,7 +412,7 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' @param ncores Optional number of CPU cores used to parallelize the
 #'   per-observation SHAP computation (`method = "shap"`). `NULL` or `1`
 #'   runs sequentially. Ignored by other methods, and ignored (with a
-#'   warning) for `xgboost`, `lightgbm`, `mlp`, `densemlp`, and `bart`
+#'   warning) for `xgboost`, `lightgbm`, `mlp`, and `bart`
 #'   fits on Unix, since reusing their fitted state across a forked
 #'   process is unsafe.
 #' @param ... Additional method-specific args.
