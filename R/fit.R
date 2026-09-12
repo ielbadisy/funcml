@@ -3,7 +3,7 @@
 #' Registered learner ids currently include:
 #' regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `mlp`,
 #' `densemlp`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
-#' `lightgbm`, `xgboost`, `stacking`, `superlearner`;
+#' `lightgbm`, `xgboost`, `fastgbm`, `stacking`, `superlearner`;
 #' regression plus binary classification: `gam`, `bart`;
 #' classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`;
 #' binary classification only: `adaboost`;
@@ -89,7 +89,7 @@ create_predict <- function(obj, adapter, state) {
 #' `learners()` returns the registry keys accepted by [fit()]. Task support is:
 #' regression and classification: `glm`, `rpart`, `glmnet`, `ranger`, `nnet`, `mlp`,
 #' `densemlp`, `e1071_svm`, `randomForest`, `gbm`, `kknn`, `ctree`, `cforest`,
-#' `lightgbm`, `xgboost`, `stacking`, `superlearner`;
+#' `lightgbm`, `xgboost`, `fastgbm`, `stacking`, `superlearner`;
 #' regression plus binary classification: `gam`, `bart`, `earth`;
 #' classification only: `C50`, `naivebayes`, `fda`, `lda`, `qda`;
 #' binary classification only: `adaboost`;
@@ -132,6 +132,7 @@ learners <- function() {
     lightgbm = "lightgbm",
     bart = "dbarts",
     xgboost = "xgboost",
+    fastgbm = "fastgbm",
     stacking = "funcml",
     superlearner = "funcml"
   )

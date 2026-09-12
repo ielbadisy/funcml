@@ -1140,6 +1140,32 @@ build_registry <- function() {
         data.frame(feature = imp$Feature, importance = imp$Gain, row.names = NULL)
       }
     ),
+    fastgbm = list(
+      package = "fastgbm",
+      tasks = c("regression", "classification"),
+      defaults = list(
+        ntrees = 200L,
+        learning_rate = 0.1,
+        max_depth = 5L,
+        min_node_size = 10L,
+        max_bins = 255L,
+        subsample = 0.8,
+        colsample = 0.8,
+        lambda = 1,
+        gamma = 0,
+        min_child_weight = 1,
+        threads = 0L,
+        seed = 1L,
+        verbose = FALSE
+      ),
+      supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
+      fit_xy = function(X, y, spec, task, levels, ...) {
+        .fastgbm_fit(X = X, y = y, spec = spec, task = task, levels = levels)
+      },
+      predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        .fastgbm_predict(state = state, Xnew = Xnew, type = type, levels = levels)
+      }
+    ),
     stacking = list(
       package = "stats",
       tasks = c("regression", "classification"),

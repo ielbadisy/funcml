@@ -1,3 +1,11 @@
+# funcml 0.9.2
+
+- Added `fastgbm` as a new registry learner: a histogram-based gradient
+  boosting engine (RcppParallel) covering regression, binary, and
+  multiclass classification, alongside the existing `gbm`, `xgboost`, and
+  `lightgbm` tree ensembles. `fastgbm` is not yet on CRAN, so it is listed
+  under `Remotes: ielbadisy/fastgbm`.
+
 # funcml 0.9.1
 
 - Fixed the `densemlp` learner wrapper: it was still calling the retired
