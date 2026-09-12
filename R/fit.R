@@ -152,7 +152,7 @@ learners <- function() {
   if (!requireNamespace(engine_pkg, quietly = TRUE)) {
     return(FALSE)
   }
-  if (identical(id, "mlp") || identical(id, "densemlp")) {
+  if (identical(id, "mlp")) {
     return(isTRUE(tryCatch(torch::torch_is_installed(), error = function(e) FALSE)))
   }
   TRUE

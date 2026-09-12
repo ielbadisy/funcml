@@ -1,3 +1,14 @@
+# funcml 0.9.1
+
+- Fixed the `densemlp` learner wrapper: it was still calling the retired
+  torch-based `densemlp` API (`task = "classification"`, `new_data`,
+  `activation`/`optimizer`/`weight_decay`/`label_smoothing`/`focal_gamma`/
+  `device`). `densemlp` on CRAN is now a C++/RcppArmadillo engine with a
+  `task = "regression"/"binary"/"multiclass"` interface and no `torch`
+  dependency; the wrapper, its default hyperparameters, and the
+  `torch_is_installed()` availability check (only `mlp` still needs it)
+  and fork-safety list are all updated to match.
+
 # funcml 0.8.9
 
 - Renamed `compare_learners()` to `compare()` for consistency with the
