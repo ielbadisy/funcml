@@ -1,10 +1,10 @@
-# Internal data.table helpers.
+# Internal row-binding helper.
 #
 # funcml's public return objects (`$folds`, `$results`, `$curves`, ...) are
 # documented and tested as plain data.frames, and downstream code throughout
 # the package relies on base-R `[` / `[<-` semantics on them. `.rbind_dt()`
 # swaps the row-accumulation step (previously `do.call(rbind, list_of_dfs)`,
-# which re-copies the growing frame on every call) for `data.table::rbindlist()`,
+# which re-copies the growing frame on every call) for `basetable::rbindfill()`,
 # then converts back to a plain data.frame so every caller keeps working
 # unchanged.
 
@@ -13,5 +13,5 @@
   if (!length(x)) {
     return(data.frame())
   }
-  as.data.frame(data.table::rbindlist(x, fill = TRUE, use.names = TRUE))
+  as.data.frame(basetable::rbindfill(x, fill = TRUE))
 }

@@ -1,3 +1,9 @@
+# funcml 0.9.3
+
+- Migrated the internal `.rbind_dt()` row-accumulation helper from
+  `data.table` to `basetable`. `data.table` dropped from `Imports`
+  entirely (this was its only use site); `basetable` added.
+
 # funcml 0.9.2
 
 - Added `fastgbm` as a new registry learner: a histogram-based gradient
