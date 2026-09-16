@@ -1,3 +1,8 @@
+# funcml 0.9.4
+
+- Dropped `Remotes: ielbadisy/fastgbm` now that `fastgbm` is itself on CRAN;
+  it was the only thing blocking this package's own CRAN resubmission.
+
 # funcml 0.9.3
 
 - Migrated the internal `.rbind_dt()` row-accumulation helper from
