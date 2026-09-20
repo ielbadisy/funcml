@@ -8,7 +8,7 @@ tune(
   data,
   formula,
   model,
-  grid,
+  grid = NULL,
   resampling = cv(5),
   metric = NULL,
   type = NULL,
@@ -27,7 +27,8 @@ tune(
 
 \item{model}{Learner id.}
 
-\item{grid}{Data frame of hyperparameter combinations.}
+\item{grid}{Data frame of hyperparameter combinations. When \code{NULL}, the
+built-in \code{\link[=default_tune_grid]{default_tune_grid()}} for \code{model} is used.}
 
 \item{resampling}{Resampling object.}
 
