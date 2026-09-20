@@ -1,3 +1,29 @@
+# funcml 0.9.5
+
+Bug fixes found while benchmarking every learner on 63 biomedical datasets.
+
+- `compare(ncores > 1)` now keeps the per-fold results in `$details`. The
+  parallel worker stored them with `<<-`, which is lost in a forked process,
+  so only the summaries survived.
+- The default `glmnet` learner is no longer an intercept-only model. With
+  `lambda = NULL` it predicted at the largest lambda of the path, where every
+  coefficient is zero; lambda is now chosen by cross-validation
+  (`cv.glmnet()`, `lambda.min`). `glmnet` also accepts a single predictor.
+- `gam`: predictors with too few distinct values (binary, dummy-coded) enter
+  linearly instead of as smooths, and non-syntactic column names such as
+  `agegp35-44` no longer break the formula.
+- `randomForest` predicts correctly when dummy-column names are not syntactic;
+  the new data was built with `check.names = TRUE` and no longer matched the
+  training columns.
+- `adaboost` handles non-syntactic column names and maps the probability
+  columns to the class labels by the sorted label order that `ada` uses.
+- `stacking` and `superlearner` no longer include `glm` (binary only) among the
+  default base learners for a multiclass outcome.
+- New `default_tune_grid()` returns a default hyperparameter grid for each
+  learner. `tune()` and `compare(tune = TRUE)` use it when `grid` or `grids`
+  is not supplied; a learner with no hyperparameters is evaluated with its own
+  `specs` entry. Previously they stopped with "`grids` must be supplied".
+
 # funcml 0.9.4
 
 - Dropped `Remotes: ielbadisy/fastgbm` now that `fastgbm` is itself on CRAN;
