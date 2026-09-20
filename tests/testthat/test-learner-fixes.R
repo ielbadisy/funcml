@@ -86,12 +86,20 @@ test_that("adaboost handles non-syntactic names and keeps the class order", {
   expect_gt(auc_of(prob_b[, "b_case"], d2$y, "b_case"), 0.7)
 })
 
+test_that("ensemble default base learners exclude glm for a multiclass outcome", {
+  multi <- funcml:::.ensemble_default_learners("classification", levels = c("a", "b", "c"))
+  binary <- funcml:::.ensemble_default_learners("classification", levels = c("a", "b"))
+  expect_false("glm" %in% multi)
+  expect_true("glm" %in% binary)
+  expect_true(length(multi) >= 2L)
+})
+
 test_that("stacking and superlearner run on a multiclass outcome", {
   d <- iris
   names(d)[5] <- "y"
+  # explicit base learners without a torch dependency, so the test runs where torch is not installed
   for (id in c("stacking", "superlearner")) {
-    fit_e <- fit(y ~ ., d, id)
-    expect_false("glm" %in% fit_e$state$learners)
+    fit_e <- fit(y ~ ., d, id, spec = list(learners = c("rpart", "kknn")))
     prob <- predict(fit_e, d[c(1, 51, 101), ], type = "prob")
     expect_equal(dim(prob), c(3L, 3L))
     expect_equal(unname(rowSums(prob)), rep(1, 3), tolerance = 1e-6)
