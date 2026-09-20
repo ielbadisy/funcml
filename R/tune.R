@@ -3,7 +3,8 @@
 #' @param data Data frame.
 #' @param formula Model formula.
 #' @param model Learner id.
-#' @param grid Data frame of hyperparameter combinations.
+#' @param grid Data frame of hyperparameter combinations. When `NULL`, the
+#'   built-in [default_tune_grid()] for `model` is used.
 #' @param resampling Resampling object.
 #' @param metric Metric to optimize.
 #' @param type Prediction type override.
@@ -29,13 +30,19 @@
 #' )
 #' tune_obj$best
 #' @export
-tune <- function(data, formula, model, grid, resampling = cv(5),
+tune <- function(data, formula, model, grid = NULL, resampling = cv(5),
                  metric = NULL, type = NULL,
                  search = c("grid", "random"), n_evals = NULL,
                  outer_resampling = NULL, seed = NULL,
                  ncores = NULL, ...) {
   ncores <- .validate_ncores(ncores)
   search <- match.arg(search)
+  if (is.null(grid)) {
+    grid <- default_tune_grid(model, data = data, formula = formula)
+    if (is.null(grid)) {
+      stop(sprintf("Model '%s' has no tunable hyperparameters; supply `grid` or use `evaluate()`.", model), call. = FALSE)
+    }
+  }
   if (!is.data.frame(grid) || !nrow(grid)) {
     stop("`grid` must be a non-empty data frame.", call. = FALSE)
   }
