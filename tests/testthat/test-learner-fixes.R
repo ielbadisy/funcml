@@ -41,6 +41,20 @@ test_that("default glmnet is not an intercept-only model", {
   expect_gt(auc_of(prob[, 2], d$am, "1"), 0.8)
 })
 
+test_that("glmnet with a given lambda fits along a path and does not return an empty model", {
+  skip_if_not_installed("glmnet")
+  set.seed(3)
+  n <- 3000
+  d <- data.frame(matrix(stats::rnorm(n * 40), n, 40))
+  d$y <- factor(ifelse(stats::runif(n) < stats::plogis(d$X1 - d$X2 + 0.5 * d$X3), "yes", "no"), levels = c("no", "yes"))
+  fit_g <- fit(y ~ ., d, "glmnet", spec = list(alpha = 0, lambda = 1e-4))
+  path <- fit_g$state$state$lambda
+  expect_gt(length(path), 1L)
+  expect_true(any(abs(path - 1e-4) < 1e-12))
+  prob <- predict(fit_g, d, type = "prob")
+  expect_gt(stats::sd(prob[, 2]), 0.05)
+})
+
 test_that("glmnet accepts a single predictor", {
   skip_if_not_installed("glmnet")
   fit_g <- fit(mpg ~ wt, mtcars, "glmnet")
