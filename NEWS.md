@@ -19,6 +19,10 @@ Bug fixes found while benchmarking every learner on 63 biomedical datasets.
   columns to the class labels by the sorted label order that `ada` uses.
 - `stacking` and `superlearner` no longer include `glm` (binary only) among the
   default base learners for a multiclass outcome.
+- `glmnet` with a given `lambda` (as in tuning grids) is fitted along the whole
+  path with that lambda added, instead of from a single cold start. A single
+  small lambda took minutes on 15,000 rows and often failed to converge,
+  returning an empty (intercept-only) model.
 - New `default_tune_grid()` returns a default hyperparameter grid for each
   learner. `tune()` and `compare(tune = TRUE)` use it when `grid` or `grids`
   is not supplied; a learner with no hyperparameters is evaluated with its own
