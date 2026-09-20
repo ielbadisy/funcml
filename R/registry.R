@@ -387,7 +387,12 @@ build_registry <- function() {
             lambda_sel <- cv$lambda.min
           }
         } else {
-          fit <- glmnet::glmnet(x = X, y = y, family = family, alpha = spec$alpha, lambda = spec$lambda)
+          # Fit the whole path with the requested lambda added to it. A single small lambda fitted from
+          # a cold start converges very slowly on large data (minutes on 15,000 rows) and often fails,
+          # returning an empty (intercept-only) model; along the path each lambda starts from the last.
+          path <- glmnet::glmnet(x = X, y = y, family = family, alpha = spec$alpha)$lambda
+          lambdas <- sort(unique(c(path, spec$lambda)), decreasing = TRUE)
+          fit <- glmnet::glmnet(x = X, y = y, family = family, alpha = spec$alpha, lambda = lambdas)
           lambda_sel <- spec$lambda[[1L]]
         }
         list(state = fit, family = family, lambda_sel = lambda_sel, pad = pad)
