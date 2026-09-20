@@ -14,7 +14,9 @@
 #'   or `1` runs sequentially.
 #' @param tune Logical; if `TRUE`, run `tune()` for each learner before comparing.
 #' @param grids Optional tuning grids. Supply either a single data frame to reuse
-#'   across learners or a named list of data frames keyed by learner id.
+#'   across learners or a named list of data frames keyed by learner id. A
+#'   learner without a supplied grid uses [default_tune_grid()]; a learner with
+#'   no tunable hyperparameters is evaluated with its own `specs` entry.
 #' @param metric Optimization metric used when `tune = TRUE`.
 #' @param ... Additional arguments passed to `evaluate()` or `tune()` / `fit()`.
 #' @return A `funcml_compare` object.
@@ -61,7 +63,7 @@ compare <- function(data, formula, models, specs = NULL,
   model_seeds <- .task_seeds(seed, length(model_ids))
 
   if (!isTRUE(tune)) {
-    rows <- .funcml_map(model_ids, function(i) {
+    res <- .funcml_map(model_ids, function(i) {
       model_id <- models[[i]]
       eval_args <- c(
         list(
@@ -79,43 +81,52 @@ compare <- function(data, formula, models, specs = NULL,
         dots
       )
       obj <- do.call(evaluate, eval_args)
-      details[[model_id]] <<- obj
       out <- obj$summary
       out$model <- model_id
       out$tuned <- FALSE
-      out
+      # Return the detail with the summary: assigning it into `details` from
+      # inside the worker (`<<-`) is lost when the worker is a forked process.
+      list(summary = out, detail = obj)
     }, ncores = ncores)
+    rows <- lapply(res, `[[`, "summary")
+    for (i in model_ids) details[[models[[i]]]] <- res[[i]]$detail
     results <- .rbind_dt(rows)
     results <- results[, c("model", "metric", "mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high", "tuned")]
     rownames(results) <- NULL
     results$rank <- .compare_rank(results)
   } else {
-    rows <- .funcml_map(model_ids, function(i) {
+    res <- .funcml_map(model_ids, function(i) {
       model_id <- models[[i]]
-      grid <- .compare_grid_for_model(grids, model_id)
-      tune_args <- c(
-        list(
-          data = data,
-          formula = formula,
-          model = model_id,
-          grid = grid,
-          resampling = resampling,
-          metric = optimize_metric,
-          type = type,
-          seed = model_seeds[[i]],
-          ncores = NULL
-        ),
-        specs[[model_id]] %||% list(),
-        dots
-      )
-      tune_obj <- do.call(tune_fn, tune_args)
+      grid <- .compare_grid_for_model(grids, model_id, data = data, formula = formula)
+      # A learner with no hyperparameters (grid NULL) is evaluated with its own spec.
+      tune_obj <- if (is.null(grid)) {
+        NULL
+      } else {
+        tune_args <- c(
+          list(
+            data = data,
+            formula = formula,
+            model = model_id,
+            grid = grid,
+            resampling = resampling,
+            metric = optimize_metric,
+            type = type,
+            seed = model_seeds[[i]],
+            ncores = NULL
+          ),
+          specs[[model_id]] %||% list(),
+          dots
+        )
+        do.call(tune_fn, tune_args)
+      }
+      best_spec <- if (is.null(tune_obj)) specs[[model_id]] %||% list() else tune_obj$fit_best$spec
 
       eval_args <- c(
         list(
           data = data,
           formula = formula,
           model = model_id,
-          spec = tune_obj$fit_best$spec,
+          spec = best_spec,
           resampling = resampling,
           metrics = metrics_use,
           type = type,
@@ -126,15 +137,16 @@ compare <- function(data, formula, models, specs = NULL,
         dots
       )
       eval_obj <- do.call(evaluate, eval_args)
-      details[[model_id]] <<- list(tune = tune_obj, evaluate = eval_obj)
 
       out <- eval_obj$summary
       out$model <- model_id
-      out$tuned <- TRUE
-      out$best_spec <- .format_compare_spec(.strip_control_spec(tune_obj$fit_best$spec))
+      out$tuned <- !is.null(tune_obj)
+      out$best_spec <- .format_compare_spec(.strip_control_spec(best_spec))
       out$opt_metric <- optimize_metric
-      out
+      list(summary = out, detail = list(tune = tune_obj, evaluate = eval_obj))
     }, ncores = ncores)
+    rows <- lapply(res, `[[`, "summary")
+    for (i in model_ids) details[[models[[i]]]] <- res[[i]]$detail
     results <- .rbind_dt(rows)
     results <- results[, c("model", "metric", "mean", "sd", "n", "std_error", "conf_level", "conf_low", "conf_high", "tuned", "best_spec", "opt_metric")]
     rownames(results) <- NULL
@@ -154,17 +166,18 @@ compare <- function(data, formula, models, specs = NULL,
   out
 }
 
-.compare_grid_for_model <- function(grids, model_id) {
-  if (is.null(grids)) {
-    stop("`grids` must be supplied when `tune = TRUE`.", call. = FALSE)
-  }
+.compare_grid_for_model <- function(grids, model_id, data = NULL, formula = NULL) {
   if (is.data.frame(grids)) {
     return(grids)
   }
-  if (!is.list(grids) || is.null(grids[[model_id]])) {
-    stop(sprintf("Missing tuning grid for model '%s'.", model_id), call. = FALSE)
+  if (!is.null(grids) && !is.list(grids)) {
+    stop("`grids` must be NULL, a data frame, or a named list of data frames.", call. = FALSE)
   }
-  grids[[model_id]]
+  if (!is.null(grids) && !is.null(grids[[model_id]])) {
+    return(grids[[model_id]])
+  }
+  # No grid supplied for this learner: use the built-in default grid.
+  default_tune_grid(model_id, data = data, formula = formula)
 }
 
 .format_compare_spec <- function(x, exclude = character()) {
