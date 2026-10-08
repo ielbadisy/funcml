@@ -831,6 +831,8 @@ interpret_local_model <- function(fit, data, features, type, class_level, pos_le
   model <- stats::lm(.local_formula(colnames(X_recode)), data = df, weights = .weights)
   beta <- stats::coef(model)
   beta[is.na(beta)] <- 0
+  # lm() keeps the backticks of non-syntactic names such as `sex=Male`
+  names(beta) <- gsub("`", "", names(beta), fixed = TRUE)
 
   feature_names <- names(beta)[names(beta) != "(Intercept)"]
   if (length(feature_names) > k) {
@@ -1075,7 +1077,9 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
 }
 
 interpret_interaction <- function(fit, data, features, type, class_level, pos_level, nsamples,
-                                  feature = NULL, grid_size = 15, ...) {
+                                  feature = NULL, grid = NULL, grid_size = 15, ...) {
+  # `grid` is accepted so that interpret()'s `grid =` is not partially
+  # matched to `grid_size`.
   data_use <- if (!is.null(nsamples) && nrow(data) > nsamples) data[sample(seq_len(nrow(data)), nsamples), , drop = FALSE] else data
   if (!is.null(feature) && !(feature %in% features)) {
     stop("`feature` must be one of the interpreted features.", call. = FALSE)

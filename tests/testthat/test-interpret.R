@@ -174,3 +174,30 @@ test_that("calibration interpretability returns curve and calibration errors", {
   expect_true(is.finite(cal$result$ece))
   expect_true(is.finite(cal$result$mce))
 })
+
+test_that("interaction runs when interpret() forwards its grid argument", {
+  set.seed(61)
+  dat <- data.frame(x1 = rnorm(150), x2 = factor(sample(c("a", "b"), 150, TRUE)))
+  dat$y <- factor(ifelse(runif(150) < stats::plogis(dat$x1), "yes", "no"),
+                  levels = c("no", "yes"))
+  fit_obj <- fit(y ~ x1 + x2, data = dat, model = "glm")
+  h <- interpret(fit_obj, dat, method = "interaction", class_level = "yes")
+  expect_s3_class(h, "funcml_interaction")
+  pw <- h$result$pairwise
+  expect_true(is.finite(pw$interaction[pw$feature_x == "x1" & pw$feature_y == "x2"]))
+  expect_true(all(is.finite(h$result$results$interaction)))
+})
+
+test_that("local surrogate explanations handle factor features", {
+  set.seed(62)
+  dat <- data.frame(x1 = rnorm(150), x2 = factor(sample(c("a", "b"), 150, TRUE)))
+  dat$y <- factor(ifelse(runif(150) < stats::plogis(dat$x1 + (dat$x2 == "b")),
+                         "yes", "no"), levels = c("no", "yes"))
+  fit_obj <- fit(y ~ x1 + x2, data = dat, model = "glm")
+  for (m in c("local", "lime", "local_model")) {
+    lm_obj <- interpret(fit_obj, dat, method = m, newdata = dat[1, ],
+                        class_level = "yes", seed = 1)
+    expect_true(nrow(lm_obj$result$results) >= 1)
+    expect_false(any(grepl("`", lm_obj$result$results$feature.value, fixed = TRUE)))
+  }
+})
