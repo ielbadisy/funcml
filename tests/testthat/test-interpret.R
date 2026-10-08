@@ -201,3 +201,19 @@ test_that("local surrogate explanations handle factor features", {
     expect_false(any(grepl("`", lm_obj$result$results$feature.value, fixed = TRUE)))
   }
 })
+
+test_that("ceteris_paribus and local handle mixed factor and numeric features", {
+  set.seed(3)
+  df <- data.frame(
+    y = factor(sample(c("No", "Yes"), 120, TRUE)),
+    g = factor(sample(c("a", "b"), 120, TRUE)),
+    x1 = rnorm(120),
+    x2 = rnorm(120)
+  )
+  fit_obj <- fit(y ~ g + x1 + x2, df, model = "glm")
+  cp <- interpret(fit_obj, df[1:5, ], method = "ceteris_paribus", class_level = "Yes")
+  expect_true(all(c("g", "x1", "x2") %in% cp$result$curves$feature))
+  loc <- interpret(fit_obj, df, method = "local", newdata = df[1, ], k = 3,
+                   class_level = "Yes", seed = 1)
+  expect_true(nrow(loc$result$results) >= 1)
+})

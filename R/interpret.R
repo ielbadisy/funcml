@@ -703,6 +703,19 @@ interpret_vip <- function(fit, data, features, type, metric, class_level, pos_le
   }
 }
 
+# Curves of numeric and factor features share the `value` column; when
+# both kinds are requested the column is stored as character.
+.harmonise_curve_values <- function(curves) {
+  numeric_value <- vapply(curves, function(x) is.numeric(x$value), logical(1))
+  if (any(numeric_value) && !all(numeric_value)) {
+    curves <- lapply(curves, function(x) {
+      x$value <- as.character(x$value)
+      x
+    })
+  }
+  curves
+}
+
 interpret_pdp <- function(fit, data, features, type, class_level, pos_level, grid, nsamples,
                           grid.resolution = NULL, quantiles = FALSE, probs = 1:9 / 10,
                           trim.outliers = FALSE, ...) {
@@ -723,7 +736,7 @@ interpret_pdp <- function(fit, data, features, type, class_level, pos_level, gri
     }, numeric(1))
     data.frame(feature = feat, value = values, yhat = yhat, stringsAsFactors = FALSE)
   })
-  curves <- .rbind_dt(curves)
+  curves <- .rbind_dt(.harmonise_curve_values(curves))
   rownames(curves) <- NULL
   .interpret_result(
     payload = list(curves = curves, grid = grid, support = .support_frame(data_use, features)),
@@ -759,7 +772,7 @@ interpret_ice <- function(fit, data, features, type, class_level, pos_level, gri
     })
     .rbind_dt(out)
   })
-  curves <- .rbind_dt(curves)
+  curves <- .rbind_dt(.harmonise_curve_values(curves))
   rownames(curves) <- NULL
   .interpret_result(
     payload = list(curves = curves, grid = grid, support = .support_frame(data_use, features)),
@@ -841,7 +854,8 @@ interpret_local_model <- function(fit, data, features, type, class_level, pos_le
   }
   encoded_values <- unname(as.numeric(x_interest_recode[1, feature_names, drop = TRUE]))
   raw_feature_names <- sub("=.*$", "", feature_names)
-  observed_values <- vapply(raw_feature_names, function(feat) x_interest[[feat]][1], FUN.VALUE = x_interest[[1]][1])
+  # a list, as the kept features can mix factor and numeric columns
+  observed_values <- lapply(raw_feature_names, function(feat) x_interest[[feat]][1])
   display_values <- vapply(raw_feature_names, function(feat) .format_feature_value(x_interest[[feat]][1]), character(1))
   effects <- data.frame(
     feature = raw_feature_names,
