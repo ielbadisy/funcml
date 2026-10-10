@@ -60,7 +60,7 @@ test_that("classification interpretability supports subsetted features", {
   expect_true(all(grepl(" = ", sh$result$feature_label, fixed = TRUE)))
 })
 
-test_that("vip always uses internal permutation importance", {
+test_that("vip importance_type selects native or permutation importance", {
   set.seed(21)
   dat <- data.frame(
     x1 = rnorm(90),
@@ -71,26 +71,49 @@ test_that("vip always uses internal permutation importance", {
 
   fit_obj <- fit(y ~ x1 + x2 + x3, data = dat, model = "rpart")
 
-  vip_auto <- interpret(
-    fit_obj,
-    dat,
-    method = "vip",
-    importance_type = "auto",
-    nsim = 6,
-    seed = 5
-  )
-  vip_model <- interpret(
-    fit_obj,
-    dat,
-    method = "vip",
-    importance_type = "model",
-    nsim = 6,
-    seed = 5
-  )
+  vip_auto <- interpret(fit_obj, dat, method = "vip", importance_type = "auto")
+  vip_model <- interpret(fit_obj, dat, method = "vip", importance_type = "model")
+  vip_perm <- interpret(fit_obj, dat, method = "vip", nsim = 6, seed = 5)
 
   expect_equal(vip_auto$result$scores, vip_model$result$scores)
-  expect_equal(vip_auto$diagnostics$engine, "permute")
-  expect_equal(vip_model$diagnostics$engine, "permute")
+  expect_equal(vip_model$diagnostics$engine, "model")
+  expect_equal(vip_perm$diagnostics$engine, "permute")
+  native <- fit_obj$state$state$variable.importance
+  expect_equal(
+    vip_model$result$scores$importance[match(names(native), vip_model$result$scores$feature)],
+    unname(native)
+  )
+  expect_equal(vip_model$result$scores$feature[1], "x1")
+
+  glm_fit <- fit(y ~ x1 + x2 + x3, data = dat, model = "glm")
+  expect_equal(
+    interpret(glm_fit, dat, method = "vip", importance_type = "auto", seed = 1)$diagnostics$engine,
+    "permute"
+  )
+  expect_error(
+    interpret(glm_fit, dat, method = "vip", importance_type = "model"),
+    "no native importance"
+  )
+})
+
+test_that("vip native importance sums dummy-coded factor levels per feature", {
+  skip_if_not_installed("ranger")
+  set.seed(22)
+  dat <- data.frame(
+    x1 = rnorm(120),
+    grp = factor(sample(c("a b", "c-d", "e"), 120, replace = TRUE))
+  )
+  dat$y <- dat$x1 + (dat$grp == "e") + rnorm(120, sd = 0.3)
+
+  fit_obj <- fit(y ~ x1 + grp, data = dat, model = "ranger", spec = list(num.trees = 50))
+  vip <- interpret(fit_obj, dat, method = "vip", importance_type = "model")
+  native <- ranger::importance(fit_obj$state$state)
+
+  expect_setequal(vip$result$scores$feature, c("x1", "grp"))
+  expect_equal(
+    vip$result$scores$importance[vip$result$scores$feature == "grp"],
+    sum(native[grepl("^grp", names(native))])
+  )
 })
 
 test_that("ICE handles vectorized feature grids for numeric predictors", {
