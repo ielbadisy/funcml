@@ -49,9 +49,12 @@ interpret(
 
 \item{metric}{Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc/auc_weighted).}
 
-\item{importance_type}{Importance engine for \code{method = "vip"}. Internal
-permutation importance is always used; accepted values are retained only
-for backward-compatible argument parsing.}
+\item{importance_type}{Importance engine for \code{method = "vip"}:
+\code{"permute"} (permutation importance, the default), \code{"model"} (the
+learner's native importance, e.g. impurity for \code{ranger}; an error for
+learners without one, see \code{list_learners(importance = TRUE)}), or
+\code{"auto"} (native importance when available, permutation otherwise).
+Native scores of dummy-coded factor levels are summed per feature.}
 
 \item{compare}{How to compare baseline and perturbed performance for
 importance: \code{"difference"} or \code{"ratio"}.}

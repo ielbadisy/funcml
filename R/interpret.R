@@ -390,9 +390,12 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' @param features Optional subset of features; defaults to all predictors.
 #' @param type Prediction scale: regression -> "response"; classification -> "prob" or "class".
 #' @param metric Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc/auc_weighted).
-#' @param importance_type Importance engine for `method = "vip"`. Internal
-#'   permutation importance is always used; accepted values are retained only
-#'   for backward-compatible argument parsing.
+#' @param importance_type Importance engine for `method = "vip"`:
+#'   `"permute"` (permutation importance, the default), `"model"` (the
+#'   learner's native importance, e.g. impurity for `ranger`; an error for
+#'   learners without one, see `list_learners(importance = TRUE)`), or
+#'   `"auto"` (native importance when available, permutation otherwise).
+#'   Native scores of dummy-coded factor levels are summed per feature.
 #' @param compare How to compare baseline and perturbed performance for
 #'   importance: `"difference"` or `"ratio"`.
 #' @param keep Keep per-repetition raw importance scores when `nsim > 1`.
@@ -578,6 +581,22 @@ interpret <- function(fit, data, formula = fit$formula,
 interpret_vip <- function(fit, data, features, type, metric, class_level, pos_level,
                           nsim, nsamples, importance_type, compare, keep,
                           type_missing, sample_size = NULL, sample_frac = NULL, ...) {
+  has_native <- isTRUE(fit$adapter$supports$importance) && is.function(fit$adapter$importance)
+  if (importance_type == "auto") {
+    importance_type <- if (has_native) "model" else "permute"
+  }
+  if (importance_type == "model") {
+    if (!has_native) {
+      stop(
+        "Learner `", fit$model, "` has no native importance; use ",
+        "`importance_type = \"permute\"` or a learner from ",
+        "`list_learners(importance = TRUE)`.",
+        call. = FALSE
+      )
+    }
+    return(.interpret_vip_model(fit, data, features))
+  }
+
   if (!is.null(sample_size) && !is.null(sample_frac)) {
     stop("Arguments `sample_size` and `sample_frac` cannot both be specified.", call. = FALSE)
   }
@@ -671,6 +690,59 @@ interpret_vip <- function(fit, data, features, type, metric, class_level, pos_le
       prediction_type = pred_type,
       sample_size = sample_size,
       smaller_is_better = smaller_is_better
+    )
+  )
+}
+
+.interpret_vip_model <- function(fit, data, features) {
+  encoded <- .encode_train(data = data, formula = fit$formula, na_action = fit$na_action)
+  raw <- fit$adapter$importance(
+    state = fit$state,
+    X = encoded$X,
+    y = encoded$y,
+    feature_names = encoded$features,
+    task = fit$task,
+    levels = fit$levels
+  )
+  # Engines report importance per design-matrix column, possibly under
+  # make.names() spellings; map each column back to its model term so that
+  # dummy-coded factor levels are summed into one score per feature.
+  mf <- stats::model.frame(fit$formula, data = data, na.action = fit$na_action)
+  mm <- stats::model.matrix(encoded$terms, mf, contrasts.arg = encoded$contrasts)
+  col_term <- attr(encoded$terms, "term.labels")[attr(mm, "assign")]
+  col_term <- col_term[match(encoded$features, colnames(mm)[attr(mm, "assign") > 0])]
+  idx <- match(raw$feature, encoded$features)
+  idx[is.na(idx)] <- match(raw$feature[is.na(idx)], make.names(encoded$features, unique = TRUE))
+  raw_term <- col_term[idx]
+  values <- ifelse(is.na(raw$importance), 0, raw$importance)
+  importance <- vapply(features, function(feat) {
+    hit <- !is.na(raw_term) & raw_term == feat
+    if (any(hit)) sum(values[hit]) else 0
+  }, numeric(1))
+  if (all(is.na(raw$importance))) {
+    importance[] <- NA_real_
+  }
+
+  scores <- data.frame(
+    feature = features,
+    importance = unname(importance),
+    std_dev = NA_real_,
+    stringsAsFactors = FALSE
+  )
+  scores <- scores[order(scores$importance, decreasing = TRUE), , drop = FALSE]
+  rownames(scores) <- NULL
+
+  .interpret_result(
+    payload = list(
+      scores = scores,
+      baseline = NA_real_,
+      metric = NULL,
+      comparison = NULL,
+      raw_scores = NULL
+    ),
+    diagnostics = list(
+      reference = "native model importance",
+      engine = "model"
     )
   )
 }
