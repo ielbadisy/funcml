@@ -458,6 +458,11 @@ build_registry <- function() {
           return(factor(cls, levels = levels))
         }
         prob[, levels, drop = FALSE]
+      },
+      importance = function(state, X, y, feature_names, task, levels, ...) {
+        imp <- tryCatch(ranger::importance(state$state), error = function(e) NULL)
+        if (is.null(imp)) return(data.frame(feature = feature_names, importance = NA_real_))
+        data.frame(feature = names(imp), importance = as.numeric(imp), row.names = NULL)
       }
     ),
     nnet = list(
@@ -496,11 +501,6 @@ build_registry <- function() {
           return(factor(cls, levels = levels))
         }
         prob
-      },
-      importance = function(state, X, y, feature_names, task, levels, ...) {
-        imp <- tryCatch(ranger::importance(state$state), error = function(e) NULL)
-        if (is.null(imp)) return(data.frame(feature = feature_names, importance = NA_real_))
-        data.frame(feature = names(imp), importance = as.numeric(imp), row.names = NULL)
       }
     ),
     mlp = list(
