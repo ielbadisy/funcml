@@ -23,6 +23,14 @@ Bug fixes found while benchmarking every learner on 63 biomedical datasets.
   path with that lambda added, instead of from a single cold start. A single
   small lambda took minutes on 15,000 rows and often failed to converge,
   returning an empty (intercept-only) model.
+- `interpret(method = "vip", importance_type = "model")` returns the learner's
+  native importance again (e.g. impurity for `ranger` and `rpart`, relative
+  influence for `gbm`). It had been silently replaced by permutation
+  importance. Scores of dummy-coded factor levels are summed per feature;
+  `"auto"` uses native importance when the learner has one, and `"model"` on a
+  learner without one is now an error.
+- The `ranger` learner exposes its native importance; the function had been
+  attached to `nnet` by mistake.
 - New `default_tune_grid()` returns a default hyperparameter grid for each
   learner. `tune()` and `compare(tune = TRUE)` use it when `grid` or `grids`
   is not supplied; a learner with no hyperparameters is evaluated with its own
