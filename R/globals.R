@@ -12,3 +12,7 @@ utils::globalVariables(c(
   "net_benefit", "strategy", "scaled_value", "colour_value", "mean_abs",
   "pair", "hjust"
 ))
+
+#' @importFrom stats median model.frame model.response predict setNames
+#' @importFrom utils tail
+NULL
