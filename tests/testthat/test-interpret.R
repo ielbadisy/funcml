@@ -240,3 +240,21 @@ test_that("ceteris_paribus and local handle mixed factor and numeric features", 
                    class_level = "Yes", seed = 1)
   expect_true(nrow(loc$result$results) >= 1)
 })
+
+test_that("ceteris_paribus profiles newdata over a grid built from data", {
+  set.seed(4)
+  df <- data.frame(x1 = rnorm(150), x2 = rnorm(150))
+  df$y <- factor(ifelse(df$x1 - df$x2 + rnorm(150) > 0, "Yes", "No"))
+  fit_obj <- fit(y ~ x1 + x2, df, model = "glm")
+  who <- df[7, ]
+  cp <- interpret(fit_obj, df, method = "ceteris_paribus", newdata = who,
+                  features = "x1", grid = list(x1 = c(-1, 0, who$x1, 1)), class_level = "Yes")
+  curves <- cp$result$curves
+  expect_equal(unique(curves$id), 1L)
+  expect_equal(nrow(curves), 4L)
+  p_obs <- predict(fit_obj, who, type = "prob")[, "Yes"]
+  expect_equal(curves$yhat[3], unname(p_obs), tolerance = 1e-8)
+  cp2 <- interpret(fit_obj, df, method = "ceteris_paribus", newdata = df[1:3, ],
+                   features = "x1", class_level = "Yes")
+  expect_equal(sort(unique(cp2$result$curves$id)), 1:3)
+})

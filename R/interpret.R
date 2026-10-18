@@ -406,6 +406,8 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' @param class_level Target class for multiclass/local prob explanations.
 #' @param pos_level Alias for binary positive class (second level default).
 #' @param newdata Single-row data frame for local/SHAP explanations; defaults to first row of `data`.
+#'   For `method = "ceteris_paribus"`, the observation(s) to profile (one
+#'   profile per row; the grid of each feature is built from `data`).
 #' @param nsim Number of Monte Carlo simulations (importance/SHAP) or repetitions.
 #' @param nsamples Row subsample for speed (reference/background set).
 #' @param grid Optional list of grids per feature for PDP/ICE/ALE.
@@ -512,7 +514,7 @@ interpret <- function(fit, data, formula = fit$formula,
     permute = interpret_vip,
     pdp = interpret_pdp,
     ice = interpret_ice,
-    ceteris_paribus = interpret_ice,
+    ceteris_paribus = interpret_ceteris_paribus,
     ale = interpret_ale,
     local = interpret_local_model,
     lime = interpret_local_model,
@@ -849,6 +851,48 @@ interpret_ice <- function(fit, data, features, type, class_level, pos_level, gri
   .interpret_result(
     payload = list(curves = curves, grid = grid, support = .support_frame(data_use, features)),
     diagnostics = list(reference = "native ICE", centered = isTRUE(center))
+  )
+}
+
+# Ceteris-paribus profiles of the rows of `newdata` (default: first row of
+# `data`). The grid of each feature comes from the reference `data`, so a
+# single observation still gets a full profile.
+interpret_ceteris_paribus <- function(fit, data, features, type, class_level, pos_level, grid,
+                                      nsamples, newdata = NULL, grid.resolution = NULL,
+                                      quantiles = FALSE, probs = 1:9 / 10,
+                                      trim.outliers = FALSE, ...) {
+  if (is.null(newdata)) {
+    newdata <- data[1, , drop = FALSE]
+  }
+  newdata <- as.data.frame(newdata)
+  missing_cols <- setdiff(features, names(newdata))
+  if (length(missing_cols)) {
+    stop("`newdata` is missing feature(s): ", paste(missing_cols, collapse = ", "), call. = FALSE)
+  }
+  curves <- lapply(features, function(feat) {
+    values <- .grid_values(
+      data[[feat]],
+      grid = grid[[feat]],
+      grid.resolution = grid.resolution,
+      quantiles = quantiles,
+      probs = probs,
+      trim.outliers = trim.outliers
+    )
+    out <- lapply(seq_len(nrow(newdata)), function(i) {
+      base_row <- newdata[rep(i, length(values)), , drop = FALSE]
+      base_row[[feat]] <- .coerce_feature_value(data[[feat]], values, length(values))
+      preds <- .pdp_predict_values(fit, base_row, type = type, class_level = class_level, pos_level = pos_level)
+      data.frame(id = i, feature = feat, value = values, yhat = preds, stringsAsFactors = FALSE)
+    })
+    .rbind_dt(out)
+  })
+  curves <- .rbind_dt(.harmonise_curve_values(curves))
+  rownames(curves) <- NULL
+  observed <- .pdp_predict_values(fit, newdata, type = type, class_level = class_level, pos_level = pos_level)
+  .interpret_result(
+    payload = list(curves = curves, grid = grid, support = .support_frame(data, features),
+                   newdata = newdata, observed = observed),
+    diagnostics = list(reference = "native ceteris paribus", n_profiles = nrow(newdata))
   )
 }
 

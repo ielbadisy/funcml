@@ -3,6 +3,10 @@
 - `bart` fits now survive `saveRDS()`/`readRDS()`. dbarts keeps the sampler
   state outside R, so a reloaded fit predicted a constant probability; the
   state is now stored in the object at fit time.
+- `interpret(method = "ceteris_paribus")` now profiles the row(s) of
+  `newdata` (default: the first row of `data`), with each feature's grid
+  built from `data`. It used to run ICE on every row of `data` and ignore
+  `newdata`. The result also carries `newdata` and its observed prediction.
 
 # funcml 0.9.5
 
