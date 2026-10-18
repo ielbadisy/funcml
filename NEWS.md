@@ -7,6 +7,16 @@
   `newdata` (default: the first row of `data`), with each feature's grid
   built from `data`. It used to run ICE on every row of `data` and ignore
   `newdata`. The result also carries `newdata` and its observed prediction.
+- Local surrogates (`"local"`, `"local_model"`, `"lime"`): contributions are
+  now `beta * (x - mean(x))`, centred on the reference data, and sum to
+  `local_prediction - baseline` (`baseline` is new in `result`). Before,
+  numeric contributions were `beta * x`, so 0/1 predictors at 0 gave empty
+  explanations. `k` now picks the `k` largest contributions after dropping
+  zero ones (it used to rank by |beta| and then drop zeros).
+- `"lime"` is now a distinct method: the surrogate is fitted on `nperturb`
+  points sampled from the feature marginals with an exponential kernel, as in
+  LIME. `"local"` and `"local_model"` remain aliases of the similarity-weighted
+  surrogate on the observed data.
 
 # funcml 0.9.5
 

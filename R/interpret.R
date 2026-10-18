@@ -399,8 +399,22 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' @param compare How to compare baseline and perturbed performance for
 #'   importance: `"difference"` or `"ratio"`.
 #' @param keep Keep per-repetition raw importance scores when `nsim > 1`.
-#' @param k Sparsity target for local surrogate fits (`method = "local"`,
-#'   `"local_model"`, or `"lime"`).
+#' @param k Number of contributions reported by local surrogate fits
+#'   (`method = "local"`, `"local_model"`, or `"lime"`): the `k` largest
+#'   absolute contributions after dropping zero ones.
+#'
+#' @details
+#' Local surrogates. `"local"` and `"local_model"` are the same method: a
+#' weighted linear model fitted to the predictions on the reference data,
+#' weighted by similarity to `newdata` (`gower_power`). `"lime"` fits the
+#' same surrogate on `nperturb` synthetic points (default 1000) drawn from
+#' the feature marginals of `data` (numeric: normal with the data mean and
+#' sd; categorical: empirical frequencies), weighted by an exponential
+#' kernel on the scaled distance to `newdata` (width `0.75 * sqrt(p)`), as
+#' in LIME. In both, a contribution is `beta * (x - mean(x))`, with the
+#' mean taken over `data` (categorical features are coded 1 when equal to
+#' the level of `newdata`), so the contributions sum to
+#' `local_prediction - baseline`, both returned in `result`.
 #' @param gower_power Exponent applied to native similarity weights when constructing the
 #'   local neighborhood.
 #' @param class_level Target class for multiclass/local prob explanations.
@@ -517,7 +531,7 @@ interpret <- function(fit, data, formula = fit$formula,
     ceteris_paribus = interpret_ceteris_paribus,
     ale = interpret_ale,
     local = interpret_local_model,
-    lime = interpret_local_model,
+    lime = interpret_lime,
     local_model = interpret_local_model,
     shap = interpret_shap,
     interaction = interpret_interaction,
@@ -942,8 +956,50 @@ interpret_ale <- function(fit, data, features, type, class_level, pos_level, gri
   )
 }
 
+# Draw `n` synthetic rows around the reference data, LIME style: numeric
+# features from N(mean, sd) of `data`, categorical features from their
+# empirical marginal. Non-feature columns are copied from resampled rows.
+.lime_perturb <- function(data, features, n) {
+  out <- data[sample(seq_len(nrow(data)), n, replace = TRUE), , drop = FALSE]
+  for (feat in features) {
+    x <- data[[feat]]
+    if (is.factor(x) || is.character(x) || is.logical(x)) {
+      out[[feat]] <- x[sample(seq_along(x), n, replace = TRUE)]
+    } else {
+      mu <- mean(x, na.rm = TRUE)
+      sdev <- stats::sd(x, na.rm = TRUE)
+      draw <- stats::rnorm(n, mu, if (is.finite(sdev)) sdev else 0)
+      if (is.integer(x)) draw <- as.integer(round(draw))
+      out[[feat]] <- draw
+    }
+  }
+  rownames(out) <- NULL
+  out
+}
+
+# Exponential kernel on the Euclidean distance to x_interest, numeric
+# features scaled by their sd in `ref`, categorical features as 0/1
+# mismatch; kernel width 0.75 * sqrt(p) as in LIME.
+.lime_kernel_weights <- function(X, x_interest, features, ref) {
+  d2 <- Reduce(`+`, lapply(features, function(feat) {
+    x <- X[[feat]]
+    x0 <- x_interest[[feat]]
+    if (is.factor(x) || is.character(x) || is.logical(x)) {
+      as.numeric(as.character(x) != as.character(x0))
+    } else {
+      sdev <- stats::sd(ref[[feat]], na.rm = TRUE)
+      if (!is.finite(sdev) || sdev == 0) sdev <- 1
+      ((as.numeric(x) - as.numeric(x0)) / sdev)^2
+    }
+  }))
+  width <- 0.75 * sqrt(length(features))
+  pmax(exp(-d2 / width^2), .Machine$double.eps)
+}
+
 interpret_local_model <- function(fit, data, features, type, class_level, pos_level, newdata, nsamples,
-                                  k = 3, gower_power = 1, ...) {
+                                  k = 3, gower_power = 1, sampler = c("data", "perturb"),
+                                  nperturb = 1000, ...) {
+  sampler <- match.arg(sampler)
   k <- k %||% 3
   gower_power <- gower_power %||% 1
   if (is.null(newdata)) {
@@ -951,11 +1007,23 @@ interpret_local_model <- function(fit, data, features, type, class_level, pos_le
   }
   x_interest <- newdata[1, features, drop = FALSE]
   data_use <- if (!is.null(nsamples) && nrow(data) > nsamples) data[sample(seq_len(nrow(data)), nsamples), , drop = FALSE] else data
-  X <- data_use[, features, drop = FALSE]
-  yhat <- .predict_numeric_target(fit, data_use, type = type, class_level = class_level, pos_level = pos_level)
+  if (sampler == "perturb") {
+    sample_df <- .lime_perturb(data, features, nperturb)
+    X <- sample_df[, features, drop = FALSE]
+    sample_weights <- .lime_kernel_weights(X, x_interest, features, data)
+    neighborhood <- "perturbation (LIME)"
+  } else {
+    sample_df <- data_use
+    X <- data_use[, features, drop = FALSE]
+    sample_weights <- .local_similarity_weights(X, x_interest, features, power = gower_power)
+    neighborhood <- "similarity"
+  }
+  yhat <- .predict_numeric_target(fit, sample_df, type = type, class_level = class_level, pos_level = pos_level)
   X_recode <- .recode_local_features(X, x_interest)
   x_interest_recode <- .recode_local_features(x_interest[, features, drop = FALSE], x_interest)
-  sample_weights <- .local_similarity_weights(X, x_interest, features, power = gower_power)
+  # contributions are deviations from the average observation of the
+  # reference data, so they sum to local_prediction - baseline
+  ref_means <- colMeans(.recode_local_features(data[, features, drop = FALSE], x_interest), na.rm = TRUE)
   df <- data.frame(.target = yhat, .weights = sample_weights, X_recode, check.names = FALSE)
   model <- stats::lm(.local_formula(colnames(X_recode)), data = df, weights = .weights)
   beta <- stats::coef(model)
@@ -963,12 +1031,16 @@ interpret_local_model <- function(fit, data, features, type, class_level, pos_le
   # lm() keeps the backticks of non-syntactic names such as `sex=Male`
   names(beta) <- gsub("`", "", names(beta), fixed = TRUE)
 
-  feature_names <- names(beta)[names(beta) != "(Intercept)"]
-  if (length(feature_names) > k) {
-    keep_idx <- order(abs(beta[feature_names]), decreasing = TRUE)[seq_len(k)]
-    feature_names <- feature_names[keep_idx]
-  }
-  encoded_values <- unname(as.numeric(x_interest_recode[1, feature_names, drop = TRUE]))
+  all_names <- names(beta)[names(beta) != "(Intercept)"]
+  encoded_all <- unname(as.numeric(x_interest_recode[1, all_names, drop = TRUE]))
+  centred_all <- encoded_all - unname(ref_means[all_names])
+  effect_all <- unname(beta[all_names]) * centred_all
+  baseline <- unname(beta["(Intercept)"]) + sum(unname(beta[all_names]) * unname(ref_means[all_names]))
+  # drop zero contributions first, then keep the k largest
+  nz <- which(abs(effect_all) > sqrt(.Machine$double.eps))
+  nz <- nz[order(abs(effect_all[nz]), decreasing = TRUE)]
+  keep_idx <- utils::head(nz, k)
+  feature_names <- all_names[keep_idx]
   raw_feature_names <- sub("=.*$", "", feature_names)
   # a list, as the kept features can mix factor and numeric columns
   observed_values <- lapply(raw_feature_names, function(feat) x_interest[[feat]][1])
@@ -982,14 +1054,13 @@ interpret_local_model <- function(fit, data, features, type, class_level, pos_le
         .feature_display_label(raw_feature_names[i], observed_values[[i]])
       }
     }, character(1)),
-    observed_value = display_values,
-    encoded_value = encoded_values,
+    observed_value = unname(display_values),
+    encoded_value = encoded_all[keep_idx],
+    reference_value = unname(ref_means[feature_names]),
     beta = unname(beta[feature_names]),
-    effect = unname(beta[feature_names]) * encoded_values,
+    effect = effect_all[keep_idx],
     stringsAsFactors = FALSE
   )
-  effects <- effects[effects$effect != 0, , drop = FALSE]
-  effects <- effects[order(abs(effects$effect), decreasing = TRUE), , drop = FALSE]
   rownames(effects) <- NULL
 
   local_pred <- as.numeric(stats::predict(model, newdata = data.frame(x_interest_recode, check.names = FALSE))[1])
@@ -1001,15 +1072,21 @@ interpret_local_model <- function(fit, data, features, type, class_level, pos_le
       weights = effects,
       sample_weights = sample_weights,
       model = model,
-      local_prediction = local_pred
+      local_prediction = local_pred,
+      baseline = baseline
     ),
     diagnostics = list(
       reference = "native local surrogate",
-      neighborhood = "similarity",
+      neighborhood = neighborhood,
       k = k,
+      n_nonzero = length(nz),
       prediction = .predict_numeric_target(fit, newdata[1, , drop = FALSE], type = type, class_level = class_level, pos_level = pos_level)
     )
   )
+}
+
+interpret_lime <- function(..., sampler = NULL) {
+  interpret_local_model(..., sampler = "perturb")
 }
 
 interpret_shap <- function(fit, data, features, type, class_level, pos_level, newdata, nsim, nsamples,

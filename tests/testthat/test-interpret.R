@@ -258,3 +258,25 @@ test_that("ceteris_paribus profiles newdata over a grid built from data", {
                    features = "x1", class_level = "Yes")
   expect_equal(sort(unique(cp2$result$curves$id)), 1:3)
 })
+
+test_that("local surrogate contributions are centred and k counts non-zero effects", {
+  set.seed(9)
+  dat <- data.frame(x1 = rbinom(200, 1, 0.4), x2 = rbinom(200, 1, 0.5), x3 = rnorm(200))
+  dat$y <- factor(ifelse(runif(200) < plogis(dat$x1 - dat$x2 + dat$x3), "yes", "no"))
+  fit_obj <- fit(y ~ x1 + x2 + x3, data = dat, model = "glm")
+  who <- data.frame(x1 = 0L, x2 = 0L, x3 = 0.2)
+  loc <- interpret(fit_obj, dat, method = "local", newdata = who, k = 3,
+                   class_level = "yes", seed = 1)
+  res <- loc$result$results
+  expect_equal(nrow(res), 3L)
+  expect_true(all(res$effect != 0))
+  full <- interpret(fit_obj, dat, method = "local", newdata = who, k = 10,
+                    class_level = "yes", seed = 1)$result
+  expect_equal(sum(full$results$effect), full$local_prediction - full$baseline,
+               tolerance = 1e-8)
+  lime <- interpret(fit_obj, dat, method = "lime", newdata = who, k = 3,
+                    class_level = "yes", seed = 1)
+  expect_equal(lime$diagnostics$neighborhood, "perturbation (LIME)")
+  expect_length(lime$result$sample_weights, 1000L)
+  expect_false(isTRUE(all.equal(lime$result$results$beta, res$beta)))
+})
