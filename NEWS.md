@@ -17,6 +17,12 @@
   points sampled from the feature marginals with an exponential kernel, as in
   LIME. `"local"` and `"local_model"` remain aliases of the similarity-weighted
   surrogate on the observed data.
+- `estimate()` checks positivity up front: a clear error when the treatment
+  has one observed value, a warning when an arm has fewer than 10 rows. With
+  `interval = "bootstrap"`, a resample without treated or control rows is
+  redrawn instead of stopping the whole call with "Treatment must be binary",
+  and a failing resample is dropped with a warning. The counts are returned
+  in `$bootstrap`.
 
 # funcml 0.9.5
 

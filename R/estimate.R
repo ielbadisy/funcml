@@ -15,6 +15,9 @@
 #' @param interval Interval method: `"normal"` or `"bootstrap"`.
 #' @param conf_level Confidence level for uncertainty intervals.
 #' @param n_boot Number of bootstrap resamples used when `interval = "bootstrap"`.
+#'   A resample with no treated or no control rows is redrawn, and a resample
+#'   whose fit fails is dropped with a warning (an error if more than half
+#'   fail). The counts are returned in `$bootstrap`.
 #' @param seed Optional seed.
 #' @param fit Optional preconfigured `funcml_fit` object.
 #' @param ... Passed to `fit()`.
@@ -62,6 +65,7 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
   }
   trt_raw <- data[[treatment]]
   trt_bin <- .coerce_binary_treatment(trt_raw, treatment_level = treatment_level, control_level = control_level)
+  .check_positivity(trt_bin, treatment)
 
   pred_type <- .estimand_prediction_type(base_fit, type = type)
   target_data <- if (estimand == "CATE") {
@@ -106,12 +110,14 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
     n_boot = n_boot
   )
 
+  boot_info <- attr(ci, "bootstrap")
   out <- list(
     estimate = est_core$estimate,
     std_error = est_core$std_error,
-    conf_int = stats::setNames(ci, c("lower", "upper")),
+    conf_int = stats::setNames(as.numeric(ci), c("lower", "upper")),
     conf_level = conf_level,
     interval_method = interval,
+    bootstrap = boot_info,
     estimand = estimand,
     treatment = treatment,
     treatment_level = trt_bin$treated,
@@ -145,6 +151,10 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
     stop("Treatment must be logical, factor, character, or numeric.", call. = FALSE)
   }
   lev <- lev[!is.na(lev)]
+  if (length(lev) == 1L) {
+    stop("Treatment takes a single value (", format(lev), ") in the data: no treated or no ",
+         "control observations, so the effect is not identified (positivity).", call. = FALSE)
+  }
   if (length(lev) != 2L) {
     stop("Treatment must be binary.", call. = FALSE)
   }
@@ -154,6 +164,18 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
     stop("`treatment_level` and `control_level` must be the two binary treatment values.", call. = FALSE)
   }
   list(values = vals, treated = treated, control = control)
+}
+
+.check_positivity <- function(trt_bin, treatment, min_n = 10L) {
+  n_trt <- sum(trt_bin$values == trt_bin$treated, na.rm = TRUE)
+  n_ctl <- sum(trt_bin$values == trt_bin$control, na.rm = TRUE)
+  if (min(n_trt, n_ctl) < min_n) {
+    warning(sprintf(
+      "Few observations in one treatment arm of `%s` (%d treated, %d control): positivity is weak and the estimate unstable.",
+      treatment, n_trt, n_ctl
+    ), call. = FALSE)
+  }
+  invisible(c(treated = n_trt, control = n_ctl))
 }
 
 .binary_level_value <- function(template, value) {
@@ -245,44 +267,77 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
     fit_obj = fit_obj,
     n_boot = n_boot
   )
-  stats::setNames(
+  ci <- stats::setNames(
     as.numeric(stats::quantile(boot_vals, probs = c(alpha / 2, 1 - alpha / 2), na.rm = TRUE, names = FALSE)),
     c("lower", "upper")
   )
+  attr(ci, "bootstrap") <- list(
+    n_boot = length(boot_vals),
+    n_used = sum(!is.na(boot_vals)),
+    n_failed = attr(boot_vals, "n_failed"),
+    n_redrawn = attr(boot_vals, "n_redrawn")
+  )
+  ci
 }
 
 .bootstrap_estimand <- function(data, formula, treatment, estimand, target_data, trt_bin,
-                                pred_type, base_fit, spec, fit_obj, n_boot) {
+                                pred_type, base_fit, spec, fit_obj, n_boot, max_redraw = 100L) {
   if (!is.numeric(n_boot) || length(n_boot) != 1L || n_boot < 20) {
     stop("`n_boot` must be a single integer greater than or equal to 20.", call. = FALSE)
   }
   n <- nrow(data)
-  vals <- numeric(n_boot)
+  is_trt <- trt_bin$values == trt_bin$treated
+  is_ctl <- trt_bin$values == trt_bin$control
+  vals <- rep(NA_real_, n_boot)
+  n_redrawn <- 0L
+  failures <- character()
   for (b in seq_len(n_boot)) {
-    idx <- sample.int(n, size = n, replace = TRUE)
-    boot_data <- data[idx, , drop = FALSE]
-    boot_fit <- if (!is.null(fit_obj)) {
-      fit(formula %||% fit_obj$formula, boot_data, fit_obj$model, spec = fit_obj$spec)
-    } else {
-      fit(formula, boot_data, base_fit$model, spec = spec %||% base_fit$spec)
+    # a resample without one of the arms (or, for ATT, without treated rows)
+    # is redrawn: the estimand is not defined on it
+    for (tries in seq_len(max_redraw)) {
+      idx <- sample.int(n, size = n, replace = TRUE)
+      if (any(is_trt[idx], na.rm = TRUE) && any(is_ctl[idx], na.rm = TRUE)) break
+      n_redrawn <- n_redrawn + 1L
     }
-    boot_trt <- .coerce_binary_treatment(
-      boot_data[[treatment]],
-      treatment_level = trt_bin$treated,
-      control_level = trt_bin$control
-    )
-    boot_core <- .estimate_effects(
-      base_fit = boot_fit,
-      data = boot_data,
-      formula = formula,
-      treatment = treatment,
-      estimand = estimand,
-      target_data = target_data,
-      trt_bin = boot_trt,
-      pred_type = pred_type
-    )
-    vals[b] <- boot_core$estimate
+    boot_data <- data[idx, , drop = FALSE]
+    res <- tryCatch({
+      boot_fit <- if (!is.null(fit_obj)) {
+        fit(formula %||% fit_obj$formula, boot_data, fit_obj$model, spec = fit_obj$spec)
+      } else {
+        fit(formula, boot_data, base_fit$model, spec = spec %||% base_fit$spec)
+      }
+      boot_trt <- .coerce_binary_treatment(
+        boot_data[[treatment]],
+        treatment_level = trt_bin$treated,
+        control_level = trt_bin$control
+      )
+      .estimate_effects(
+        base_fit = boot_fit,
+        data = boot_data,
+        formula = formula,
+        treatment = treatment,
+        estimand = estimand,
+        target_data = target_data,
+        trt_bin = boot_trt,
+        pred_type = pred_type
+      )$estimate
+    }, error = function(e) {
+      failures[length(failures) + 1L] <<- conditionMessage(e)
+      NA_real_
+    })
+    vals[b] <- res
   }
+  n_failed <- sum(is.na(vals))
+  if (n_failed > n_boot / 2) {
+    stop(sprintf("%d of %d bootstrap fits failed (first error: %s).",
+                 n_failed, n_boot, failures[1L]), call. = FALSE)
+  }
+  if (n_failed > 0L) {
+    warning(sprintf("%d of %d bootstrap fits failed and were dropped (first error: %s).",
+                    n_failed, n_boot, failures[1L]), call. = FALSE)
+  }
+  attr(vals, "n_redrawn") <- n_redrawn
+  attr(vals, "n_failed") <- n_failed
   vals
 }
 

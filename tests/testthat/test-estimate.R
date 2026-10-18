@@ -84,3 +84,24 @@ test_that("IATE returns row-wise individualized effects", {
   expect_equal(nrow(est$effects), 7)
   expect_true(all(c("row_id", "effect", "mu1", "mu0", "weight") %in% names(est$effects)))
 })
+
+test_that("estimate() reports positivity problems and survives degenerate bootstrap draws", {
+  set.seed(11)
+  n <- 120
+  d <- data.frame(x = rnorm(n))
+  d$a <- factor(ifelse(seq_len(n) <= 6, "trt", "ctl"), levels = c("ctl", "trt"))
+  d$y <- 1 + 0.5 * (d$a == "trt") + d$x + rnorm(n)
+  expect_error(
+    estimate(d[d$a == "ctl", ], y ~ a + x, model = "glm", treatment = "a"),
+    "positivity"
+  )
+  expect_warning(
+    res <- estimate(d, y ~ a + x, model = "glm", treatment = "a",
+                    interval = "bootstrap", n_boot = 40, seed = 2),
+    "Few observations"
+  )
+  expect_true(all(is.finite(res$conf_int)))
+  expect_equal(res$bootstrap$n_boot, 40L)
+  expect_true(res$bootstrap$n_redrawn >= 0L)
+  expect_equal(res$bootstrap$n_failed, 0L)
+})

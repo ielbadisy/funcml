@@ -50,7 +50,10 @@ is treated as the treatment variable unless \code{treatment} is supplied.}
 
 \item{conf_level}{Confidence level for uncertainty intervals.}
 
-\item{n_boot}{Number of bootstrap resamples used when \code{interval = "bootstrap"}.}
+\item{n_boot}{Number of bootstrap resamples used when \code{interval = "bootstrap"}.
+A resample with no treated or no control rows is redrawn, and a resample
+whose fit fails is dropped with a warning (an error if more than half
+fail). The counts are returned in \verb{$bootstrap}.}
 
 \item{seed}{Optional seed.}
 
