@@ -280,3 +280,13 @@ test_that("local surrogate contributions are centred and k counts non-zero effec
   expect_length(lime$result$sample_weights, 1000L)
   expect_false(isTRUE(all.equal(lime$result$results$beta, res$beta)))
 })
+
+test_that("shap on a ranger classifier does not warn about row names", {
+  skip_if_not_installed("ranger")
+  set.seed(1)
+  d <- data.frame(x1 = rnorm(100), g = factor(sample(c("a", "b"), 100, TRUE)))
+  d$y <- factor(ifelse(d$x1 + rnorm(100) > 0, "yes", "no"))
+  f <- fit(y ~ ., d, model = "ranger")
+  expect_no_warning(interpret(f, d, method = "shap", newdata = d[1:2, ], nsim = 5,
+                              class_level = "yes", seed = 1))
+})

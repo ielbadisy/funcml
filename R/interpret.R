@@ -1112,7 +1112,7 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
       set.seed(task_seed)
     }
     x_interest <- newdata[obs_id, , drop = FALSE]
-    pred_interest <- pred_one(x_interest)[1]
+    pred_interest <- unname(pred_one(x_interest)[1])
     contrib <- matrix(0, nrow = nsim, ncol = length(features), dimnames = list(NULL, features))
     start_preds <- numeric(nsim)
 
@@ -1132,7 +1132,7 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
 
     shap_vals <- colMeans(contrib)
     shap_var <- if (nsim > 1) apply(contrib, 2, stats::var) else rep(NA_real_, length(features))
-    baseline_value <- baseline %||% mean(start_preds)
+    baseline_value <- unname(baseline %||% mean(start_preds))
     numeric_values <- suppressWarnings(as.numeric(unlist(x_interest[1, features, drop = FALSE], use.names = FALSE)))
     data.frame(
       observation = obs_id,
@@ -1143,7 +1143,8 @@ interpret_shap <- function(fit, data, features, type, class_level, pos_level, ne
       prediction = pred_interest,
       feature_value = unlist(lapply(x_interest[1, features, drop = FALSE], as.character), use.names = FALSE),
       raw_value = numeric_values,
-      feature_label = vapply(features, function(feat) .feature_display_label(feat, x_interest[[feat]][1]), character(1)),
+      feature_label = vapply(features, function(feat) .feature_display_label(feat, x_interest[[feat]][1]),
+                             character(1), USE.NAMES = FALSE),
       stringsAsFactors = FALSE
     )
   }, ncores = ncores)

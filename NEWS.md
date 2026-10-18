@@ -23,6 +23,8 @@
   redrawn instead of stopping the whole call with "Treatment must be binary",
   and a failing resample is dropped with a warning. The counts are returned
   in `$bootstrap`.
+- `interpret(method = "shap")` no longer warns "row names were found from a
+  short variable" with learners that return named predictions (`ranger`).
 
 # funcml 0.9.5
 
