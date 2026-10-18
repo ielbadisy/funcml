@@ -1,3 +1,9 @@
+# funcml 0.9.6
+
+- `bart` fits now survive `saveRDS()`/`readRDS()`. dbarts keeps the sampler
+  state outside R, so a reloaded fit predicted a constant probability; the
+  state is now stored in the object at fit time.
+
 # funcml 0.9.5
 
 Bug fixes found while benchmarking every learner on 63 biomedical datasets.

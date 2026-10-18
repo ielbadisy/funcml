@@ -1118,6 +1118,9 @@ build_registry <- function() {
           keeptrees = spec$keeptrees,
           verbose = spec$verbose
         )
+        # dbarts keeps the sampler outside R; touching fit$fit$state copies it
+        # into the object so the fit survives saveRDS()/readRDS().
+        if (isTRUE(spec$keeptrees) && !is.null(fit$fit)) invisible(fit$fit$state)
         list(state = fit, task = task)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {

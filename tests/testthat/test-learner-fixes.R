@@ -155,3 +155,16 @@ test_that("tune() and compare(tune = TRUE) work without a grid", {
   )
   expect_setequal(cmp2$results$model, c("rpart", "kknn"))
 })
+
+test_that("bart fits give the same predictions after saveRDS()/readRDS()", {
+  skip_if_not_installed("dbarts")
+  set.seed(1)
+  d <- data.frame(x1 = stats::rnorm(150), x2 = stats::rnorm(150))
+  d$y <- factor(ifelse(d$x1 + stats::rnorm(150) > 0, "yes", "no"))
+  m <- fit(y ~ ., data = d, model = "bart", spec = list(ndpost = 100, nskip = 20))
+  p1 <- predict(m, d[1:10, ], type = "prob")
+  f <- tempfile(fileext = ".rds")
+  saveRDS(m, f)
+  p2 <- predict(readRDS(f), d[1:10, ], type = "prob")
+  expect_equal(p2, p1)
+})
