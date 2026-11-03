@@ -64,6 +64,13 @@ estimate()
 `funcml` exposes a session-aware registry of learners, metrics, and
 interpretation methods.
 
+The learner registry covers linear and penalized models (`glm`,
+`glmnet`, `lda`, `qda`, `pls`), trees and forests (`rpart`, `ctree`,
+`cforest`, `C50`, `ranger`, `randomForest`), gradient boosting (`gbm`,
+`xgboost`, `lightgbm`, `fastgbm`), neural networks (`nnet`, `mlp`,
+`densemlp`), Bayesian additive regression trees (`bart`), other classic
+learners, and the `stacking` and `superlearner` ensembles.
+
 ``` r
 list_learners()
 #>         learner   fit   predict   tune has_fit has_predict has_tune available
@@ -75,6 +82,7 @@ list_learners()
 #> 7      densemlp fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 8     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 13        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 26      fastgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 16          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 14          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 10          gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
@@ -91,8 +99,8 @@ list_learners()
 #> 9  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 4        ranger fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 2         rpart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 26     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 27 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 27     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 28 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 25      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 ```
 
@@ -107,6 +115,7 @@ list_tunable_learners()
 #> 7      densemlp fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 8     e1071_svm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 13        earth fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 26      fastgbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 16          fda fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 14          gam fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 10          gbm fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
@@ -123,8 +132,8 @@ list_tunable_learners()
 #> 9  randomForest fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 4        ranger fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 2         rpart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 26     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
-#> 27 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 27     stacking fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
+#> 28 superlearner fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 25      xgboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 ```
 
@@ -334,6 +343,37 @@ plot(tune_obj)
 
 <img src="man/figures/README-tune-plot-1.png" alt="" width="100%" />
 
+When `grid` is omitted, `tune()` (and `compare(tune = TRUE)`) falls back
+to the learner’s default grid, returned by `default_tune_grid()`.
+
+``` r
+default_tune_grid("rpart")
+#>      cp minsplit
+#> 1 0.001        5
+#> 2 0.005        5
+#> 3 0.010        5
+#> 4 0.050        5
+#> 5 0.001       20
+#> 6 0.005       20
+#> 7 0.010       20
+#> 8 0.050       20
+
+tune_default <- tune(
+  data = demo_dat,
+  formula = status ~ age + gender + bmi + diabetes + smoke + covered_health,
+  model = "rpart",
+  resampling = cv(v = 3, seed = 42),
+  metric = "logloss",
+  seed = 42
+)
+
+tune_default$best
+#>      cp minsplit      mean         sd n  std_error conf_level  conf_low
+#> 6 0.005       20 0.5266427 0.02393465 3 0.01381868       0.95 0.4671858
+#>   conf_high
+#> 6 0.5860997
+```
+
 ## Compare learners
 
 `compare()` benchmarks multiple learners under a common resampling
@@ -477,8 +517,50 @@ plot(shap_many_obj, kind = "beeswarm")
 
 <img src="man/figures/README-interpret-shap-beeswarm-1.png" alt="" width="100%" />
 
-Other supported methods include ICE, local explanations, surrogate
-models, and interaction diagnostics.
+## Local explanations
+
+`interpret(method = "lime")` fits a weighted linear surrogate around one
+observation on points sampled from the feature marginals (LIME).
+Contributions are centred on the reference data, so they sum to the
+local prediction minus the baseline. `method = "local"` fits the same
+surrogate on the observed data, weighted by similarity.
+
+``` r
+lime_obj <- interpret(
+  fit = fit_obj,
+  data = demo_dat,
+  method = "lime",
+  newdata = demo_dat[1, , drop = FALSE],
+  type = "prob",
+  seed = 42
+)
+
+plot(lime_obj)
+```
+
+<img src="man/figures/README-interpret-lime-1.png" alt="" width="100%" />
+
+`interpret(method = "ceteris_paribus")` profiles the prediction for the
+rows of `newdata` as one feature varies over a grid built from `data`.
+
+``` r
+cp_obj <- interpret(
+  fit = fit_obj,
+  data = demo_dat,
+  method = "ceteris_paribus",
+  newdata = demo_dat[1, , drop = FALSE],
+  features = c("age"),
+  type = "prob"
+)
+
+plot(cp_obj)
+```
+
+<img src="man/figures/README-interpret-ceteris-paribus-1.png" alt="" width="100%" />
+
+Other supported methods include ICE, native and permutation variable
+importance (`"vip"`), global surrogate models, and interaction
+diagnostics.
 
 ## Inspect calibration
 
@@ -576,7 +658,11 @@ plot(est_obj)
 
 <img src="man/figures/README-estimate-plot-1.png" alt="" width="100%" />
 
-The same interface also supports `ATT`, `CATE`, and `IATE`.
+The same interface also supports `ATT`, `CATE`, and `IATE`. `estimate()`
+checks positivity before fitting (an error when the treatment takes a
+single value, a warning when an arm has fewer than 10 rows), and
+`interval = "bootstrap"` redraws resamples that lack treated or control
+rows.
 
 ## Ensembles as first-class learners
 
@@ -637,16 +723,15 @@ library(funcml)
 citation("funcml")
 #> To cite package 'funcml' in publications use:
 #> 
-#>   El Badisy I (2026). _funcml: Functional Machine Learning Framework_.
-#>   R package version 0.8.9, <https://github.com/ielbadisy/funcml>.
+#>   El Badisy I (????). _funcml: Functional Machine Learning Framework_.
+#>   R package version 0.9.6, <https://CRAN.R-project.org/package=funcml>.
 #> 
 #> A BibTeX entry for LaTeX users is
 #> 
 #>   @Manual{,
 #>     title = {funcml: Functional Machine Learning Framework},
 #>     author = {Imad {El Badisy}},
-#>     year = {2026},
-#>     note = {R package version 0.8.9},
-#>     url = {https://github.com/ielbadisy/funcml},
+#>     note = {R package version 0.9.6},
+#>     url = {https://CRAN.R-project.org/package=funcml},
 #>   }
 ```

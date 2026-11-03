@@ -76,6 +76,8 @@ estimate()
 
 `funcml` exposes a session-aware registry of learners, metrics, and interpretation methods.
 
+The learner registry covers linear and penalized models (`glm`, `glmnet`, `lda`, `qda`, `pls`), trees and forests (`rpart`, `ctree`, `cforest`, `C50`, `ranger`, `randomForest`), gradient boosting (`gbm`, `xgboost`, `lightgbm`, `fastgbm`), neural networks (`nnet`, `mlp`, `densemlp`), Bayesian additive regression trees (`bart`), other classic learners, and the `stacking` and `superlearner` ensembles.
+
 ```{r registry}
 list_learners()
 ```
@@ -198,6 +200,23 @@ tune_obj
 plot(tune_obj)
 ```
 
+When `grid` is omitted, `tune()` (and `compare(tune = TRUE)`) falls back to the learner's default grid, returned by `default_tune_grid()`.
+
+```{r tune-default}
+default_tune_grid("rpart")
+
+tune_default <- tune(
+  data = demo_dat,
+  formula = status ~ age + gender + bmi + diabetes + smoke + covered_health,
+  model = "rpart",
+  resampling = cv(v = 3, seed = 42),
+  metric = "logloss",
+  seed = 42
+)
+
+tune_default$best
+```
+
 ## Compare learners
 
 `compare()` benchmarks multiple learners under a common resampling design.
@@ -299,7 +318,39 @@ shap_many_obj <- interpret(
 plot(shap_many_obj, kind = "beeswarm")
 ```
 
-Other supported methods include ICE, local explanations, surrogate models, and interaction diagnostics.
+## Local explanations
+
+`interpret(method = "lime")` fits a weighted linear surrogate around one observation on points sampled from the feature marginals (LIME). Contributions are centred on the reference data, so they sum to the local prediction minus the baseline. `method = "local"` fits the same surrogate on the observed data, weighted by similarity.
+
+```{r interpret-lime}
+lime_obj <- interpret(
+  fit = fit_obj,
+  data = demo_dat,
+  method = "lime",
+  newdata = demo_dat[1, , drop = FALSE],
+  type = "prob",
+  seed = 42
+)
+
+plot(lime_obj)
+```
+
+`interpret(method = "ceteris_paribus")` profiles the prediction for the rows of `newdata` as one feature varies over a grid built from `data`.
+
+```{r interpret-ceteris-paribus}
+cp_obj <- interpret(
+  fit = fit_obj,
+  data = demo_dat,
+  method = "ceteris_paribus",
+  newdata = demo_dat[1, , drop = FALSE],
+  features = c("age"),
+  type = "prob"
+)
+
+plot(cp_obj)
+```
+
+Other supported methods include ICE, native and permutation variable importance (`"vip"`), global surrogate models, and interaction diagnostics.
 
 ## Inspect calibration
 
@@ -377,7 +428,7 @@ The unit-level effect histogram remains available with
 plot(est_obj)
 ```
 
-The same interface also supports `ATT`, `CATE`, and `IATE`.
+The same interface also supports `ATT`, `CATE`, and `IATE`. `estimate()` checks positivity before fitting (an error when the treatment takes a single value, a warning when an arm has fewer than 10 rows), and `interval = "bootstrap"` redraws resamples that lack treated or control rows.
 
 ## Ensembles as first-class learners
 
