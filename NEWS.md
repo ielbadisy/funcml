@@ -21,6 +21,10 @@
   `newdata` (default: the first row of `data`), with each feature's grid
   built from `data`. It used to run ICE on every row of `data` and ignore
   `newdata`. The result also carries `newdata` and its observed prediction.
+- `plot()` on an `interpret(method = "ceteris_paribus")` result has its own
+  method: it is titled "Ceteris paribus profile" (not "ICE plot"), draws one
+  profile per observation in `newdata` without the ICE mean curve, and marks
+  the observed feature value and its prediction with a point on each profile.
 - Local surrogates (`"local"`, `"local_model"`, `"lime"`): contributions are
   now `beta * (x - mean(x))`, centred on the reference data, and sum to
   `local_prediction - baseline` (`baseline` is new in `result`). Before,

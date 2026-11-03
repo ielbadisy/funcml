@@ -1613,8 +1613,10 @@ summary.funcml_pdp <- function(object, ...) {
 #' ICE result methods.
 #'
 #' These methods provide the standard `print()`, `summary()`, and `plot()`
-#' interfaces for `funcml_ice` objects returned by `interpret(method = "ice")`
-#' or `interpret(method = "ceteris_paribus")`.
+#' interfaces for `funcml_ice` objects returned by `interpret(method = "ice")`.
+#' Results of `interpret(method = "ceteris_paribus")` reuse `print()` and
+#' `summary()` but have their own `plot()` method
+#' ([plot.funcml_ceteris_paribus()]).
 #'
 #' @param x A `funcml_ice` object.
 #' @param object A `funcml_ice` object.
@@ -1670,6 +1672,95 @@ print.funcml_ice <- function(x, ...) {
 summary.funcml_ice <- function(object, ...) {
   print(object$result$curves)
   invisible(object$result$curves)
+}
+
+#' Ceteris paribus result methods.
+#'
+#' `plot()` method for `funcml_ceteris_paribus` objects returned by
+#' `interpret(method = "ceteris_paribus")`. Each profiled observation gets
+#' one line per feature (the prediction as that feature moves over its grid
+#' while the others stay at their observed values), and a point marks the
+#' observed feature value with its prediction. `print()` and `summary()` are
+#' inherited from the `funcml_ice` methods.
+#'
+#' @param x A `funcml_ceteris_paribus` object.
+#' @param ... Additional arguments (unused).
+#' @return A `ggplot2` object.
+#'
+#' @name interpret-ceteris-paribus-methods
+#' @aliases plot.funcml_ceteris_paribus
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
+#'   spec = list(cp = 0.01, minsplit = 5))
+#' cp <- interpret(
+#'   fit = fit_obj,
+#'   data = mtcars,
+#'   method = "ceteris_paribus",
+#'   newdata = mtcars[1, ],
+#'   features = c("wt", "hp")
+#' )
+#' plot(cp)
+#' @export
+plot.funcml_ceteris_paribus <- function(x, ...) {
+  curves <- x$result$curves
+  newdata <- x$result$newdata
+  observed <- x$result$observed
+  features <- unique(as.character(curves$feature))
+
+  points <- NULL
+  if (!is.null(newdata) && !is.null(observed)) {
+    points <- .rbind_dt(lapply(features, function(feat) {
+      data.frame(
+        id = seq_len(nrow(newdata)),
+        feature = feat,
+        value = if (is.numeric(curves$value)) as.numeric(newdata[[feat]]) else as.character(newdata[[feat]]),
+        yhat = as.numeric(observed),
+        stringsAsFactors = FALSE
+      )
+    }))
+  }
+
+  # Coerce curve and point values together so a categorical feature keeps
+  # one set of factor levels across lines and points.
+  all_values <- c(curves$value, if (!is.null(points)) points$value)
+  plot_values <- .coerce_plot_value(all_values)
+  curves$plot_value <- plot_values[seq_len(nrow(curves))]
+
+  n_profiles <- length(unique(curves$id))
+  title <- if (n_profiles > 1L) {
+    sprintf("Ceteris paribus profiles (%d observations)", n_profiles)
+  } else {
+    "Ceteris paribus profile"
+  }
+
+  p <- ggplot2::ggplot(curves, ggplot2::aes(x = plot_value, y = yhat, group = id)) +
+    ggplot2::geom_line(
+      colour = if (n_profiles > 1L) "grey35" else .funcml_palette$ink,
+      linewidth = if (n_profiles > 1L) 0.5 else 0.7
+    )
+  if (!is.null(points)) {
+    points$plot_value <- plot_values[nrow(curves) + seq_len(nrow(points))]
+    p <- p + ggplot2::geom_point(
+      data = points,
+      ggplot2::aes(x = plot_value, y = yhat),
+      inherit.aes = FALSE,
+      size = 2.4,
+      colour = .funcml_palette$accent
+    )
+  }
+  p <- p +
+    ggplot2::facet_wrap(~feature, scales = "free_x") +
+    ggplot2::labs(
+      x = "Feature value",
+      y = .prediction_axis_label(x$task, x$type, context = "ice"),
+      title = title,
+      subtitle = "Other features fixed at their observed values. Point: observed value."
+    ) +
+    .publication_theme()
+  if (x$task != "regression" && identical(x$type, "prob")) {
+    p <- p + ggplot2::coord_cartesian(ylim = c(0, 1))
+  }
+  p
 }
 
 #' ALE result methods.

@@ -3,6 +3,7 @@
 S3method(coef,funcml_fit)
 S3method(plot,funcml_ale)
 S3method(plot,funcml_calibration)
+S3method(plot,funcml_ceteris_paribus)
 S3method(plot,funcml_compare)
 S3method(plot,funcml_dca)
 S3method(plot,funcml_estimand)

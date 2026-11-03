@@ -26,8 +26,10 @@ object invisibly. \code{summary()} returns the ICE curve table invisibly.
 }
 \description{
 These methods provide the standard \code{print()}, \code{summary()}, and \code{plot()}
-interfaces for \code{funcml_ice} objects returned by \code{interpret(method = "ice")}
-or \code{interpret(method = "ceteris_paribus")}.
+interfaces for \code{funcml_ice} objects returned by \code{interpret(method = "ice")}.
+Results of \code{interpret(method = "ceteris_paribus")} reuse \code{print()} and
+\code{summary()} but have their own \code{plot()} method
+(\code{\link[=plot.funcml_ceteris_paribus]{plot.funcml_ceteris_paribus()}}).
 }
 \examples{
 fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "rpart",
