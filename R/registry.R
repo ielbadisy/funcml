@@ -504,33 +504,28 @@ build_registry <- function() {
       }
     ),
     mlp = list(
-      package = "torch",
+      package = "densemlp",
       tasks = c("regression", "classification"),
       defaults = list(
         hidden_units = c(64L, 32L),
-        activation = "relu",
         dropout = 0,
         batch_norm = FALSE,
         epochs = 100L,
         batch_size = 32L,
         lr = 1e-3,
-        optimizer = "adam",
-        weight_decay = 0,
         validation = 0.2,
         early_stopping = TRUE,
         patience = 10L,
         min_delta = 0,
-        standardize = TRUE,
         seed = 1L,
-        verbose = FALSE,
-        device = "auto"
+        verbose = FALSE
       ),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, levels, ...) {
-        .mlp_fit_torch(X = X, y = y, task = task, levels = levels, spec = spec)
+        .mlp_fit(X = X, y = y, spec = spec, task = task, levels = levels)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
-        .mlp_predict_torch(state = state, Xnew = Xnew, type = type, levels = levels)
+        .densemlp_predict(state = state, Xnew = Xnew, type = type, levels = levels)
       }
     ),
     densemlp = list(

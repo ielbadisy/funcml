@@ -48,7 +48,7 @@ default_tune_grid <- function(model, data = NULL, formula = NULL) {
     glmnet = g(alpha = c(0, 0.5, 1), lambda = c(1e-4, 1e-3, 1e-2, 0.05, 0.1, 0.3)),
     ranger = g(num.trees = 500, mtry = mtry, min.node.size = c(1, 5, 10)),
     nnet = g(size = c(3, 5, 10), decay = c(0.001, 0.01, 0.1)),
-    mlp = g(lr = c(0.001, 0.01), dropout = c(0, 0.2), weight_decay = c(0, 1e-3)),
+    mlp = g(lr = c(0.001, 0.01), dropout = c(0, 0.2), batch_norm = c(FALSE, TRUE)),
     densemlp = g(lr = c(0.001, 0.01), dropout = c(0, 0.2), epochs = c(50, 100)),
     e1071_svm = g(cost = c(0.25, 1, 4, 16), gamma = c(0.25, 1, 4) / p),
     randomForest = g(ntree = 500, mtry = mtry, nodesize = c(1, 5, 10)),

@@ -1,12 +1,62 @@
-# Registry wrapper around the published `densemlp` package.
+# Registry wrappers around the published `densemlp` package.
 #
-# funcml also ships a lightweight, dependency-free MLP (`mlp`, see
-# mlp_internal.R). `densemlp` is a separate CRAN package with richer
-# architecture options (residual connections, gated blocks, feature
-# interactions, moving-average weights, learning-rate schedules, internal
-# ensembles) implemented natively in C++ via RcppArmadillo (no
-# `torch`/`libtorch` dependency), and is wired in here as an additional
-# learner rather than a replacement.
+# `densemlp` is a CRAN package that implements a dense feedforward network
+# natively in C++ via RcppArmadillo. It
+# backs two learners:
+#
+# * `densemlp` exposes the engine's full architecture options (residual
+#   connections, gated blocks, feature interactions, moving-average weights,
+#   learning-rate schedules, internal ensembles).
+# * `mlp` is a plain multilayer perceptron preset on the same engine
+#   (Linear -> ReLU blocks, Adam, standardized inputs, no batch
+#   normalization by default). Arguments of the earlier `mlp`
+#   implementation that have no densemlp equivalent are accepted and
+#   ignored with a warning (see `.mlp_legacy_args()`).
+
+# Arguments of the earlier `mlp` implementation, with the only value
+# the densemlp engine reproduces. Any other value is ignored with a warning.
+.mlp_legacy_args <- function() {
+  list(
+    activation = "relu",
+    optimizer = "adam",
+    weight_decay = 0,
+    standardize = TRUE,
+    device = c("auto", "cpu")
+  )
+}
+
+.mlp_check_legacy_args <- function(spec) {
+  legacy <- .mlp_legacy_args()
+  ignored <- character()
+  for (nm in intersect(names(spec), names(legacy))) {
+    value <- spec[[nm]]
+    if (is.null(value)) next
+    ok <- length(value) == 1L && !is.na(value) && value %in% legacy[[nm]]
+    if (!ok) {
+      ignored <- c(ignored, sprintf("%s = %s", nm, paste(format(value), collapse = ", ")))
+    }
+  }
+  if (length(ignored)) {
+    warning(
+      sprintf(
+        paste0(
+          "`mlp` now runs on the densemlp engine (ReLU activation, Adam, ",
+          "standardized inputs, CPU) and ignores: %s."
+        ),
+        paste(ignored, collapse = "; ")
+      ),
+      call. = FALSE
+    )
+  }
+  spec[names(legacy)] <- NULL
+  spec
+}
+
+.mlp_fit <- function(X, y, spec, task, levels, ...) {
+  spec <- .mlp_check_legacy_args(spec)
+  spec$batch_norm <- spec$batch_norm %||% FALSE
+  .densemlp_fit(X = X, y = y, spec = spec, task = task, levels = levels)
+}
 
 .densemlp_fit <- function(X, y, spec, task, levels, ...) {
   assert_package("densemlp", "densemlp")

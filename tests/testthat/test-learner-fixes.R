@@ -111,7 +111,7 @@ test_that("ensemble default base learners exclude glm for a multiclass outcome",
 test_that("stacking and superlearner run on a multiclass outcome", {
   d <- iris
   names(d)[5] <- "y"
-  # explicit base learners without a torch dependency, so the test runs where torch is not installed
+  # explicit fast base learners keep this test quick
   for (id in c("stacking", "superlearner")) {
     fit_e <- fit(y ~ ., d, id, spec = list(learners = c("rpart", "kknn")))
     prob <- predict(fit_e, d[c(1, 51, 101), ], type = "prob")
@@ -167,4 +167,44 @@ test_that("bart fits give the same predictions after saveRDS()/readRDS()", {
   saveRDS(m, f)
   p2 <- predict(readRDS(f), d[1:10, ], type = "prob")
   expect_equal(p2, p1)
+})
+
+test_that("mlp runs on the densemlp engine for regression, binary and multiclass", {
+  spec <- list(hidden_units = 8L, epochs = 10L, batch_size = 16L, patience = 3L, lr = 0.01)
+
+  fit_r <- fit(mpg ~ wt + hp + disp, mtcars, "mlp", spec = spec)
+  pred_r <- predict(fit_r, mtcars[1:5, ])
+  expect_type(pred_r, "double")
+  expect_length(pred_r, 5L)
+  expect_true(all(is.finite(pred_r)))
+
+  d_bin <- mtcars
+  d_bin$am <- factor(d_bin$am, labels = c("auto", "manual"))
+  fit_b <- fit(am ~ wt + hp + qsec, d_bin, "mlp", spec = spec)
+  prob_b <- predict(fit_b, d_bin[1:4, ], type = "prob")
+  expect_equal(colnames(prob_b), c("auto", "manual"))
+  expect_equal(unname(rowSums(prob_b)), rep(1, 4), tolerance = 1e-6)
+  expect_s3_class(predict(fit_b, d_bin[1:4, ], type = "class"), "factor")
+
+  d_multi <- iris
+  names(d_multi)[5] <- "y"
+  fit_m <- fit(y ~ ., d_multi, "mlp", spec = spec)
+  prob_m <- predict(fit_m, d_multi[c(1, 51, 101), ], type = "prob")
+  expect_equal(dim(prob_m), c(3L, 3L))
+  expect_equal(colnames(prob_m), levels(d_multi$y))
+
+  expect_true("mlp" %in% learners())
+})
+
+test_that("mlp warns on arguments the densemlp engine does not support", {
+  spec <- list(hidden_units = 4L, epochs = 5L, patience = 2L)
+  expect_warning(
+    fit(mpg ~ wt + hp, mtcars, "mlp", spec = c(spec, list(activation = "tanh", weight_decay = 1e-3))),
+    "ignores: activation = tanh; weight_decay"
+  )
+  expect_no_warning(
+    fit(mpg ~ wt + hp, mtcars, "mlp", spec = c(spec, list(activation = "relu", optimizer = "adam", device = "cpu")))
+  )
+  g <- default_tune_grid("mlp")
+  expect_false("weight_decay" %in% names(g))
 })

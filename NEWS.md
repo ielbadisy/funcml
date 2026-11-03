@@ -1,5 +1,19 @@
 # funcml 0.9.6
 
+- `torch` is no longer a dependency. The `mlp` learner now runs on the
+  `densemlp` engine (C++, RcppArmadillo) as a plain multilayer perceptron:
+  ReLU hidden layers, Adam, standardized inputs, no batch normalization by
+  default. Task support (regression, binary, multiclass) and the arguments
+  `hidden_units`, `dropout`, `batch_norm`, `epochs`, `batch_size`, `lr`,
+  `validation`, `early_stopping`, `patience`, `min_delta`, `seed` and
+  `verbose` are unchanged. `activation`, `optimizer`, `weight_decay`,
+  `standardize` and `device` have no equivalent: their default values
+  (`"relu"`, `"adam"`, `0`, `TRUE`, `"auto"`/`"cpu"`) are accepted silently,
+  any other value is ignored with a warning. The default `mlp` tuning grid
+  now varies `batch_norm` instead of `weight_decay`. Fitted `mlp` models are
+  plain R objects, so they can be saved with `saveRDS()` and reused across
+  forked workers. Use the `densemlp` learner for the engine's advanced
+  options (residual and gated blocks, ensembles, learning-rate schedules).
 - `bart` fits now survive `saveRDS()`/`readRDS()`. dbarts keeps the sampler
   state outside R, so a reloaded fit predicted a constant probability; the
   state is now stored in the object at fit time.

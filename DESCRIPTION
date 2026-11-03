@@ -37,7 +37,7 @@ RoxygenNote: 7.3.3
 Imports: stats, utils, ggplot2, functionals, grDevices, tools,
     basetable, MASS, mgcv, nnet, rpart, glmnet, ranger, e1071,
     randomForest, gbm, C50, kknn, earth, naivebayes, mda, ada, pls,
-    partykit, dbarts, torch, xgboost, lightgbm, densemlp, fastgbm
+    partykit, dbarts, xgboost, lightgbm, densemlp, fastgbm
 Suggests: testthat (>= 3.1.0), knitr, rmarkdown, roxygen2, gggenes,
     ggfittext, pROC
 VignetteBuilder: knitr
