@@ -25,12 +25,20 @@ fit(
 
 \item{seed}{Optional seed for reproducibility.}
 
-\item{na_action}{NA handling passed to \code{model.frame}/\code{model.matrix} (default \code{stats::na.fail}).}
+\item{na_action}{NA handling passed to \code{model.frame}/\code{model.matrix}. The
+default is \code{stats::na.fail}, except for learners that handle missing
+predictor values natively (currently \code{fastgbm}): when \code{na_action} is not
+supplied, those use \code{stats::na.pass} so \code{NA} in predictors reaches the
+engine, and only an \code{NA} outcome is an error. Pass
+\code{na_action = stats::na.fail} to force complete-case checking, or
+\code{stats::na.omit} to drop incomplete rows.}
 
 \item{...}{Additional parameters merged into \code{spec}.}
 }
 \value{
-An object of class \code{funcml_fit}.
+An object of class \code{funcml_fit}. The fitted engine object (for
+example the \code{glm}, \code{ranger}, \code{xgb.Booster} or \code{fastgbm} model) is stored
+at \verb{$state$state}; use \code{\link[=enginemodel]{enginemodel()}} to extract it.
 }
 \description{
 Registered learner ids currently include:

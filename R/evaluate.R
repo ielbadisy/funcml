@@ -22,12 +22,31 @@
 #' @param fit Optional preconfigured `funcml_fit` object (re-fit per fold).
 #' @param ncores Optional number of CPU cores used to evaluate resampling folds.
 #'   `NULL` or `1` runs sequentially.
+#' @param pooled Logical; if `TRUE`, also compute every metric once on the
+#'   pooled out-of-fold predictions (all test folds stacked, one value per
+#'   repeat, then averaged over repeats) and return it as `$pooled`.
 #' @param ... Passed to `fit()`.
-#' @details Missing values are not handled: if any variable used by
-#'   `formula` contains `NA`, `evaluate()` stops with an error naming the
-#'   affected columns. Impute or drop incomplete rows (for example with
-#'   `stats::na.omit()` on the model variables) before calling it.
-#' @return A `funcml_eval` object.
+#' @details Missing values are not handled for most learners: if any variable
+#'   used by `formula` contains `NA`, `evaluate()` stops with an error naming
+#'   the affected columns. Impute or drop incomplete rows (for example with
+#'   `stats::na.omit()` on the model variables) before calling it. Learners
+#'   that handle missing predictors natively (currently `fastgbm`, see
+#'   [fit()]) accept `NA` in predictors; the outcome must still be complete.
+#'
+#'   `$summary` averages each metric over folds. For metrics that are not
+#'   means of per-row losses this differs from the value computed on the
+#'   pooled out-of-fold predictions. Binned calibration metrics (`ece`,
+#'   `mce`) are the main case: each fold has few rows per bin, so the
+#'   fold-averaged ECE is inflated by bin noise and is typically much larger
+#'   than the pooled ECE (for example 0.11 vs 0.04). `auc` differs too, less
+#'   markedly. Use `pooled = TRUE`, or compute the metric from
+#'   `$predictions`, when you want the pooled value.
+#' @return A `funcml_eval` object: a list with `folds` (metric per fold),
+#'   `summary` (fold-averaged metrics with intervals), `predictions` (one row
+#'   per out-of-fold prediction: `row`, `repeat_id`, `fold`, `truth`, and
+#'   `.pred` for regression or `.pred_class` plus one `.prob_<level>` column
+#'   per class for classification), `pooled` (`NULL` unless `pooled = TRUE`),
+#'   and bookkeeping fields.
 #' @examples
 #' eval_obj <- evaluate(
 #'   data = mtcars,
@@ -41,7 +60,8 @@
 evaluate <- function(data, formula, model = NULL, spec = NULL,
                      resampling = cv(5), metrics = NULL, type = NULL,
                      conf_level = 0.95, seed = NULL, fit = NULL,
-                     ncores = NULL, se_method = c("naive", "corrected"), ...) {
+                     ncores = NULL, se_method = c("naive", "corrected"),
+                     pooled = FALSE, ...) {
   se_method <- match.arg(se_method)
   ncores <- .validate_ncores(ncores)
   if (!is.null(seed)) set.seed(seed)
@@ -57,8 +77,11 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
     task <- infer_task(model.response(model.frame(formula, data)))
   }
 
-  .check_no_missing_model_vars(formula, data)
-  y_all <- model.response(model.frame(formula, data))
+  .check_no_missing_model_vars(
+    formula, data,
+    outcome_only = isTRUE(funcml_registry(base_model)$supports$na) && is.null(list(...)$na_action)
+  )
+  y_all <- model.response(model.frame(formula, data, na.action = stats::na.pass))
   if (task == "classification") {
     y_all <- factor(y_all)
   }
@@ -83,44 +106,14 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
     if (!is.null(task_seed)) {
       set.seed(task_seed)
     }
-    train_data <- data[fold$train, , drop = FALSE]
-    test_data  <- data[fold$test, , drop = FALSE]
-    fit_fold <- fit(formula, train_data, base_model, spec = base_spec, ...)
-    type_use <- type %||% if (task == "regression") "response" else if (any(metrics %in% c("logloss", "brier", "auc", "auc_weighted", "ece", "mce"))) "prob" else "class"
-    preds <- predict(fit_fold, newdata = test_data, type = type_use)
-
-    prob_matrix <- NULL
-    pred_class <- NULL
-    if (task == "classification") {
-      if (type_use == "prob") {
-        prob_matrix <- as.matrix(preds)
-        if (is.null(colnames(prob_matrix))) colnames(prob_matrix) <- fit_fold$levels
-        pred_class <- fit_fold$levels[max.col(prob_matrix)]
-        pred_class <- factor(pred_class, levels = fit_fold$levels)
-      } else {
-        pred_class <- preds
-      }
-    }
-
-    vals <- vapply(metrics, function(m) {
-      if (task == "regression") {
-        .loss(y_all[fold$test], preds, task, m)
-      } else if (m %in% c("logloss", "brier", "auc", "auc_weighted", "ece", "mce")) {
-        .loss(y_all[fold$test], pred_class, task, m, prob_matrix = prob_matrix)
-      } else {
-        .loss(y_all[fold$test], pred_class, task, m, prob_matrix = prob_matrix)
-      }
-    }, numeric(1))
-
-    data.frame(
-      repeat_id = rep(fold$repeat_id, length(metrics)),
-      fold = rep(fold$fold, length(metrics)),
-      metric = metrics,
-      value = vals,
-      stringsAsFactors = FALSE
+    .evaluate_split(
+      data = data, formula = formula, model = base_model, spec = base_spec,
+      fold = fold, y_all = y_all, task = task, metrics = metrics, type = type, ...
     )
   }, ncores = ncores)
 
+  predictions <- .rbind_dt(lapply(folds_out, `[[`, "predictions"))
+  folds_out <- lapply(folds_out, `[[`, "metrics")
   folds_df <- .rbind_dt(folds_out)
   # Aggregate fold metrics into mean/sd columns explicitly to avoid the
   # list/matrix column shape that `aggregate()` produces when the function
@@ -137,6 +130,8 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
   out <- list(
     folds = folds_df,
     summary = summary_df,
+    predictions = predictions,
+    pooled = if (isTRUE(pooled)) .pooled_metrics(predictions, metrics, task) else NULL,
     call = match.call(),
     task = task,
     model = base_model,
@@ -222,8 +217,17 @@ plot.funcml_eval <- function(x, ...) {
     themefuncml()
 }
 
-.check_no_missing_model_vars <- function(formula, data) {
+.check_no_missing_model_vars <- function(formula, data, outcome_only = FALSE) {
   mf <- stats::model.frame(formula, data, na.action = stats::na.pass)
+  if (isTRUE(outcome_only)) {
+    if (anyNA(stats::model.response(mf))) {
+      stop(sprintf(
+        "`evaluate()` needs a complete outcome: %d row(s) have NA in '%s'. Remove them first.",
+        sum(is.na(stats::model.response(mf))), names(mf)[1L]
+      ), call. = FALSE)
+    }
+    return(invisible(TRUE))
+  }
   has_na <- vapply(mf, anyNA, logical(1))
   if (any(has_na)) {
     n_rows <- sum(!stats::complete.cases(mf))
@@ -279,4 +283,87 @@ plot.funcml_eval <- function(x, ...) {
     )
   })
   .rbind_dt(out)
+}
+
+.evaluate_split <- function(data, formula, model, spec, fold, y_all, task,
+                            metrics, type, ...) {
+  train_data <- data[fold$train, , drop = FALSE]
+  test_data <- data[fold$test, , drop = FALSE]
+  fit_fold <- fit(formula, train_data, model, spec = spec, ...)
+  prob_metrics <- c("logloss", "brier", "auc", "auc_weighted", "ece", "mce")
+  type_use <- type %||% if (task == "regression") "response" else if (any(metrics %in% prob_metrics)) "prob" else "class"
+  preds <- predict(fit_fold, newdata = test_data, type = type_use)
+  truth <- y_all[fold$test]
+
+  prob_matrix <- NULL
+  pred_class <- NULL
+  if (task == "classification") {
+    if (type_use == "prob") {
+      prob_matrix <- as.matrix(preds)
+      if (is.null(colnames(prob_matrix))) colnames(prob_matrix) <- fit_fold$levels
+      pred_class <- factor(fit_fold$levels[max.col(prob_matrix)], levels = fit_fold$levels)
+    } else {
+      pred_class <- preds
+    }
+  }
+
+  vals <- vapply(metrics, function(m) {
+    if (task == "regression") {
+      .loss(truth, preds, task, m)
+    } else {
+      .loss(truth, pred_class, task, m, prob_matrix = prob_matrix)
+    }
+  }, numeric(1))
+
+  metrics_df <- data.frame(
+    repeat_id = rep(fold$repeat_id, length(metrics)),
+    fold = rep(fold$fold, length(metrics)),
+    metric = metrics,
+    value = vals,
+    stringsAsFactors = FALSE
+  )
+  pred_df <- data.frame(
+    row = fold$test,
+    repeat_id = rep(fold$repeat_id, length(fold$test)),
+    fold = rep(fold$fold, length(fold$test)),
+    truth = truth,
+    stringsAsFactors = FALSE
+  )
+  if (task == "regression") {
+    pred_df$.pred <- as.numeric(preds)
+  } else {
+    pred_df$.pred_class <- pred_class
+    if (!is.null(prob_matrix)) {
+      for (lvl in colnames(prob_matrix)) {
+        pred_df[[paste0(".prob_", lvl)]] <- as.numeric(prob_matrix[, lvl])
+      }
+    }
+  }
+  list(metrics = metrics_df, predictions = pred_df, fit = fit_fold)
+}
+
+.pooled_metrics <- function(predictions, metrics, task) {
+  reps <- sort(unique(predictions$repeat_id))
+  vals <- vapply(reps, function(r) {
+    p <- predictions[predictions$repeat_id == r, , drop = FALSE]
+    if (task == "regression") {
+      return(vapply(metrics, function(m) .loss(p$truth, p$.pred, task, m), numeric(1)))
+    }
+    prob_cols <- grep("^\\.prob_", names(p), value = TRUE)
+    prob_matrix <- if (length(prob_cols)) {
+      pm <- as.matrix(p[, prob_cols, drop = FALSE])
+      colnames(pm) <- sub("^\\.prob_", "", prob_cols)
+      pm
+    } else {
+      NULL
+    }
+    vapply(metrics, function(m) .loss(p$truth, p$.pred_class, task, m, prob_matrix = prob_matrix), numeric(1))
+  }, numeric(length(metrics)))
+  vals <- matrix(vals, nrow = length(metrics))
+  data.frame(
+    metric = metrics,
+    value = rowMeans(vals),
+    n_repeats = length(reps),
+    stringsAsFactors = FALSE
+  )
 }

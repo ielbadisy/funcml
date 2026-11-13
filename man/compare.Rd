@@ -18,6 +18,8 @@ compare(
   tune = FALSE,
   grids = NULL,
   metric = NULL,
+  nested = TRUE,
+  inner_resampling = NULL,
   ...
 )
 }
@@ -39,7 +41,8 @@ these are computed for each learner's tuned best configuration.}
 
 \item{conf_level}{Confidence level for learner summary intervals.}
 
-\item{seed}{Optional seed.}
+\item{seed}{Optional seed. It fixes the shared folds (when \code{resampling}
+has no seed of its own) and the per-learner random streams.}
 
 \item{ncores}{Optional number of CPU cores used to compare learners. \code{NULL}
 or \code{1} runs sequentially.}
@@ -53,13 +56,44 @@ no tunable hyperparameters is evaluated with its own \code{specs} entry.}
 
 \item{metric}{Optimization metric used when \code{tune = TRUE}.}
 
+\item{nested}{Logical; when \code{tune = TRUE}, estimate performance by nested
+resampling (default \code{TRUE}). See Details.}
+
+\item{inner_resampling}{Optional resampling object for the inner tuning
+loop when \code{nested = TRUE}. Defaults to the specification of \code{resampling}.}
+
 \item{...}{Additional arguments passed to \code{evaluate()} or \code{tune()} / \code{fit()}.}
 }
 \value{
-A \code{funcml_compare} object.
+A \code{funcml_compare} object: a list with \code{results} (one row per
+learner and metric), \code{details} (per-learner evaluation and tuning
+objects), \code{predictions} (out-of-fold predictions of every learner, with a
+\code{model} column and the columns described in \code{\link[=evaluate]{evaluate()}}), the shared
+\code{resampling}, and bookkeeping fields. The out-of-fold predictions are on
+the same rows and folds for every learner, so they can be used directly
+for paired tests (for example DeLong or a paired bootstrap).
 }
 \description{
-Compare multiple learners with optional tuning.
+All learners are scored on the same resampling splits. The folds are drawn
+once, after setting \code{seed} (or from \code{resampling}'s own seed), and shared by
+every learner, so differences between learners are not confounded with
+differences between fold assignments. The frozen splits are returned in
+\verb{$resampling}; passing that object to \code{\link[=evaluate]{evaluate()}} or \code{\link[=compare]{compare()}} on the
+same data reuses them.
+}
+\details{
+With \code{tune = TRUE} and \code{nested = TRUE} (the default), performance is
+estimated by nested resampling: within each outer training fold the grid is
+tuned by an inner resampling (\code{inner_resampling}, default the same
+specification as \code{resampling}, redrawn on the training rows), the selected
+configuration is refit on that training fold, and it is scored on the
+outer test fold. The tuning never sees the test fold, so the estimate is
+not optimistically biased by the selection. The reported \code{best_spec} is the
+configuration selected by tuning on the full data over the shared folds,
+which is the configuration you would deploy. \code{nested = FALSE} restores the
+older, faster behaviour of tuning and scoring on the same folds; that
+estimate is optimistic (the best of many configurations on the very folds
+used to pick it) and should not be reported as a performance estimate.
 }
 \examples{
 cmp <- compare(
@@ -70,4 +104,5 @@ cmp <- compare(
   metrics = c("rmse", "mae")
 )
 cmp$results
+head(cmp$predictions)
 }
