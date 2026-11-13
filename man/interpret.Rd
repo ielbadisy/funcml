@@ -68,9 +68,15 @@ absolute contributions after dropping zero ones.}
 \item{gower_power}{Exponent applied to native similarity weights when constructing the
 local neighborhood.}
 
-\item{class_level}{Target class for multiclass/local prob explanations.}
+\item{class_level}{Target class for classification explanations. For a
+binary outcome the default is the positive class, taken to be the
+second factor level (for \code{factor(y, levels = c("no", "yes"))}, PDP, ICE,
+ALE and profile curves show the probability of \code{"yes"}). Relevel the
+outcome or set \code{class_level} to explain the other class. For a
+multiclass outcome with \code{type = "prob"} the default is the last level.}
 
-\item{pos_level}{Alias for binary positive class (second level default).}
+\item{pos_level}{Alias for the binary positive class (second level by
+default).}
 
 \item{newdata}{Single-row data frame for local/SHAP explanations; defaults to first row of \code{data}.
 For \code{method = "ceteris_paribus"}, the observation(s) to profile (one

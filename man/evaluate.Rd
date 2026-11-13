@@ -16,6 +16,7 @@ evaluate(
   seed = NULL,
   fit = NULL,
   ncores = NULL,
+  se_method = c("naive", "corrected"),
   ...
 )
 }
@@ -43,6 +44,17 @@ evaluate(
 \item{ncores}{Optional number of CPU cores used to evaluate resampling folds.
 \code{NULL} or \code{1} runs sequentially.}
 
+\item{se_method}{How the standard error of the cross-validated mean is
+computed. \code{"naive"} (default) uses \code{sd / sqrt(J)} over the \code{J} fold
+values with a t interval on \code{J - 1} degrees of freedom. This treats the
+folds as independent, but they share training data, so the standard
+error and the interval are too narrow (often markedly so). \code{"corrected"}
+uses the Nadeau and Bengio (2003) corrected variance
+\code{(1 / J + n_test / n_train) * sd^2}, with \code{n_test / n_train} the ratio of
+the mean test and training sizes. It is a heuristic, more conservative
+correction; neither interval has exact coverage. Use the intervals as a
+rough guide to fold-to-fold variability, not as formal inference.}
+
 \item{...}{Passed to \code{fit()}.}
 }
 \value{
@@ -50,6 +62,12 @@ A \code{funcml_eval} object.
 }
 \description{
 Cross-validated evaluation.
+}
+\details{
+Missing values are not handled: if any variable used by
+\code{formula} contains \code{NA}, \code{evaluate()} stops with an error naming the
+affected columns. Impute or drop incomplete rows (for example with
+\code{stats::na.omit()} on the model variables) before calling it.
 }
 \examples{
 eval_obj <- evaluate(

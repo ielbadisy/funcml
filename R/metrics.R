@@ -61,7 +61,7 @@ list_metrics <- function(direction = NULL, columns = NULL) {
     range = c(
       "[0, Inf)", "[0, Inf)", "[0, Inf)", "[0, Inf)", "[0, Inf)", "(-Inf, 1]",
       "[0, 1]", "[0, 1]", "[0, 1]", "[0, 1]", "[0, 1]",
-      "[0, 1]", "[0, Inf)", "[0, 2]", "[0, 1]", "[0, 1]",
+      "[0, 1]", "[0, Inf)", "[0, 1] binary, [0, 2] multiclass", "[0, 1]", "[0, 1]",
       "[0, 1]", "[0, 1]"
     ),
     stringsAsFactors = FALSE
@@ -75,6 +75,11 @@ list_metrics <- function(direction = NULL, columns = NULL) {
 #' @param truth Observed outcomes.
 #' @param pred Predicted numeric values or class labels.
 #' @param prob_matrix Matrix or vector of predicted probabilities (classification).
+#'   For `brier()`, a binary task returns the standard binary Brier score
+#'   `mean((p - y)^2)`, with `p` the probability of the second (positive)
+#'   class and `y` its 0/1 indicator (range 0 to 1). With more than two
+#'   classes it returns the multiclass Brier score
+#'   `mean(rowSums((P - Y)^2))` (range 0 to 2).
 #' @param pred_class Predicted class labels (classification).
 #' @param prob Probability vector (binary) or probability matrix with one column
 #'   per class (multiclass).
@@ -183,6 +188,11 @@ brier <- function(truth, prob_matrix) {
   truth_onehot <- matrix(0, nrow = length(truth), ncol = ncol(prob_matrix))
   colnames(truth_onehot) <- colnames(prob_matrix)
   truth_onehot[cbind(seq_along(truth), match(truth, colnames(prob_matrix)))] <- 1
+  if (ncol(prob_matrix) == 2L) {
+    # Binary: standard Brier score mean((p - y)^2) on the positive (second)
+    # column, i.e. half the multiclass sum over both columns.
+    return(mean((prob_matrix[, 2L] - truth_onehot[, 2L])^2))
+  }
   mean(rowSums((prob_matrix - truth_onehot)^2))
 }
 
