@@ -14,13 +14,13 @@ time_cv(
 )
 }
 \arguments{
-\item{initial}{Initial training window size.}
+\item{initial}{Initial training window size, in unique time values.}
 
-\item{assess}{Assessment window size.}
+\item{assess}{Assessment window size, in unique time values.}
 
 \item{time}{Ordering variable name or vector.}
 
-\item{skip}{Number of observations to skip between splits.}
+\item{skip}{Number of unique time values to skip between splits.}
 
 \item{cumulative}{Logical; use an expanding training window.}
 
@@ -30,7 +30,11 @@ time_cv(
 A \code{funcml_cv} object.
 }
 \description{
-Time-aware rolling resampling.
+Splits are made on the unique values of \code{time}, so all rows sharing a
+time value (for example the same date) are always in the same training or
+assessment window: a date never appears in both. \code{initial}, \code{assess} and
+\code{skip} therefore count unique time values, not rows. Without \code{time}, rows
+are taken in their order in the data and each row is its own time point.
 }
 \examples{
 time_cv(initial = 8, assess = 2, skip = 1)

@@ -1,3 +1,28 @@
+# funcml 0.9.7
+
+- `brier()` now returns the standard binary Brier score `mean((p - y)^2)`
+  for binary outcomes, with `p` the probability of the second (positive)
+  level. It previously used the multiclass formula, which is twice that
+  value. Multiclass Brier is unchanged. Binary Brier values from earlier
+  versions (in `evaluate()`, `compare()`, `tune()` and
+  `interpret()`) are halved; model rankings are unchanged.
+- `evaluate()` gains `se_method`. The default `"naive"` standard error
+  (`sd / sqrt(J)` over folds, t interval) is kept, but it ignores the
+  correlation between folds and is too narrow; this is now stated in the
+  documentation and in the printed output. `se_method = "corrected"` uses the
+  Nadeau-Bengio corrected variance `(1 / J + n_test / n_train) * sd^2`.
+- `evaluate()` now stops with a clear error naming the model columns that
+  contain `NA`, instead of the opaque "`y` must have length `n`" error.
+- `time_cv()` now splits on unique values of `time`, so rows sharing a time
+  value (for example the same date) never fall in both the training and the
+  assessment window. `initial`, `assess` and `skip` now count unique time
+  values rather than rows (identical when every row has its own time value).
+- `interpret()` PDP, ICE, ALE and ceteris paribus curves for binary outcomes
+  now default to the positive (second) level, consistent with the rest of
+  `interpret()` and with the `class_level` it reports. They previously showed
+  the probability of the first level. The default is documented under
+  `class_level`.
+
 # funcml 0.9.6
 
 - `torch` is no longer a dependency. The `mlp` learner now runs on the
@@ -191,7 +216,7 @@ Bug fixes found while benchmarking every learner on 63 biomedical datasets.
 
 # funcml 0.8.1
 
-- Printed result tables (`evaluate()`, `compare_learners()`, `tune()`,
+- Printed result tables (`evaluate()`, `compare()`, `tune()`,
   `interpret(method = "calibration")`, `interpret(method = "dca")`,
   `roc_curve()`, `auc_ci()`) now round numeric columns to 4 digits by
   default (`digits` argument on the relevant `print()`/`summary()`
@@ -231,7 +256,7 @@ Bug fixes found while benchmarking every learner on 63 biomedical datasets.
 - Reworked `theme_funcml()` to match the CLAVUS Nature Medicine figure
   style: `theme_classic()` base, Okabe-Ito colorblind-safe palette, bold
   unboxed strip labels, and `grey92` major gridlines. All package plots
-  (`interpret()`, `evaluate()`, `compare_learners()`, `tune()`,
+  (`interpret()`, `evaluate()`, `compare()`, `tune()`,
   `estimate()`) now share this theme instead of each building its own
   ad-hoc `theme_bw()`/`theme_minimal()` variant.
 - Migrated internal row-accumulation (resampling folds, tuning grids,

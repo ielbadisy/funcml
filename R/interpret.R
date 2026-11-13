@@ -417,8 +417,14 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' `local_prediction - baseline`, both returned in `result`.
 #' @param gower_power Exponent applied to native similarity weights when constructing the
 #'   local neighborhood.
-#' @param class_level Target class for multiclass/local prob explanations.
-#' @param pos_level Alias for binary positive class (second level default).
+#' @param class_level Target class for classification explanations. For a
+#'   binary outcome the default is the positive class, taken to be the
+#'   second factor level (for `factor(y, levels = c("no", "yes"))`, PDP, ICE,
+#'   ALE and profile curves show the probability of `"yes"`). Relevel the
+#'   outcome or set `class_level` to explain the other class. For a
+#'   multiclass outcome with `type = "prob"` the default is the last level.
+#' @param pos_level Alias for the binary positive class (second level by
+#'   default).
 #' @param newdata Single-row data frame for local/SHAP explanations; defaults to first row of `data`.
 #'   For `method = "ceteris_paribus"`, the observation(s) to profile (one
 #'   profile per row; the grid of each feature is built from `data`).
@@ -764,7 +770,9 @@ interpret_vip <- function(fit, data, features, type, metric, class_level, pos_le
 }
 
 .pdp_class_level <- function(fit, class_level, pos_level) {
-  class_level %||% pos_level %||% fit$levels[1L]
+  # Binary: default to the positive (second) level, as elsewhere in interpret().
+  default <- if (length(fit$levels) == 2L) fit$levels[2L] else fit$levels[1L]
+  class_level %||% pos_level %||% default
 }
 
 .pdp_multiclass_logit <- function(prob, class_level) {

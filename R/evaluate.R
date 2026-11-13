@@ -8,11 +8,25 @@
 #' @param metrics Character vector of metric names.
 #' @param type Prediction type override.
 #' @param conf_level Confidence level for fold-based summary intervals.
+#' @param se_method How the standard error of the cross-validated mean is
+#'   computed. `"naive"` (default) uses `sd / sqrt(J)` over the `J` fold
+#'   values with a t interval on `J - 1` degrees of freedom. This treats the
+#'   folds as independent, but they share training data, so the standard
+#'   error and the interval are too narrow (often markedly so). `"corrected"`
+#'   uses the Nadeau and Bengio (2003) corrected variance
+#'   `(1 / J + n_test / n_train) * sd^2`, with `n_test / n_train` the ratio of
+#'   the mean test and training sizes. It is a heuristic, more conservative
+#'   correction; neither interval has exact coverage. Use the intervals as a
+#'   rough guide to fold-to-fold variability, not as formal inference.
 #' @param seed Optional seed.
 #' @param fit Optional preconfigured `funcml_fit` object (re-fit per fold).
 #' @param ncores Optional number of CPU cores used to evaluate resampling folds.
 #'   `NULL` or `1` runs sequentially.
 #' @param ... Passed to `fit()`.
+#' @details Missing values are not handled: if any variable used by
+#'   `formula` contains `NA`, `evaluate()` stops with an error naming the
+#'   affected columns. Impute or drop incomplete rows (for example with
+#'   `stats::na.omit()` on the model variables) before calling it.
 #' @return A `funcml_eval` object.
 #' @examples
 #' eval_obj <- evaluate(
@@ -27,7 +41,8 @@
 evaluate <- function(data, formula, model = NULL, spec = NULL,
                      resampling = cv(5), metrics = NULL, type = NULL,
                      conf_level = 0.95, seed = NULL, fit = NULL,
-                     ncores = NULL, ...) {
+                     ncores = NULL, se_method = c("naive", "corrected"), ...) {
+  se_method <- match.arg(se_method)
   ncores <- .validate_ncores(ncores)
   if (!is.null(seed)) set.seed(seed)
   if (!is.null(fit)) {
@@ -42,6 +57,7 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
     task <- infer_task(model.response(model.frame(formula, data)))
   }
 
+  .check_no_missing_model_vars(formula, data)
   y_all <- model.response(model.frame(formula, data))
   if (task == "classification") {
     y_all <- factor(y_all)
@@ -111,7 +127,12 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
   # returns a vector. The previous approach created a 2-column matrix inside a
   # single `value` column, which then failed when assigning back to a data
   # frame (replacement length mismatch on some R versions).
-  summary_df <- .summarize_metric_uncertainty(folds_df, conf_level = conf_level)
+  summary_df <- .summarize_metric_uncertainty(
+    folds_df,
+    conf_level = conf_level,
+    se_method = se_method,
+    test_train_ratio = .test_train_ratio(resampling$folds)
+  )
 
   out <- list(
     folds = folds_df,
@@ -119,7 +140,8 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
     call = match.call(),
     task = task,
     model = base_model,
-    resampling = resampling
+    resampling = resampling,
+    se_method = se_method
   )
   class(out) <- "funcml_eval"
   out
@@ -154,6 +176,12 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
 print.funcml_eval <- function(x, digits = 4L, ...) {
   cat(sprintf("<funcml_eval> model: %s | task: %s\n", x$model, x$task))
   print(.round_numeric_df(x$summary, digits = digits))
+  if (identical(x$se_method %||% "naive", "naive")) {
+    cat("Note: std_error and conf_low/conf_high treat folds as independent and are too narrow;\n")
+    cat("      see `se_method = \"corrected\"` in ?evaluate.\n")
+  } else {
+    cat("Note: std_error uses the Nadeau-Bengio corrected variance (approximate).\n")
+  }
   invisible(x)
 }
 
@@ -194,7 +222,35 @@ plot.funcml_eval <- function(x, ...) {
     theme_funcml()
 }
 
-.summarize_metric_uncertainty <- function(folds_df, conf_level = 0.95) {
+.check_no_missing_model_vars <- function(formula, data) {
+  mf <- stats::model.frame(formula, data, na.action = stats::na.pass)
+  has_na <- vapply(mf, anyNA, logical(1))
+  if (any(has_na)) {
+    n_rows <- sum(!stats::complete.cases(mf))
+    stop(sprintf(
+      paste0(
+        "`evaluate()` does not handle missing values: %d row(s) have NA in ",
+        "model variable(s) %s. Impute or remove incomplete rows first."
+      ),
+      n_rows,
+      paste(sprintf("'%s'", names(mf)[has_na]), collapse = ", ")
+    ), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+.test_train_ratio <- function(folds) {
+  if (!length(folds)) {
+    return(NA_real_)
+  }
+  n_test <- mean(vapply(folds, function(f) length(f$test), numeric(1)))
+  n_train <- mean(vapply(folds, function(f) length(f$train), numeric(1)))
+  n_test / n_train
+}
+
+.summarize_metric_uncertainty <- function(folds_df, conf_level = 0.95,
+                                          se_method = "naive",
+                                          test_train_ratio = NA_real_) {
   metrics <- unique(folds_df$metric)
   alpha <- 1 - conf_level
   out <- lapply(metrics, function(metric_name) {
@@ -202,7 +258,13 @@ plot.funcml_eval <- function(x, ...) {
     n <- length(vals)
     mean_val <- mean(vals)
     sd_val <- if (n > 1L) stats::sd(vals) else NA_real_
-    se_val <- if (n > 1L) sd_val / sqrt(n) else NA_real_
+    se_val <- if (n <= 1L) {
+      NA_real_
+    } else if (identical(se_method, "corrected")) {
+      sqrt((1 / n + test_train_ratio) * sd_val^2)
+    } else {
+      sd_val / sqrt(n)
+    }
     crit <- if (n > 1L) stats::qt(1 - alpha / 2, df = n - 1L) else NA_real_
     data.frame(
       metric = metric_name,

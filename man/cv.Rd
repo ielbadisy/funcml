@@ -37,11 +37,14 @@ or \code{"time"}.}
 
 \item{time}{Optional ordering variable name or vector for time-aware splits.}
 
-\item{initial}{Initial training window size for time-aware CV.}
+\item{initial}{Initial training window size for time-aware CV, counted in
+unique \code{time} values.}
 
-\item{assess}{Assessment window size for time-aware CV.}
+\item{assess}{Assessment window size for time-aware CV, counted in unique
+\code{time} values.}
 
-\item{skip}{Number of observations to skip between successive time splits.}
+\item{skip}{Number of unique \code{time} values to skip between successive time
+splits.}
 
 \item{cumulative}{Logical; use an expanding training window for time-aware CV.}
 }

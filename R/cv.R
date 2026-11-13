@@ -9,9 +9,12 @@
 #' @param prop Training-set proportion for holdout splits.
 #' @param group Optional grouping variable name or vector for grouped CV.
 #' @param time Optional ordering variable name or vector for time-aware splits.
-#' @param initial Initial training window size for time-aware CV.
-#' @param assess Assessment window size for time-aware CV.
-#' @param skip Number of observations to skip between successive time splits.
+#' @param initial Initial training window size for time-aware CV, counted in
+#'   unique `time` values.
+#' @param assess Assessment window size for time-aware CV, counted in unique
+#'   `time` values.
+#' @param skip Number of unique `time` values to skip between successive time
+#'   splits.
 #' @param cumulative Logical; use an expanding training window for time-aware CV.
 #' @return A `funcml_cv` object containing fold indices and parameters.
 #' @examples
@@ -70,10 +73,16 @@ group_cv <- function(v = 5, group, repeats = 1, seed = NULL) {
 
 #' Time-aware rolling resampling.
 #'
-#' @param initial Initial training window size.
-#' @param assess Assessment window size.
+#' Splits are made on the unique values of `time`, so all rows sharing a
+#' time value (for example the same date) are always in the same training or
+#' assessment window: a date never appears in both. `initial`, `assess` and
+#' `skip` therefore count unique time values, not rows. Without `time`, rows
+#' are taken in their order in the data and each row is its own time point.
+#'
+#' @param initial Initial training window size, in unique time values.
+#' @param assess Assessment window size, in unique time values.
 #' @param time Ordering variable name or vector.
-#' @param skip Number of observations to skip between splits.
+#' @param skip Number of unique time values to skip between splits.
 #' @param cumulative Logical; use an expanding training window.
 #' @param seed Optional seed.
 #' @return A `funcml_cv` object.
@@ -195,9 +204,11 @@ time_cv <- function(initial, assess = 1, time = NULL, skip = 0, cumulative = TRU
   if (anyNA(order_index)) {
     stop("Time-aware resampling does not allow missing `time` values.", call. = FALSE)
   }
-  ord <- order(order_index, idx)
-  idx_ord <- idx[ord]
-  n <- length(idx_ord)
+  # Windows are counted in unique time values, so rows sharing a time value
+  # always fall on the same side of a split.
+  times <- sort(unique(order_index))
+  time_id <- match(order_index, times)
+  n <- length(times)
   initial <- resampling$initial %||% max(1L, floor(n / 2))
   assess <- resampling$assess %||% max(1L, floor(n / 5))
   skip <- resampling$skip %||% 0L
@@ -205,7 +216,14 @@ time_cv <- function(initial, assess = 1, time = NULL, skip = 0, cumulative = TRU
     stop("`initial` and `assess` must be positive integers.", call. = FALSE)
   }
   if ((initial + assess) > n) {
-    stop("Time-aware resampling requires `initial + assess` to be at most the data size.", call. = FALSE)
+    stop(
+      "Time-aware resampling requires `initial + assess` to be at most the number of unique time values.",
+      call. = FALSE
+    )
+  }
+  rows_in <- function(from, to) {
+    sel <- idx[time_id >= from & time_id <= to]
+    sel[order(order_index[sel], sel)]
   }
 
   folds <- list()
@@ -216,8 +234,8 @@ time_cv <- function(initial, assess = 1, time = NULL, skip = 0, cumulative = TRU
     test_end <- train_end + assess
     train_start <- if (isTRUE(resampling$cumulative)) 1L else max(1L, train_end - initial + 1L)
     folds[[length(folds) + 1L]] <- list(
-      train = idx_ord[seq.int(train_start, train_end)],
-      test = idx_ord[seq.int(test_start, test_end)],
+      train = rows_in(train_start, train_end),
+      test = rows_in(test_start, test_end),
       repeat_id = 1L,
       fold = split_id
     )
