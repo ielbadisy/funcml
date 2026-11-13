@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 
 pkgload::load_all(".", export_all = FALSE, helpers = FALSE, quiet = TRUE)
-ggplot2::theme_set(theme_funcml())
+ggplot2::theme_set(themefuncml())
 set.seed(42)
 ```
 
@@ -79,19 +79,19 @@ estimate()
 The learner registry covers linear and penalized models (`glm`, `glmnet`, `lda`, `qda`, `pls`), trees and forests (`rpart`, `ctree`, `cforest`, `C50`, `ranger`, `randomForest`), gradient boosting (`gbm`, `xgboost`, `lightgbm`, `fastgbm`), neural networks (`nnet`, `mlp`, `densemlp`), Bayesian additive regression trees (`bart`), other classic learners, and the `stacking` and `superlearner` ensembles.
 
 ```{r registry}
-list_learners()
+listlearners()
 ```
 
 ```{r registry-tunable}
-list_tunable_learners()
+listtunablelearners()
 ```
 
 ```{r registry-metrics}
-list_metrics()
+listmetrics()
 ```
 
 ```{r registry-interpret}
-list_interpretability_methods()
+listinterpretabilitymethods()
 ```
 
 ## Example data
@@ -168,7 +168,7 @@ eval_obj
 plot(eval_obj)
 ```
 
-`funcml` also supports grouped cross-validation, time-based resampling, and holdout validation through `group_cv()`, `time_cv()`, and `holdout()`.
+`funcml` also supports grouped cross-validation, time-based resampling, and holdout validation through `groupcv()`, `timecv()`, and `holdout()`.
 
 ## Tune hyperparameters
 
@@ -200,10 +200,10 @@ tune_obj
 plot(tune_obj)
 ```
 
-When `grid` is omitted, `tune()` (and `compare(tune = TRUE)`) falls back to the learner's default grid, returned by `default_tune_grid()`.
+When `grid` is omitted, `tune()` (and `compare(tune = TRUE)`) falls back to the learner's default grid, returned by `defaulttunegrid()`.
 
 ```{r tune-default}
-default_tune_grid("rpart")
+defaulttunegrid("rpart")
 
 tune_default <- tune(
   data = demo_dat,
@@ -385,18 +385,18 @@ plot(dca_obj)
 
 ## ROC curve and AUC confidence interval
 
-`roc_curve()` and `auc_ci()` are standalone metric functions (backed by `pROC`) for a full ROC curve and a DeLong or bootstrap confidence interval on AUC.
+`roccurve()` and `aucci()` are standalone metric functions (backed by `pROC`) for a full ROC curve and a DeLong or bootstrap confidence interval on AUC.
 
 ```{r roc-curve}
 truth_vec <- demo_dat$status
 prob_vec <- predict(fit_obj, demo_dat, type = "prob")[, "Yes"]
 
-roc_obj <- roc_curve(truth_vec, prob_vec)
+roc_obj <- roccurve(truth_vec, prob_vec)
 plot(roc_obj)
 ```
 
 ```{r auc-ci}
-auc_ci(truth_vec, prob_vec)
+aucci(truth_vec, prob_vec)
 ```
 
 ## Estimate causal effects

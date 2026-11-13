@@ -19,9 +19,9 @@ test_that("evaluate() names the model columns that contain NA", {
   )
 })
 
-test_that("time_cv never puts the same time value in train and test", {
+test_that("timecv never puts the same time value in train and test", {
   td <- data.frame(t = rep(1:10, each = 3))
-  res <- funcml:::generate_folds(30, resampling = time_cv(initial = 5, assess = 2, time = "t"), data = td)
+  res <- funcml:::generate_folds(30, resampling = timecv(initial = 5, assess = 2, time = "t"), data = td)
   expect_true(length(res$folds) >= 1L)
   for (f in res$folds) {
     expect_length(intersect(td$t[f$train], td$t[f$test]), 0L)

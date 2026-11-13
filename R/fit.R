@@ -196,7 +196,7 @@ learners <- function() {
 
 #' Learner inventory table with capabilities.
 #'
-#' `list_learners()` returns a compact learner registry in the style of a
+#' `listlearners()` returns a compact learner registry in the style of a
 #' catalog table. By default it focuses on the most user-visible columns:
 #' learner id, generic fit/predict/tune entry points, and availability in the
 #' current session.
@@ -217,13 +217,13 @@ learners <- function() {
 #' @param tune Deprecated alias for `has_tune`.
 #' @return Data frame with learner metadata and capability columns.
 #' @examples
-#' list_learners()
-#' list_learners(has_tune = TRUE)
-#' list_tunable_learners()
-#' list_learners(classification = TRUE, prob = TRUE,
+#' listlearners()
+#' listlearners(has_tune = TRUE)
+#' listtunablelearners()
+#' listlearners(classification = TRUE, prob = TRUE,
 #'               columns = c("learner", "has_tune", "supports_prob", "engine_package"))
 #' @export
-list_learners <- function(has_fit = NULL, has_predict = NULL, has_tune = NULL,
+listlearners <- function(has_fit = NULL, has_predict = NULL, has_tune = NULL,
                           available = NULL, columns = NULL,
                           regression = NULL, classification = NULL,
                           prob = NULL, multiclass = NULL, importance = NULL,
@@ -282,13 +282,13 @@ list_learners <- function(has_fit = NULL, has_predict = NULL, has_tune = NULL,
 
 #' Shortcut for learners with tuning support.
 #'
-#' @param ... Passed to [list_learners()].
-#' @return Data frame with the same columns as [list_learners()].
+#' @param ... Passed to [listlearners()].
+#' @return Data frame with the same columns as [listlearners()].
 #' @examples
-#' list_tunable_learners()
+#' listtunablelearners()
 #' @export
-list_tunable_learners <- function(...) {
-  list_learners(has_tune = TRUE, ...)
+listtunablelearners <- function(...) {
+  listlearners(has_tune = TRUE, ...)
 }
 
 .validate_list_learners_flag <- function(x, arg) {

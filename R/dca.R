@@ -102,5 +102,5 @@ plot.funcml_dca <- function(x, ...) {
       colour = NULL,
       title = "Decision curve analysis"
     ) +
-    theme_funcml()
+    themefuncml()
 }

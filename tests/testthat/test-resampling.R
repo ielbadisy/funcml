@@ -23,7 +23,7 @@ test_that("grouped CV keeps groups intact across train and test", {
 
   res <- funcml:::generate_folds(
     n = nrow(dat),
-    resampling = group_cv(v = 2, group = "grp", seed = 1),
+    resampling = groupcv(v = 2, group = "grp", seed = 1),
     data = dat
   )
 
@@ -44,7 +44,7 @@ test_that("time-aware CV respects ordering and evaluates end to end", {
 
   res <- funcml:::generate_folds(
     n = nrow(dat),
-    resampling = time_cv(initial = 6, assess = 2, time = "t"),
+    resampling = timecv(initial = 6, assess = 2, time = "t"),
     data = dat
   )
 
@@ -57,7 +57,7 @@ test_that("time-aware CV respects ordering and evaluates end to end", {
     dat,
     y ~ x,
     model = "glm",
-    resampling = time_cv(initial = 6, assess = 2, time = "t")
+    resampling = timecv(initial = 6, assess = 2, time = "t")
   )
 
   expect_s3_class(ev, "funcml_eval")

@@ -49,10 +49,10 @@
 #' @param columns Optional character vector of columns to return.
 #' @return Data frame of interpretability methods.
 #' @examples
-#' list_interpretability_methods()
-#' subset(list_interpretability_methods(), has_plot)
+#' listinterpretabilitymethods()
+#' subset(listinterpretabilitymethods(), has_plot)
 #' @export
-list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
+listinterpretabilitymethods <- function(has_plot = NULL, columns = NULL) {
   has_plot <- .validate_list_learners_flag(has_plot, "has_plot")
   out <- .interpretability_catalog()
   if (!is.null(has_plot)) {
@@ -144,7 +144,7 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
       recall = recall(truth, pred_class),
       specificity = specificity(truth, pred_class),
       f1 = f1(truth, pred_class),
-      balanced_accuracy = balanced_accuracy(truth, pred_class)
+      balanced_accuracy = balancedaccuracy(truth, pred_class)
     ))
   }
 
@@ -168,12 +168,12 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
       if (metric == "auc") {
         return(auc(truth_auc, prob[, event_level]))
       }
-      return(auc_weighted(truth_auc, prob[, event_level]))
+      return(aucweighted(truth_auc, prob[, event_level]))
     }
     if (metric == "auc") {
       return(auc(truth, prob))
     }
-    return(auc_weighted(truth, prob))
+    return(aucweighted(truth, prob))
   }
   stop("Unsupported metric: ", metric, call. = FALSE)
 }
@@ -256,7 +256,7 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 }
 
 .publication_theme <- function() {
-  theme_funcml() +
+  themefuncml() +
     ggplot2::theme(legend.title = ggplot2::element_text(face = "bold"))
 }
 
@@ -393,7 +393,7 @@ list_interpretability_methods <- function(has_plot = NULL, columns = NULL) {
 #' @param importance_type Importance engine for `method = "vip"`:
 #'   `"permute"` (permutation importance, the default), `"model"` (the
 #'   learner's native importance, e.g. impurity for `ranger`; an error for
-#'   learners without one, see `list_learners(importance = TRUE)`), or
+#'   learners without one, see `listlearners(importance = TRUE)`), or
 #'   `"auto"` (native importance when available, permutation otherwise).
 #'   Native scores of dummy-coded factor levels are summed per feature.
 #' @param compare How to compare baseline and perturbed performance for
@@ -612,7 +612,7 @@ interpret_vip <- function(fit, data, features, type, metric, class_level, pos_le
       stop(
         "Learner `", fit$model, "` has no native importance; use ",
         "`importance_type = \"permute\"` or a learner from ",
-        "`list_learners(importance = TRUE)`.",
+        "`listlearners(importance = TRUE)`.",
         call. = FALSE
       )
     }
@@ -1384,7 +1384,7 @@ interpret_calibration <- function(fit, data, type, class_level, pos_level, bins 
     fit$levels
   )
   prob <- prob_matrix[, positive]
-  curve <- calibration_curve(truth, prob, bins = bins, strategy = strategy, positive = positive)
+  curve <- calibrationcurve(truth, prob, bins = bins, strategy = strategy, positive = positive)
   .interpret_result(
     payload = list(
       curve = curve,

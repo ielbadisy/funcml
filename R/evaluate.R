@@ -219,7 +219,7 @@ plot.funcml_eval <- function(x, ...) {
       colour = .funcml_palette$accent
     ) +
     ggplot2::labs(x = "Cross-validated metric value", y = NULL, title = "Cross-validation performance") +
-    theme_funcml()
+    themefuncml()
 }
 
 .check_no_missing_model_vars <- function(formula, data) {

@@ -48,7 +48,7 @@ or \code{1} runs sequentially.}
 
 \item{grids}{Optional tuning grids. Supply either a single data frame to reuse
 across learners or a named list of data frames keyed by learner id. A
-learner without a supplied grid uses \code{\link[=default_tune_grid]{default_tune_grid()}}; a learner with
+learner without a supplied grid uses \code{\link[=defaulttunegrid]{defaulttunegrid()}}; a learner with
 no tunable hyperparameters is evaluated with its own \code{specs} entry.}
 
 \item{metric}{Optimization metric used when \code{tune = TRUE}.}

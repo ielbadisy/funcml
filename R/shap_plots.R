@@ -85,7 +85,7 @@ shap_plot_waterfall <- function(df, row_id = NULL, max_display = 10L) {
       y = NULL, fill = NULL,
       title = sprintf("SHAP waterfall (observation %s, prediction = %.3f)", row_id, built$prediction)
     ) +
-    theme_funcml()
+    themefuncml()
 }
 
 shap_plot_force <- function(df, row_id = NULL) {
@@ -105,7 +105,7 @@ shap_plot_force <- function(df, row_id = NULL) {
       y = NULL, colour = NULL,
       title = sprintf("SHAP force (observation %s, prediction = %.3f)", row_id, built$prediction)
     ) +
-    theme_funcml() +
+    themefuncml() +
     ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
 }
 
@@ -126,7 +126,7 @@ shap_plot_importance <- function(df) {
     ) +
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.15))) +
     ggplot2::labs(x = "Mean |SHAP value|", y = NULL, title = "SHAP feature importance") +
-    theme_funcml()
+    themefuncml()
 }
 
 .shap_beeswarm_colour_scale <- function() {
@@ -154,7 +154,7 @@ shap_plot_beeswarm <- function(df, v = NULL) {
     ggplot2::geom_jitter(height = 0.3, width = 0, alpha = 0.85, size = 1.8) +
     .shap_beeswarm_colour_scale() +
     ggplot2::labs(x = "SHAP value (impact on model output)", y = NULL) +
-    theme_funcml() +
+    themefuncml() +
     ggplot2::theme(axis.text.y = ggplot2::element_text(hjust = 0))
 }
 
@@ -204,7 +204,7 @@ shap_plot_dependence <- function(df, v, color_var = "auto", features = unique(df
     ggplot2::geom_hline(yintercept = 0, colour = "grey70", linewidth = 0.3) +
     ggplot2::geom_point(alpha = 0.75, size = 1.6) +
     ggplot2::labs(x = v, y = "SHAP value", title = sprintf("SHAP dependence: %s", v)) +
-    theme_funcml()
+    themefuncml()
 }
 
 shap_plot_dependence2d <- function(df, x_var, y_var, s_inter = NULL) {
@@ -232,7 +232,7 @@ shap_plot_dependence2d <- function(df, x_var, y_var, s_inter = NULL) {
       x = x_var, y = y_var, colour = "SHAP\ninteraction",
       title = sprintf("SHAP interaction: %s x %s", x_var, y_var)
     ) +
-    theme_funcml()
+    themefuncml()
 }
 
 .shap_interaction_pairs <- function(s_inter) {
@@ -264,7 +264,7 @@ shap_plot_interaction <- function(s_inter, kind = c("bar", "beeswarm")) {
         ) +
         ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.15))) +
         ggplot2::labs(x = "Mean |SHAP interaction|", y = NULL, title = "SHAP interaction strength") +
-        theme_funcml()
+        themefuncml()
     )
   }
 
@@ -283,5 +283,5 @@ shap_plot_interaction <- function(s_inter, kind = c("bar", "beeswarm")) {
     ggplot2::geom_vline(xintercept = 0, colour = "grey70", linewidth = 0.3) +
     ggplot2::geom_jitter(height = 0.25, width = 0, alpha = 0.7, size = 1.4, colour = "grey35") +
     ggplot2::labs(x = "SHAP interaction value", y = NULL, title = "SHAP interaction strength") +
-    theme_funcml()
+    themefuncml()
 }

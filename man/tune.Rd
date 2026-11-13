@@ -28,7 +28,7 @@ tune(
 \item{model}{Learner id.}
 
 \item{grid}{Data frame of hyperparameter combinations. When \code{NULL}, the
-built-in \code{\link[=default_tune_grid]{default_tune_grid()}} for \code{model} is used.}
+built-in \code{\link[=defaulttunegrid]{defaulttunegrid()}} for \code{model} is used.}
 
 \item{resampling}{Resampling object.}
 

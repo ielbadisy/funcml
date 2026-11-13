@@ -28,9 +28,9 @@
 #' @examples
 #' ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
 #'   ggplot2::geom_point() +
-#'   theme_funcml()
+#'   themefuncml()
 #' @export
-theme_funcml <- function(base_size = 10) {
+themefuncml <- function(base_size = 10) {
   ggplot2::theme_classic(base_size = base_size, base_family = "sans") +
     ggplot2::theme(
       strip.background = ggplot2::element_blank(),

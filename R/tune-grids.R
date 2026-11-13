@@ -7,17 +7,17 @@
 #' number of rows of `data`. Parameter names are the ones of each learner's
 #' `spec` (see [fit()]).
 #'
-#' @param model Learner id, as in [list_learners()].
+#' @param model Learner id, as in [listlearners()].
 #' @param data Optional data frame, used to size data-dependent parameters.
 #' @param formula Optional model formula, used together with `data`.
 #' @return A data frame with one row per configuration, or `NULL` for learners
 #'   with no tunable hyperparameters (`glm`, `lda`, `qda`, `fda`, `stacking`,
 #'   `superlearner`).
 #' @examples
-#' default_tune_grid("rpart")
-#' default_tune_grid("ranger", data = mtcars, formula = mpg ~ .)
+#' defaulttunegrid("rpart")
+#' defaulttunegrid("ranger", data = mtcars, formula = mpg ~ .)
 #' @export
-default_tune_grid <- function(model, data = NULL, formula = NULL) {
+defaulttunegrid <- function(model, data = NULL, formula = NULL) {
   if (!is.character(model) || length(model) != 1L) {
     stop("`model` must be a single learner id.", call. = FALSE)
   }

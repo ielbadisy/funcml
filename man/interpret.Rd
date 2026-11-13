@@ -52,7 +52,7 @@ interpret(
 \item{importance_type}{Importance engine for \code{method = "vip"}:
 \code{"permute"} (permutation importance, the default), \code{"model"} (the
 learner's native importance, e.g. impurity for \code{ranger}; an error for
-learners without one, see \code{list_learners(importance = TRUE)}), or
+learners without one, see \code{listlearners(importance = TRUE)}), or
 \code{"auto"} (native importance when available, permutation otherwise).
 Native scores of dummy-coded factor levels are summed per feature.}
 

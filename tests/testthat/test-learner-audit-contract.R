@@ -137,7 +137,7 @@ test_that("learner registry support metadata is coherent", {
 
 test_that("advertised learner raw and probability contracts hold package-wide", {
   reg <- funcml:::funcml_registry()
-  available_learners <- list_learners(available = TRUE, columns = "learner")$learner
+  available_learners <- listlearners(available = TRUE, columns = "learner")$learner
   reg <- reg[intersect(names(reg), available_learners)]
   scenario_map <- do.call(
     rbind,
@@ -228,7 +228,7 @@ test_that("advertised learner raw and probability contracts hold package-wide", 
 
 test_that("interpretability contract holds for supported learner paths", {
   reg <- funcml:::funcml_registry()
-  available_learners <- list_learners(available = TRUE, columns = "learner")$learner
+  available_learners <- listlearners(available = TRUE, columns = "learner")$learner
   reg <- reg[intersect(names(reg), available_learners)]
   failures <- character()
 
