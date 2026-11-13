@@ -72,7 +72,7 @@ The learner registry covers linear and penalized models (`glm`,
 learners, and the `stacking` and `superlearner` ensembles.
 
 ``` r
-list_learners()
+listlearners()
 #>         learner   fit   predict   tune has_fit has_predict has_tune available
 #> 17     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 24         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
@@ -105,7 +105,7 @@ list_learners()
 ```
 
 ``` r
-list_tunable_learners()
+listtunablelearners()
 #>         learner   fit   predict   tune has_fit has_predict has_tune available
 #> 17     adaboost fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
 #> 24         bart fit() predict() tune()    TRUE        TRUE     TRUE      TRUE
@@ -138,7 +138,7 @@ list_tunable_learners()
 ```
 
 ``` r
-list_metrics()
+listmetrics()
 #>               metric direction
 #> 1               rmse  minimize
 #> 2                mae  minimize
@@ -158,29 +158,48 @@ list_metrics()
 #> 16      auc_weighted  maximize
 #> 17               ece  minimize
 #> 18               mce  minimize
-#>                                                       summary     range
-#> 1         Root mean squared error for regression predictions.  [0, Inf)
-#> 2             Mean absolute error for regression predictions.  [0, Inf)
-#> 3              Mean squared error for regression predictions.  [0, Inf)
-#> 4           Median absolute error for regression predictions.  [0, Inf)
-#> 5  Mean absolute percentage error for regression predictions.  [0, Inf)
-#> 6    Coefficient of determination for regression predictions. (-Inf, 1]
-#> 7                                    Classification accuracy.    [0, 1]
-#> 8                    Macro-averaged classification precision.    [0, 1]
-#> 9                       Macro-averaged classification recall.    [0, 1]
-#> 10                 Macro-averaged classification specificity.    [0, 1]
-#> 11                                   Macro-averaged F1 score.    [0, 1]
-#> 12                          Macro-averaged balanced accuracy.    [0, 1]
-#> 13  Negative log-likelihood for classification probabilities.  [0, Inf)
-#> 14              Brier score for classification probabilities.    [0, 2]
-#> 15                                  Area under the ROC curve.    [0, 1]
-#> 16              Weighted multiclass area under the ROC curve.    [0, 1]
-#> 17      Expected calibration error for binary classification.    [0, 1]
-#> 18       Maximum calibration error for binary classification.    [0, 1]
+#>                                                       summary
+#> 1         Root mean squared error for regression predictions.
+#> 2             Mean absolute error for regression predictions.
+#> 3              Mean squared error for regression predictions.
+#> 4           Median absolute error for regression predictions.
+#> 5  Mean absolute percentage error for regression predictions.
+#> 6    Coefficient of determination for regression predictions.
+#> 7                                    Classification accuracy.
+#> 8                    Macro-averaged classification precision.
+#> 9                       Macro-averaged classification recall.
+#> 10                 Macro-averaged classification specificity.
+#> 11                                   Macro-averaged F1 score.
+#> 12                          Macro-averaged balanced accuracy.
+#> 13  Negative log-likelihood for classification probabilities.
+#> 14              Brier score for classification probabilities.
+#> 15                                  Area under the ROC curve.
+#> 16              Weighted multiclass area under the ROC curve.
+#> 17      Expected calibration error for binary classification.
+#> 18       Maximum calibration error for binary classification.
+#>                               range
+#> 1                          [0, Inf)
+#> 2                          [0, Inf)
+#> 3                          [0, Inf)
+#> 4                          [0, Inf)
+#> 5                          [0, Inf)
+#> 6                         (-Inf, 1]
+#> 7                            [0, 1]
+#> 8                            [0, 1]
+#> 9                            [0, 1]
+#> 10                           [0, 1]
+#> 11                           [0, 1]
+#> 12                           [0, 1]
+#> 13                         [0, Inf)
+#> 14 [0, 1] binary, [0, 2] multiclass
+#> 15                           [0, 1]
+#> 16                           [0, 1]
+#> 17                           [0, 1]
+#> 18                           [0, 1]
 ```
 
 ``` r
-list_interpretability_methods()
+listinterpretabilitymethods()
 #>                                  compute   plot has_compute has_plot
 #> 1              interpret(method = "vip") plot()        TRUE     TRUE
 #> 2          interpret(method = "permute") plot()        TRUE     TRUE
@@ -290,10 +309,12 @@ eval_obj
 #> 5                 f1 0.6657 0.0195 4    0.0098       0.95   0.6347    0.6968
 #> 6  balanced_accuracy 0.6405 0.0178 4    0.0089       0.95   0.6121    0.6689
 #> 7            logloss 0.4925 0.0088 4    0.0044       0.95   0.4785    0.5065
-#> 8              brier 0.3278 0.0076 4    0.0038       0.95   0.3158    0.3398
+#> 8              brier 0.1639 0.0038 4    0.0019       0.95   0.1579    0.1699
 #> 9                auc 0.7869 0.0118 4    0.0059       0.95   0.7681    0.8058
 #> 10               ece 0.0359 0.0042 4    0.0021       0.95   0.0292    0.0426
 #> 11               mce 0.0800 0.0137 4    0.0068       0.95   0.0583    0.1018
+#> Note: std_error and conf_low/conf_high treat folds as independent and are too narrow;
+#>       see `se_method = "corrected"` in ?evaluate.
 ```
 
 ``` r
@@ -303,8 +324,7 @@ plot(eval_obj)
 <img src="man/figures/README-evaluate-plot-1.png" alt="" width="100%" />
 
 `funcml` also supports grouped cross-validation, time-based resampling,
-and holdout validation through `group_cv()`, `time_cv()`, and
-`holdout()`.
+and holdout validation through `groupcv()`, `timecv()`, and `holdout()`.
 
 ## Tune hyperparameters
 
@@ -344,10 +364,10 @@ plot(tune_obj)
 <img src="man/figures/README-tune-plot-1.png" alt="" width="100%" />
 
 When `grid` is omitted, `tune()` (and `compare(tune = TRUE)`) falls back
-to the learner’s default grid, returned by `default_tune_grid()`.
+to the learner’s default grid, returned by `defaulttunegrid()`.
 
 ``` r
-default_tune_grid("rpart")
+defaulttunegrid("rpart")
 #>      cp minsplit
 #> 1 0.001        5
 #> 2 0.005        5
@@ -602,7 +622,7 @@ plot(dca_obj)
 
 ## ROC curve and AUC confidence interval
 
-`roc_curve()` and `auc_ci()` are standalone metric functions (backed by
+`roccurve()` and `aucci()` are standalone metric functions (backed by
 `pROC`) for a full ROC curve and a DeLong or bootstrap confidence
 interval on AUC.
 
@@ -610,14 +630,14 @@ interval on AUC.
 truth_vec <- demo_dat$status
 prob_vec <- predict(fit_obj, demo_dat, type = "prob")[, "Yes"]
 
-roc_obj <- roc_curve(truth_vec, prob_vec)
+roc_obj <- roccurve(truth_vec, prob_vec)
 plot(roc_obj)
 ```
 
 <img src="man/figures/README-roc-curve-1.png" alt="" width="100%" />
 
 ``` r
-auc_ci(truth_vec, prob_vec)
+aucci(truth_vec, prob_vec)
 #>      auc conf_low conf_high conf_level method
 #> 1 0.8056   0.7929    0.8183       0.95 delong
 ```
@@ -724,14 +744,14 @@ citation("funcml")
 #> To cite package 'funcml' in publications use:
 #> 
 #>   El Badisy I (????). _funcml: Functional Machine Learning Framework_.
-#>   R package version 0.9.6, <https://CRAN.R-project.org/package=funcml>.
+#>   R package version 0.9.8, <https://CRAN.R-project.org/package=funcml>.
 #> 
 #> A BibTeX entry for LaTeX users is
 #> 
 #>   @Manual{,
 #>     title = {funcml: Functional Machine Learning Framework},
 #>     author = {Imad {El Badisy}},
-#>     note = {R package version 0.9.6},
+#>     note = {R package version 0.9.8},
 #>     url = {https://CRAN.R-project.org/package=funcml},
 #>   }
 ```

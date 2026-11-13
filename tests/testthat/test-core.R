@@ -46,14 +46,14 @@ test_that("metrics are sane", {
   prob <- matrix(c(0.9,0.1, 0.2,0.8, 0.8,0.2, 0.1,0.9), ncol = 2, byrow = TRUE)
   colnames(prob) <- levels(truth_cls) <- c("a","b")
   expect_equal(auc(truth_cls, prob[,2]), 1)
-  expect_equal(auc_weighted(truth_cls, prob[,2]), 1)
+  expect_equal(aucweighted(truth_cls, prob[,2]), 1)
   expect_equal(accuracy(truth_cls, pred_cls), 0.75)
   expect_equal(precision(truth_cls, pred_cls), 5 / 6)
   expect_equal(recall(truth_cls, pred_cls), 0.75)
   expect_equal(specificity(truth_cls, pred_cls), 0.75)
   expect_equal(f1(truth_cls, pred_cls), 0.7894737, tolerance = 1e-7)
-  expect_equal(balanced_accuracy(truth_cls, pred_cls), 0.75)
-  curve <- calibration_curve(truth_cls, prob[, 2], bins = 2, strategy = "uniform")
+  expect_equal(balancedaccuracy(truth_cls, pred_cls), 0.75)
+  curve <- calibrationcurve(truth_cls, prob[, 2], bins = 2, strategy = "uniform")
   expect_equal(nrow(curve), 2)
   expect_true(is.finite(ece(truth_cls, prob[, 2], bins = 2, strategy = "uniform")))
   expect_true(is.finite(mce(truth_cls, prob[, 2], bins = 2, strategy = "uniform")))
@@ -69,7 +69,7 @@ test_that("metrics are sane", {
   )
   colnames(prob_multi) <- levels(truth_multi)
   expect_equal(auc(truth_multi, prob_multi), 1, tolerance = 1e-12)
-  expect_equal(auc_weighted(truth_multi, prob_multi), 1, tolerance = 1e-12)
+  expect_equal(aucweighted(truth_multi, prob_multi), 1, tolerance = 1e-12)
 
   expect_error(
     evaluate(mtcars, mpg ~ wt + hp, model = "glm", metrics = "auc"),
@@ -114,8 +114,8 @@ test_that("learners include newly added backends", {
   expect_true(all(c("fda", "adaboost", "pls", "ctree", "cforest", "gam", "naivebayes", "bart") %in% ids))
 })
 
-test_that("list_learners returns a capability catalog", {
-  catalog <- list_learners()
+test_that("listlearners returns a capability catalog", {
+  catalog <- listlearners()
   expect_s3_class(catalog, "data.frame")
   expect_true(nrow(catalog) >= length(learners()))
   expect_true(all(learners() %in% catalog$learner))
@@ -129,8 +129,8 @@ test_that("list_learners returns a capability catalog", {
   expect_true(is.logical(catalog$available))
 })
 
-test_that("list_learners still exposes capability metadata on request", {
-  catalog <- list_learners(
+test_that("listlearners still exposes capability metadata on request", {
+  catalog <- listlearners(
     columns = c(
       "learner", "has_tune", "supports_regression", "supports_classification",
       "supports_prob", "supports_multiclass", "supports_importance",
@@ -146,8 +146,8 @@ test_that("list_learners still exposes capability metadata on request", {
   expect_true(any(grepl("calibration", catalog$interpret_methods)))
 })
 
-test_that("list_learners supports task, capability, availability, and column filters", {
-  compact <- list_learners(
+test_that("listlearners supports task, capability, availability, and column filters", {
+  compact <- listlearners(
     has_tune = TRUE,
     classification = TRUE,
     prob = TRUE,
@@ -163,21 +163,21 @@ test_that("list_learners supports task, capability, availability, and column fil
   expect_true(all(compact$available))
   expect_true(all(!is.na(compact$learner)))
 
-  regression_with_importance <- list_learners(regression = TRUE, importance = TRUE, has_tune = TRUE)
+  regression_with_importance <- listlearners(regression = TRUE, importance = TRUE, has_tune = TRUE)
   expect_true(all(regression_with_importance$supports_regression))
   expect_true(all(regression_with_importance$supports_importance))
   expect_true(all(regression_with_importance$has_tune))
 })
 
-test_that("list_tunable_learners is a shortcut for tunable learners", {
+test_that("listtunablelearners is a shortcut for tunable learners", {
   expect_identical(
-    list_tunable_learners(),
-    list_learners(has_tune = TRUE)
+    listtunablelearners(),
+    listlearners(has_tune = TRUE)
   )
 })
 
-test_that("list_interpretability_methods returns compute and plot catalog", {
-  methods <- list_interpretability_methods()
+test_that("listinterpretabilitymethods returns compute and plot catalog", {
+  methods <- listinterpretabilitymethods()
 
   expect_s3_class(methods, "data.frame")
   expect_named(methods, c("compute", "plot", "has_compute", "has_plot"))
@@ -186,8 +186,8 @@ test_that("list_interpretability_methods returns compute and plot catalog", {
   expect_true(all(methods$has_plot))
 })
 
-test_that("list_metrics returns metric metadata", {
-  metrics_tbl <- list_metrics()
+test_that("listmetrics returns metric metadata", {
+  metrics_tbl <- listmetrics()
 
   expect_s3_class(metrics_tbl, "data.frame")
   expect_named(metrics_tbl, c("metric", "direction", "summary", "range"))
@@ -197,17 +197,17 @@ test_that("list_metrics returns metric metadata", {
   expect_true(all(nzchar(metrics_tbl$range)))
 })
 
-test_that("list_learners validates filter arguments", {
+test_that("listlearners validates filter arguments", {
   expect_error(
-    list_learners(regression = NA),
+    listlearners(regression = NA),
     "`regression` must be NULL or TRUE/FALSE"
   )
   expect_error(
-    list_learners(prob = NA),
+    listlearners(prob = NA),
     "`prob` must be NULL or TRUE/FALSE"
   )
   expect_error(
-    list_learners(columns = "not_a_column"),
+    listlearners(columns = "not_a_column"),
     "Unknown `columns`"
   )
 })

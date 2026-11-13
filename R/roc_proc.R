@@ -24,12 +24,12 @@
 #'   set.seed(1)
 #'   truth <- factor(rbinom(100, 1, 0.4))
 #'   prob <- runif(100)
-#'   roc_obj <- roc_curve(truth, prob)
+#'   roc_obj <- roccurve(truth, prob)
 #'   roc_obj$curve
 #' }
 #' @export
-roc_curve <- function(truth, prob, positive = NULL) {
-  assert_package("pROC", "roc_curve")
+roccurve <- function(truth, prob, positive = NULL) {
+  assert_package("pROC", "roccurve")
   parsed <- .binary_truth_prob(truth, prob, positive = positive)
   roc_obj <- pROC::roc(
     response = parsed$truth, predictor = parsed$prob,
@@ -69,12 +69,12 @@ roc_curve <- function(truth, prob, positive = NULL) {
 #'   set.seed(1)
 #'   truth <- factor(rbinom(100, 1, 0.4))
 #'   prob <- runif(100)
-#'   auc_ci(truth, prob)
+#'   aucci(truth, prob)
 #' }
 #' @export
-auc_ci <- function(truth, prob, positive = NULL, conf_level = 0.95,
+aucci <- function(truth, prob, positive = NULL, conf_level = 0.95,
                    method = c("delong", "bootstrap"), boot_n = 2000L, digits = 4L) {
-  assert_package("pROC", "auc_ci")
+  assert_package("pROC", "aucci")
   method <- match.arg(method)
   parsed <- .binary_truth_prob(truth, prob, positive = positive)
   roc_obj <- pROC::roc(
@@ -122,5 +122,5 @@ plot.funcml_roc <- function(x, ...) {
       y = "Sensitivity",
       title = sprintf("ROC curve (AUC = %.3f)", x$auc)
     ) +
-    theme_funcml()
+    themefuncml()
 }

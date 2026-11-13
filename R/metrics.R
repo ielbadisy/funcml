@@ -4,10 +4,10 @@
 #' @param columns Optional character vector of columns to return.
 #' @return Data frame of metric metadata.
 #' @examples
-#' list_metrics()
-#' list_metrics(direction = "minimize")
+#' listmetrics()
+#' listmetrics(direction = "minimize")
 #' @export
-list_metrics <- function(direction = NULL, columns = NULL) {
+listmetrics <- function(direction = NULL, columns = NULL) {
   if (!is.null(direction)) {
     if (!is.character(direction) || length(direction) != 1L || !(direction %in% c("maximize", "minimize"))) {
       stop("`direction` must be NULL, \"maximize\", or \"minimize\".", call. = FALSE)
@@ -114,7 +114,7 @@ list_metrics <- function(direction = NULL, columns = NULL) {
 #' recall(truth_cls, pred_cls)
 #' specificity(truth_cls, pred_cls)
 #' f1(truth_cls, pred_cls)
-#' balanced_accuracy(truth_cls, pred_cls)
+#' balancedaccuracy(truth_cls, pred_cls)
 #' auc(truth_cls, prob_cls[, "yes"])
 #'
 #' truth_multi <- factor(c("a", "b", "c", "a", "b", "c"), levels = c("a", "b", "c"))
@@ -128,8 +128,8 @@ list_metrics <- function(direction = NULL, columns = NULL) {
 #' )
 #' colnames(prob_multi) <- levels(truth_multi)
 #' auc(truth_multi, prob_multi)
-#' auc_weighted(truth_multi, prob_multi)
-#' calibration_curve(truth_cls, prob_cls[, "yes"])
+#' aucweighted(truth_multi, prob_multi)
+#' calibrationcurve(truth_cls, prob_cls[, "yes"])
 #' ece(truth_cls, prob_cls[, "yes"])
 #' mce(truth_cls, prob_cls[, "yes"])
 #' @export
@@ -233,7 +233,7 @@ f1 <- function(truth, pred_class) {
 
 #' @rdname metrics
 #' @export
-balanced_accuracy <- function(truth, pred_class) {
+balancedaccuracy <- function(truth, pred_class) {
   recall(truth, pred_class)
 }
 
@@ -286,7 +286,7 @@ auc <- function(truth, prob, average = c("macro", "weighted")) {
 
 #' @rdname metrics
 #' @export
-auc_weighted <- function(truth, prob) {
+aucweighted <- function(truth, prob) {
   auc(truth, prob, average = "weighted")
 }
 
@@ -361,7 +361,7 @@ auc_weighted <- function(truth, prob) {
 
 #' @rdname metrics
 #' @export
-calibration_curve <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), positive = NULL) {
+calibrationcurve <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), positive = NULL) {
   parsed <- .binary_truth_prob(truth, prob, positive = positive)
   strategy <- match.arg(strategy)
   breaks <- .calibration_breaks(parsed$prob, bins = bins, strategy = strategy)
@@ -398,7 +398,7 @@ calibration_curve <- function(truth, prob, bins = 10, strategy = c("quantile", "
 #' @rdname metrics
 #' @export
 ece <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), positive = NULL) {
-  curve <- calibration_curve(truth, prob, bins = bins, strategy = strategy, positive = positive)
+  curve <- calibrationcurve(truth, prob, bins = bins, strategy = strategy, positive = positive)
   nonempty <- curve$n > 0
   if (!any(nonempty)) {
     return(NA_real_)
@@ -409,7 +409,7 @@ ece <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), pos
 #' @rdname metrics
 #' @export
 mce <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), positive = NULL) {
-  curve <- calibration_curve(truth, prob, bins = bins, strategy = strategy, positive = positive)
+  curve <- calibrationcurve(truth, prob, bins = bins, strategy = strategy, positive = positive)
   nonempty <- curve$n > 0
   if (!any(nonempty)) {
     return(NA_real_)
@@ -454,12 +454,12 @@ mce <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), pos
     recall = recall(truth, pred_class),
     specificity = specificity(truth, pred_class),
     f1 = f1(truth, pred_class),
-    balanced_accuracy = balanced_accuracy(truth, pred_class),
+    balanced_accuracy = balancedaccuracy(truth, pred_class),
     logloss = logloss(truth, prob_matrix),
     brier = brier(truth, prob_matrix),
     ece = ece(truth, prob_matrix),
     mce = mce(truth, prob_matrix),
     auc = auc(truth, prob_matrix),
-    auc_weighted = auc_weighted(truth, prob_matrix)
+    auc_weighted = aucweighted(truth, prob_matrix)
   )
 }

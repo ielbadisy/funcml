@@ -120,17 +120,17 @@ test_that("stacking and superlearner run on a multiclass outcome", {
   }
 })
 
-test_that("default_tune_grid() returns grids, and NULL for learners without hyperparameters", {
-  g <- default_tune_grid("rpart")
+test_that("defaulttunegrid() returns grids, and NULL for learners without hyperparameters", {
+  g <- defaulttunegrid("rpart")
   expect_s3_class(g, "data.frame")
   expect_gt(nrow(g), 1L)
   expect_true(all(c("cp", "minsplit") %in% names(g)))
-  g_rf <- default_tune_grid("ranger", data = mtcars, formula = mpg ~ .)
+  g_rf <- defaulttunegrid("ranger", data = mtcars, formula = mpg ~ .)
   expect_true(all(g_rf$mtry >= 1L & g_rf$mtry <= 10L))
   for (id in c("glm", "lda", "qda", "fda", "stacking", "superlearner")) {
-    expect_null(default_tune_grid(id))
+    expect_null(defaulttunegrid(id))
   }
-  expect_error(default_tune_grid("not_a_learner"), "Unknown learner")
+  expect_error(defaulttunegrid("not_a_learner"), "Unknown learner")
 })
 
 test_that("tune() and compare(tune = TRUE) work without a grid", {
@@ -205,6 +205,6 @@ test_that("mlp warns on arguments the densemlp engine does not support", {
   expect_no_warning(
     fit(mpg ~ wt + hp, mtcars, "mlp", spec = c(spec, list(activation = "relu", optimizer = "adam", device = "cpu")))
   )
-  g <- default_tune_grid("mlp")
+  g <- defaulttunegrid("mlp")
   expect_false("weight_decay" %in% names(g))
 })

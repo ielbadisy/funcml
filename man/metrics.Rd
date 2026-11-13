@@ -15,10 +15,10 @@
 \alias{recall}
 \alias{specificity}
 \alias{f1}
-\alias{balanced_accuracy}
+\alias{balancedaccuracy}
 \alias{auc}
-\alias{auc_weighted}
-\alias{calibration_curve}
+\alias{aucweighted}
+\alias{calibrationcurve}
 \alias{ece}
 \alias{mce}
 \title{Regression and classification metrics.}
@@ -49,13 +49,13 @@ specificity(truth, pred_class)
 
 f1(truth, pred_class)
 
-balanced_accuracy(truth, pred_class)
+balancedaccuracy(truth, pred_class)
 
 auc(truth, prob, average = c("macro", "weighted"))
 
-auc_weighted(truth, prob)
+aucweighted(truth, prob)
 
-calibration_curve(
+calibrationcurve(
   truth,
   prob,
   bins = 10,
@@ -135,7 +135,7 @@ precision(truth_cls, pred_cls)
 recall(truth_cls, pred_cls)
 specificity(truth_cls, pred_cls)
 f1(truth_cls, pred_cls)
-balanced_accuracy(truth_cls, pred_cls)
+balancedaccuracy(truth_cls, pred_cls)
 auc(truth_cls, prob_cls[, "yes"])
 
 truth_multi <- factor(c("a", "b", "c", "a", "b", "c"), levels = c("a", "b", "c"))
@@ -149,8 +149,8 @@ prob_multi <- rbind(
 )
 colnames(prob_multi) <- levels(truth_multi)
 auc(truth_multi, prob_multi)
-auc_weighted(truth_multi, prob_multi)
-calibration_curve(truth_cls, prob_cls[, "yes"])
+aucweighted(truth_multi, prob_multi)
+calibrationcurve(truth_cls, prob_cls[, "yes"])
 ece(truth_cls, prob_cls[, "yes"])
 mce(truth_cls, prob_cls[, "yes"])
 }

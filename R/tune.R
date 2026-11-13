@@ -4,7 +4,7 @@
 #' @param formula Model formula.
 #' @param model Learner id.
 #' @param grid Data frame of hyperparameter combinations. When `NULL`, the
-#'   built-in [default_tune_grid()] for `model` is used.
+#'   built-in [defaulttunegrid()] for `model` is used.
 #' @param resampling Resampling object.
 #' @param metric Metric to optimize.
 #' @param type Prediction type override.
@@ -38,7 +38,7 @@ tune <- function(data, formula, model, grid = NULL, resampling = cv(5),
   ncores <- .validate_ncores(ncores)
   search <- match.arg(search)
   if (is.null(grid)) {
-    grid <- default_tune_grid(model, data = data, formula = formula)
+    grid <- defaulttunegrid(model, data = data, formula = formula)
     if (is.null(grid)) {
       stop(sprintf("Model '%s' has no tunable hyperparameters; supply `grid` or use `evaluate()`.", model), call. = FALSE)
     }
@@ -197,7 +197,7 @@ plot.funcml_tune <- function(x, ...) {
       y = NULL,
       title = sprintf("%s search results", tools::toTitleCase(x$search))
     ) +
-  theme_funcml()
+  themefuncml()
 }
 
 .nested_resampling_summary <- function(data, formula, model, grid, resampling,

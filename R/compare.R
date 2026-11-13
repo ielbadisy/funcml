@@ -15,7 +15,7 @@
 #' @param tune Logical; if `TRUE`, run `tune()` for each learner before comparing.
 #' @param grids Optional tuning grids. Supply either a single data frame to reuse
 #'   across learners or a named list of data frames keyed by learner id. A
-#'   learner without a supplied grid uses [default_tune_grid()]; a learner with
+#'   learner without a supplied grid uses [defaulttunegrid()]; a learner with
 #'   no tunable hyperparameters is evaluated with its own `specs` entry.
 #' @param metric Optimization metric used when `tune = TRUE`.
 #' @param ... Additional arguments passed to `evaluate()` or `tune()` / `fit()`.
@@ -177,7 +177,7 @@ compare <- function(data, formula, models, specs = NULL,
     return(grids[[model_id]])
   }
   # No grid supplied for this learner: use the built-in default grid.
-  default_tune_grid(model_id, data = data, formula = formula)
+  defaulttunegrid(model_id, data = data, formula = formula)
 }
 
 .format_compare_spec <- function(x, exclude = character()) {
@@ -257,5 +257,5 @@ plot.funcml_compare <- function(x, ...) {
       y = NULL,
       title = if (x$tuned) "Tuned learner comparison" else "Learner comparison"
     ) +
-    theme_funcml()
+    themefuncml()
 }
