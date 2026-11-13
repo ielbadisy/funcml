@@ -17,6 +17,7 @@ evaluate(
   fit = NULL,
   ncores = NULL,
   se_method = c("naive", "corrected"),
+  pooled = FALSE,
   ...
 )
 }
@@ -55,19 +56,39 @@ the mean test and training sizes. It is a heuristic, more conservative
 correction; neither interval has exact coverage. Use the intervals as a
 rough guide to fold-to-fold variability, not as formal inference.}
 
+\item{pooled}{Logical; if \code{TRUE}, also compute every metric once on the
+pooled out-of-fold predictions (all test folds stacked, one value per
+repeat, then averaged over repeats) and return it as \verb{$pooled}.}
+
 \item{...}{Passed to \code{fit()}.}
 }
 \value{
-A \code{funcml_eval} object.
+A \code{funcml_eval} object: a list with \code{folds} (metric per fold),
+\code{summary} (fold-averaged metrics with intervals), \code{predictions} (one row
+per out-of-fold prediction: \code{row}, \code{repeat_id}, \code{fold}, \code{truth}, and
+\code{.pred} for regression or \code{.pred_class} plus one \verb{.prob_<level>} column
+per class for classification), \code{pooled} (\code{NULL} unless \code{pooled = TRUE}),
+and bookkeeping fields.
 }
 \description{
 Cross-validated evaluation.
 }
 \details{
-Missing values are not handled: if any variable used by
-\code{formula} contains \code{NA}, \code{evaluate()} stops with an error naming the
-affected columns. Impute or drop incomplete rows (for example with
-\code{stats::na.omit()} on the model variables) before calling it.
+Missing values are not handled for most learners: if any variable
+used by \code{formula} contains \code{NA}, \code{evaluate()} stops with an error naming
+the affected columns. Impute or drop incomplete rows (for example with
+\code{stats::na.omit()} on the model variables) before calling it. Learners
+that handle missing predictors natively (currently \code{fastgbm}, see
+\code{\link[=fit]{fit()}}) accept \code{NA} in predictors; the outcome must still be complete.
+
+\verb{$summary} averages each metric over folds. For metrics that are not
+means of per-row losses this differs from the value computed on the
+pooled out-of-fold predictions. Binned calibration metrics (\code{ece},
+\code{mce}) are the main case: each fold has few rows per bin, so the
+fold-averaged ECE is inflated by bin noise and is typically much larger
+than the pooled ECE (for example 0.11 vs 0.04). \code{auc} differs too, less
+markedly. Use \code{pooled = TRUE}, or compute the metric from
+\verb{$predictions}, when you want the pooled value.
 }
 \examples{
 eval_obj <- evaluate(

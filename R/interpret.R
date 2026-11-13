@@ -635,7 +635,7 @@ interpret_vip <- function(fit, data, features, type, metric, class_level, pos_le
     stop("Argument `sample_size` must be in (0, nrow(data)].", call. = FALSE)
   }
 
-  truth <- stats::model.response(stats::model.frame(fit$formula, data))
+  data <- .rows_with_outcome(fit, data)
   pred_type <- .prediction_type(fit$task, type, metric, type_missing = type_missing)
   event_level <- class_level %||% pos_level %||% if (!is.null(fit$levels)) fit$levels[length(fit$levels)] else NULL
   data_use <- if (!is.null(sample_size) && sample_size < nrow(data)) {
@@ -643,7 +643,7 @@ interpret_vip <- function(fit, data, features, type, metric, class_level, pos_le
   } else {
     data
   }
-  truth_use <- stats::model.response(stats::model.frame(fit$formula, data_use))
+  truth_use <- .interpret_truth(fit, data_use)
 
   predict_for_metric <- function(newdata) {
     if (pred_type == "class") {
@@ -1378,7 +1378,8 @@ interpret_calibration <- function(fit, data, type, class_level, pos_level, bins 
   }
   strategy <- match.arg(strategy)
   positive <- class_level %||% pos_level %||% fit$levels[2L]
-  truth <- stats::model.response(stats::model.frame(fit$formula, data))
+  data <- .rows_with_outcome(fit, data)
+  truth <- .interpret_truth(fit, data)
   prob_matrix <- .normalize_prob_matrix(
     predict(fit, data, type = "prob", class_level = positive, pos_level = pos_level),
     fit$levels
@@ -1413,7 +1414,8 @@ interpret_dca <- function(fit, data, type, class_level, pos_level, ...) {
   dots <- list(...)
   thresholds <- dots$thresholds %||% seq(0.01, 0.99, by = 0.01)
   positive <- class_level %||% pos_level %||% fit$levels[2L]
-  truth <- stats::model.response(stats::model.frame(fit$formula, data))
+  data <- .rows_with_outcome(fit, data)
+  truth <- .interpret_truth(fit, data)
   prob_matrix <- .normalize_prob_matrix(
     predict(fit, data, type = "prob", class_level = positive, pos_level = pos_level),
     fit$levels
@@ -2269,4 +2271,16 @@ print.funcml_interaction <- function(x, ...) {
 summary.funcml_interaction <- function(object, ...) {
   print(object$result$results)
   invisible(object$result$results)
+}
+
+# Outcome aligned row for row with `data`: model.frame() would otherwise drop
+# rows with NA predictors (na.omit default) while predict() keeps them for
+# learners that handle NA natively, misaligning truth and predictions.
+.interpret_truth <- function(fit, data) {
+  stats::model.response(stats::model.frame(fit$formula, data, na.action = stats::na.pass))
+}
+
+.rows_with_outcome <- function(fit, data) {
+  truth <- .interpret_truth(fit, data)
+  if (anyNA(truth)) data[!is.na(truth), , drop = FALSE] else data
 }

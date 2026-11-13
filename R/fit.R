@@ -18,9 +18,17 @@
 #' @param model Learner id (see `learners()`).
 #' @param spec Optional list of hyperparameters for the learner.
 #' @param seed Optional seed for reproducibility.
-#' @param na_action NA handling passed to `model.frame`/`model.matrix` (default `stats::na.fail`).
+#' @param na_action NA handling passed to `model.frame`/`model.matrix`. The
+#'   default is `stats::na.fail`, except for learners that handle missing
+#'   predictor values natively (currently `fastgbm`): when `na_action` is not
+#'   supplied, those use `stats::na.pass` so `NA` in predictors reaches the
+#'   engine, and only an `NA` outcome is an error. Pass
+#'   `na_action = stats::na.fail` to force complete-case checking, or
+#'   `stats::na.omit` to drop incomplete rows.
 #' @param ... Additional parameters merged into `spec`.
-#' @return An object of class `funcml_fit`.
+#' @return An object of class `funcml_fit`. The fitted engine object (for
+#'   example the `glm`, `ranger`, `xgb.Booster` or `fastgbm` model) is stored
+#'   at `$state$state`; use [enginemodel()] to extract it.
 #' @examples
 #' fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
 #' predict(fit_obj, newdata = mtcars[1:3, , drop = FALSE])
@@ -29,7 +37,17 @@ fit <- function(formula, data, model, spec = NULL, seed = NULL, na_action = stat
   call <- match.call()
   if (!is.null(seed)) set.seed(seed)
   adapter <- funcml_registry(model)
+  native_na <- missing(na_action) && isTRUE(adapter$supports$na)
+  if (native_na) {
+    na_action <- stats::na.pass
+  }
   encoded <- .encode_train(data = data, formula = formula, na_action = na_action)
+  if (native_na && anyNA(encoded$y)) {
+    stop(sprintf(
+      "Model '%s' handles missing predictors, but the outcome has %d NA value(s). Remove those rows first.",
+      model, sum(is.na(encoded$y))
+    ), call. = FALSE)
+  }
   task <- encoded$task
   if (!task %in% adapter$tasks) stop(sprintf("Model '%s' does not support %s.", model, task), call. = FALSE)
   if (identical(task, "classification") && length(encoded$levels) > 2L && !isTRUE(adapter$supports$multiclass)) {
@@ -367,6 +385,26 @@ predict.funcml_fit <- function(object, newdata, type = NULL, class_level = NULL,
                               pos_level = NULL, na_action = object$na_action, ...) {
   object$predict(newdata = newdata, type = type, class_level = class_level,
                  pos_level = pos_level, na_action = na_action, ...)
+}
+
+#' Extract the fitted engine model.
+#'
+#' Returns the model object built by the learner's engine package (for
+#' example a `glm`, `ranger`, `xgb.Booster` or `fastgbm` object), which is
+#' stored inside a `funcml_fit` at `$state$state`. Use it to call the
+#' engine's own methods.
+#'
+#' @param fit A `funcml_fit` object.
+#' @return The engine model object.
+#' @examples
+#' fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")
+#' class(enginemodel(fit_obj))
+#' @export
+enginemodel <- function(fit) {
+  if (!inherits(fit, "funcml_fit")) {
+    stop("`fit` must be a funcml_fit.", call. = FALSE)
+  }
+  fit$state$state
 }
 
 #' @rdname fit-methods

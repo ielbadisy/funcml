@@ -249,6 +249,11 @@ timecv <- function(initial, assess = 1, time = NULL, skip = 0, cumulative = TRUE
 }
 
 generate_folds <- function(n, y = NULL, resampling = cv(), data = NULL) {
+  # Folds frozen by compare() (or returned in a compare() result) are reused
+  # as is when the data size matches, so every learner sees the same splits.
+  if (isTRUE(resampling$fixed) && !is.null(resampling$folds) && identical(resampling$n, n)) {
+    return(resampling)
+  }
   if (!is.null(resampling$seed)) set.seed(resampling$seed)
   idx <- seq_len(n)
   method <- resampling$method %||% "vfold"
@@ -279,5 +284,6 @@ generate_folds <- function(n, y = NULL, resampling = cv(), data = NULL) {
   )
 
   resampling$folds <- folds
+  resampling$n <- n
   resampling
 }

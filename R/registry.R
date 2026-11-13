@@ -1211,7 +1211,7 @@ build_registry <- function() {
         seed = 1L,
         verbose = FALSE
       ),
-      supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
+      supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE, na = TRUE),
       fit_xy = function(X, y, spec, task, levels, ...) {
         .fastgbm_fit(X = X, y = y, spec = spec, task = task, levels = levels)
       },
