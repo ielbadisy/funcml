@@ -41,13 +41,13 @@ brier(truth, prob_matrix)
 
 accuracy(truth, pred_class)
 
-precision(truth, pred_class)
+precision(truth, pred_class, average = c("binary", "macro"), positive = NULL)
 
-recall(truth, pred_class)
+recall(truth, pred_class, average = c("binary", "macro"), positive = NULL)
 
-specificity(truth, pred_class)
+specificity(truth, pred_class, average = c("binary", "macro"), positive = NULL)
 
-f1(truth, pred_class)
+f1(truth, pred_class, average = c("binary", "macro"), positive = NULL)
 
 balancedaccuracy(truth, pred_class)
 
@@ -95,18 +95,24 @@ classes it returns the multiclass Brier score
 
 \item{pred_class}{Predicted class labels (classification).}
 
+\item{average}{For \code{precision()}, \code{recall()}, \code{specificity()} and \code{f1()}:
+\code{"binary"} (default) computes the metric for the positive class of a
+binary outcome (the second factor level, or \code{positive}), so \code{recall()} is
+sensitivity; \code{"macro"} averages the one-vs-rest metric over all classes
+with equal weight. Outcomes with more than two classes are always
+macro-averaged. \code{balancedaccuracy()} is the macro-averaged recall.
+For multiclass \code{auc()}, aggregation mode: \code{"macro"} or \code{"weighted"}
+(class-frequency weighted one-vs-rest AUC). Ignored for binary AUC.}
+
+\item{positive}{Optional positive/event class for binary classification.
+Defaults to the second factor level.}
+
 \item{prob}{Probability vector (binary) or probability matrix with one column
 per class (multiclass).}
-
-\item{average}{For multiclass AUC, aggregation mode: \code{"macro"} or
-\code{"weighted"} (class-frequency weighted one-vs-rest AUC). Ignored for
-binary AUC.}
 
 \item{bins}{Number of bins for calibration summaries.}
 
 \item{strategy}{Binning strategy: \code{"quantile"} or \code{"uniform"}.}
-
-\item{positive}{Optional positive/event class for binary classification.}
 }
 \value{
 Numeric scalar metric.

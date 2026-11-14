@@ -46,11 +46,11 @@ listmetrics <- function(direction = NULL, columns = NULL) {
       "Mean absolute percentage error for regression predictions.",
       "Coefficient of determination for regression predictions.",
       "Classification accuracy.",
-      "Macro-averaged classification precision.",
-      "Macro-averaged classification recall.",
-      "Macro-averaged classification specificity.",
-      "Macro-averaged F1 score.",
-      "Macro-averaged balanced accuracy.",
+      "Precision of the positive class (binary), macro-averaged (multiclass).",
+      "Recall (sensitivity) of the positive class (binary), macro-averaged (multiclass).",
+      "Specificity of the positive class (binary), macro-averaged (multiclass).",
+      "F1 score of the positive class (binary), macro-averaged (multiclass).",
+      "Balanced accuracy (macro-averaged recall).",
       "Negative log-likelihood for classification probabilities.",
       "Brier score for classification probabilities.",
       "Area under the ROC curve.",
@@ -85,12 +85,18 @@ listmetrics <- function(direction = NULL, columns = NULL) {
 #' @param pred_class Predicted class labels (classification).
 #' @param prob Probability vector (binary) or probability matrix with one column
 #'   per class (multiclass).
-#' @param average For multiclass AUC, aggregation mode: `"macro"` or
-#'   `"weighted"` (class-frequency weighted one-vs-rest AUC). Ignored for
-#'   binary AUC.
+#' @param average For `precision()`, `recall()`, `specificity()` and `f1()`:
+#'   `"binary"` (default) computes the metric for the positive class of a
+#'   binary outcome (the second factor level, or `positive`), so `recall()` is
+#'   sensitivity; `"macro"` averages the one-vs-rest metric over all classes
+#'   with equal weight. Outcomes with more than two classes are always
+#'   macro-averaged. `balancedaccuracy()` is the macro-averaged recall.
+#'   For multiclass `auc()`, aggregation mode: `"macro"` or `"weighted"`
+#'   (class-frequency weighted one-vs-rest AUC). Ignored for binary AUC.
 #' @param bins Number of bins for calibration summaries.
 #' @param strategy Binning strategy: `"quantile"` or `"uniform"`.
 #' @param positive Optional positive/event class for binary classification.
+#'   Defaults to the second factor level.
 #' @return Numeric scalar metric.
 #' @name metrics
 #' @examples
@@ -232,27 +238,33 @@ accuracy <- function(truth, pred_class) {
 
 #' @rdname metrics
 #' @export
-precision <- function(truth, pred_class) {
-  .macro_class_metric(truth, pred_class, numerator = function(tp, fp, fn, tn) tp, denominator = function(tp, fp, fn, tn) tp + fp)
+precision <- function(truth, pred_class, average = c("binary", "macro"), positive = NULL) {
+  .class_metric(truth, pred_class, average = average, positive = positive,
+                numerator = function(tp, fp, fn, tn) tp,
+                denominator = function(tp, fp, fn, tn) tp + fp)
 }
 
 #' @rdname metrics
 #' @export
-recall <- function(truth, pred_class) {
-  .macro_class_metric(truth, pred_class, numerator = function(tp, fp, fn, tn) tp, denominator = function(tp, fp, fn, tn) tp + fn)
+recall <- function(truth, pred_class, average = c("binary", "macro"), positive = NULL) {
+  .class_metric(truth, pred_class, average = average, positive = positive,
+                numerator = function(tp, fp, fn, tn) tp,
+                denominator = function(tp, fp, fn, tn) tp + fn)
 }
 
 #' @rdname metrics
 #' @export
-specificity <- function(truth, pred_class) {
-  .macro_class_metric(truth, pred_class, numerator = function(tp, fp, fn, tn) tn, denominator = function(tp, fp, fn, tn) tn + fp)
+specificity <- function(truth, pred_class, average = c("binary", "macro"), positive = NULL) {
+  .class_metric(truth, pred_class, average = average, positive = positive,
+                numerator = function(tp, fp, fn, tn) tn,
+                denominator = function(tp, fp, fn, tn) tn + fp)
 }
 
 #' @rdname metrics
 #' @export
-f1 <- function(truth, pred_class) {
-  prec <- precision(truth, pred_class)
-  rec <- recall(truth, pred_class)
+f1 <- function(truth, pred_class, average = c("binary", "macro"), positive = NULL) {
+  prec <- precision(truth, pred_class, average = average, positive = positive)
+  rec <- recall(truth, pred_class, average = average, positive = positive)
   if (!is.finite(prec) || !is.finite(rec) || (prec + rec) == 0) {
     return(NA_real_)
   }
@@ -262,7 +274,7 @@ f1 <- function(truth, pred_class) {
 #' @rdname metrics
 #' @export
 balancedaccuracy <- function(truth, pred_class) {
-  recall(truth, pred_class)
+  recall(truth, pred_class, average = "macro")
 }
 
 .binary_auc <- function(truth_binary, prob) {
@@ -316,6 +328,35 @@ auc <- function(truth, prob, average = c("macro", "weighted")) {
 #' @export
 aucweighted <- function(truth, prob) {
   auc(truth, prob, average = "weighted")
+}
+
+# Binary outcomes: the metric for the positive class (second level unless
+# `positive` is given). Multiclass outcomes, or average = "macro": the
+# unweighted mean of the one-vs-rest metric over classes.
+.class_metric <- function(truth, pred_class, average = c("binary", "macro"),
+                          positive = NULL, numerator, denominator) {
+  average <- match.arg(average)
+  if (!is.factor(truth)) {
+    truth <- factor(truth)
+  }
+  lev <- levels(truth)
+  if (average == "macro" || length(lev) != 2L) {
+    return(.macro_class_metric(truth, pred_class, numerator, denominator))
+  }
+  positive <- positive %||% lev[2L]
+  if (length(positive) != 1L || !(positive %in% lev)) {
+    stop("`positive` must be one of the outcome levels.", call. = FALSE)
+  }
+  pred_class <- factor(pred_class, levels = lev)
+  tp <- sum(truth == positive & pred_class == positive, na.rm = TRUE)
+  fp <- sum(truth != positive & pred_class == positive, na.rm = TRUE)
+  fn <- sum(truth == positive & pred_class != positive, na.rm = TRUE)
+  tn <- sum(truth != positive & pred_class != positive, na.rm = TRUE)
+  denom <- denominator(tp, fp, fn, tn)
+  if (denom == 0) {
+    return(NA_real_)
+  }
+  numerator(tp, fp, fn, tn) / denom
 }
 
 .macro_class_metric <- function(truth, pred_class, numerator, denominator) {
