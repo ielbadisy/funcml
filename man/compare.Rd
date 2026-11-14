@@ -94,6 +94,12 @@ which is the configuration you would deploy. \code{nested = FALSE} restores the
 older, faster behaviour of tuning and scoring on the same folds; that
 estimate is optimistic (the best of many configurations on the very folds
 used to pick it) and should not be reported as a performance estimate.
+
+Missing values: if any variable used by \code{formula} contains \code{NA},
+\code{compare()} stops before resampling with an error naming the affected
+columns and the number of incomplete rows. Impute or drop incomplete rows
+first. Predictor \code{NA} is accepted only when every learner in \code{models}
+handles it natively (currently \code{fastgbm}); the outcome must be complete.
 }
 \examples{
 cmp <- compare(

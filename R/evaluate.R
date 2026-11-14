@@ -217,13 +217,13 @@ plot.funcml_eval <- function(x, ...) {
     themefuncml()
 }
 
-.check_no_missing_model_vars <- function(formula, data, outcome_only = FALSE) {
+.check_no_missing_model_vars <- function(formula, data, outcome_only = FALSE, caller = "evaluate") {
   mf <- stats::model.frame(formula, data, na.action = stats::na.pass)
   if (isTRUE(outcome_only)) {
     if (anyNA(stats::model.response(mf))) {
       stop(sprintf(
-        "`evaluate()` needs a complete outcome: %d row(s) have NA in '%s'. Remove them first.",
-        sum(is.na(stats::model.response(mf))), names(mf)[1L]
+        "`%s()` needs a complete outcome: %d row(s) have NA in '%s'. Remove them first.",
+        caller, sum(is.na(stats::model.response(mf))), names(mf)[1L]
       ), call. = FALSE)
     }
     return(invisible(TRUE))
@@ -233,10 +233,10 @@ plot.funcml_eval <- function(x, ...) {
     n_rows <- sum(!stats::complete.cases(mf))
     stop(sprintf(
       paste0(
-        "`evaluate()` does not handle missing values: %d row(s) have NA in ",
+        "`%s()` does not handle missing values: %d row(s) have NA in ",
         "model variable(s) %s. Impute or remove incomplete rows first."
       ),
-      n_rows,
+      caller, n_rows,
       paste(sprintf("'%s'", names(mf)[has_na]), collapse = ", ")
     ), call. = FALSE)
   }

@@ -42,3 +42,29 @@ test_that("compare() reports distinct recall, specificity and balanced accuracy"
   expect_false(isTRUE(all.equal(vals[1], vals[3])))
   expect_equal(vals[3], (vals[1] + vals[2]) / 2, tolerance = 0.05)
 })
+
+test_that("compare() and evaluate() stop on NA with an error naming the columns", {
+  d <- mtcars
+  d$wt[c(2, 5)] <- NA
+  d$hp[7] <- NA
+  expect_error(
+    evaluate(d, mpg ~ wt + hp, model = "glm", resampling = cv(3, seed = 1)),
+    "`evaluate\\(\\)`.*3 row\\(s\\).*'wt', 'hp'"
+  )
+  expect_error(
+    compare(d, mpg ~ wt + hp, models = c("glm", "rpart"), resampling = cv(3, seed = 1)),
+    "`compare\\(\\)`.*3 row\\(s\\).*'wt', 'hp'"
+  )
+  di <- iris
+  di$Species[c(3, 60)] <- NA
+  expect_error(
+    compare(di, Species ~ ., models = "rpart", resampling = cv(3, seed = 1)),
+    "`compare\\(\\)`.*'Species'"
+  )
+  # complete rows still work after dropping the incomplete ones
+  cc <- d[stats::complete.cases(d[, c("mpg", "wt", "hp")]), ]
+  expect_s3_class(
+    compare(cc, mpg ~ wt + hp, models = "glm", resampling = cv(3, seed = 1)),
+    "funcml_compare"
+  )
+})
