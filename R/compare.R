@@ -44,6 +44,11 @@
 #' @param inner_resampling Optional resampling object for the inner tuning
 #'   loop when `nested = TRUE`. Defaults to the specification of `resampling`.
 #' @param ... Additional arguments passed to `evaluate()` or `tune()` / `fit()`.
+#' @details Missing values: if any variable used by `formula` contains `NA`,
+#'   `compare()` stops before resampling with an error naming the affected
+#'   columns and the number of incomplete rows. Impute or drop incomplete rows
+#'   first. Predictor `NA` is accepted only when every learner in `models`
+#'   handles it natively (currently `fastgbm`); the outcome must be complete.
 #' @return A `funcml_compare` object: a list with `results` (one row per
 #'   learner and metric), `details` (per-learner evaluation and tuning
 #'   objects), `predictions` (out-of-fold predictions of every learner, with a
@@ -82,6 +87,16 @@ compare <- function(data, formula, models, specs = NULL,
   if (!is.null(seed)) {
     set.seed(seed)
   }
+
+  # Check missing values once, before folds are drawn, so the error names
+  # compare() and the affected columns. Predictor NA is allowed only when
+  # every learner handles it natively.
+  native_na <- all(vapply(models, function(m) isTRUE(funcml_registry(m)$supports$na), logical(1)))
+  .check_no_missing_model_vars(
+    formula, data,
+    outcome_only = native_na && is.null(list(...)$na_action),
+    caller = "compare"
+  )
 
   y <- model.response(model.frame(formula, data, na.action = stats::na.pass))
   task <- infer_task(y)

@@ -1,3 +1,32 @@
+# funcml 0.9.10
+
+* `brier()` and `logloss()` given a plain probability vector for a binary
+  outcome returned `mean(p^2)` and `NA` respectively. The vector is now read
+  as the probability of the second (positive) level, so `brier()` returns
+  `mean((p - y)^2)`; a vector with a multiclass outcome is an error.
+* `precision()`, `recall()`, `specificity()` and `f1()` macro-averaged over
+  both classes of a binary outcome, so recall and specificity always equalled
+  balanced accuracy (and `compare()` showed the same value for all three).
+  For binary outcomes they are now computed for the positive class (second
+  factor level, or `positive`). New `average = c("binary", "macro")` and
+  `positive` arguments; multiclass outcomes stay macro-averaged and
+  `balancedaccuracy()` is unchanged.
+* `estimate()` reported the spread of the unit-level effects as the standard
+  error, which ignores uncertainty in the outcome model (SE 0 and a
+  zero-width CI for an additive `glm`). With `model = "glm"` the normal
+  interval now uses a delta-method SE of the g-computation contrast; other
+  learners and `interval = "bootstrap"` use the SD of `n_boot` bootstrap
+  refits. `$bootstrap` now keeps the replicate estimates and their SD.
+* The `stacking` learner fitted its meta-learner on in-sample base-learner
+  predictions. It now uses K-fold out-of-fold predictions (new spec entry
+  `folds`, default 5, reproducible with `seed`) and refits the base learners
+  on all rows for prediction. The meta-features are stored at
+  `$state$meta_x`.
+* `compare()` checks for missing values before drawing folds and stops with
+  an error that names `compare()`, the affected columns and the number of
+  incomplete rows (before, the error came from `evaluate()` or from fold
+  generation). The behaviour is documented in `?compare` and `?evaluate`.
+
 # funcml 0.9.9
 
 * `compare()` now draws the resampling folds once (from `seed` or the

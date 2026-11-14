@@ -158,25 +158,25 @@ listmetrics()
 #> 16      auc_weighted  maximize
 #> 17               ece  minimize
 #> 18               mce  minimize
-#>                                                       summary
-#> 1         Root mean squared error for regression predictions.
-#> 2             Mean absolute error for regression predictions.
-#> 3              Mean squared error for regression predictions.
-#> 4           Median absolute error for regression predictions.
-#> 5  Mean absolute percentage error for regression predictions.
-#> 6    Coefficient of determination for regression predictions.
-#> 7                                    Classification accuracy.
-#> 8                    Macro-averaged classification precision.
-#> 9                       Macro-averaged classification recall.
-#> 10                 Macro-averaged classification specificity.
-#> 11                                   Macro-averaged F1 score.
-#> 12                          Macro-averaged balanced accuracy.
-#> 13  Negative log-likelihood for classification probabilities.
-#> 14              Brier score for classification probabilities.
-#> 15                                  Area under the ROC curve.
-#> 16              Weighted multiclass area under the ROC curve.
-#> 17      Expected calibration error for binary classification.
-#> 18       Maximum calibration error for binary classification.
+#>                                                                              summary
+#> 1                                Root mean squared error for regression predictions.
+#> 2                                    Mean absolute error for regression predictions.
+#> 3                                     Mean squared error for regression predictions.
+#> 4                                  Median absolute error for regression predictions.
+#> 5                         Mean absolute percentage error for regression predictions.
+#> 6                           Coefficient of determination for regression predictions.
+#> 7                                                           Classification accuracy.
+#> 8             Precision of the positive class (binary), macro-averaged (multiclass).
+#> 9  Recall (sensitivity) of the positive class (binary), macro-averaged (multiclass).
+#> 10          Specificity of the positive class (binary), macro-averaged (multiclass).
+#> 11             F1 score of the positive class (binary), macro-averaged (multiclass).
+#> 12                                        Balanced accuracy (macro-averaged recall).
+#> 13                         Negative log-likelihood for classification probabilities.
+#> 14                                     Brier score for classification probabilities.
+#> 15                                                         Area under the ROC curve.
+#> 16                                     Weighted multiclass area under the ROC curve.
+#> 17                             Expected calibration error for binary classification.
+#> 18                              Maximum calibration error for binary classification.
 #>                               range
 #> 1                          [0, Inf)
 #> 2                          [0, Inf)
@@ -303,10 +303,10 @@ eval_obj
 #> <funcml_eval> model: xgboost | task: classification
 #>               metric   mean     sd n std_error conf_level conf_low conf_high
 #> 1           accuracy 0.7473 0.0146 4    0.0073       0.95   0.7241    0.7706
-#> 2          precision 0.6932 0.0234 4    0.0117       0.95   0.6559    0.7304
-#> 3             recall 0.6405 0.0178 4    0.0089       0.95   0.6121    0.6689
-#> 4        specificity 0.6405 0.0178 4    0.0089       0.95   0.6121    0.6689
-#> 5                 f1 0.6657 0.0195 4    0.0098       0.95   0.6347    0.6968
+#> 2          precision 0.6066 0.0405 4    0.0203       0.95   0.5421    0.6711
+#> 3             recall 0.3842 0.0360 4    0.0180       0.95   0.3269    0.4415
+#> 4        specificity 0.8968 0.0192 4    0.0096       0.95   0.8663    0.9273
+#> 5                 f1 0.4695 0.0331 4    0.0166       0.95   0.4168    0.5222
 #> 6  balanced_accuracy 0.6405 0.0178 4    0.0089       0.95   0.6121    0.6689
 #> 7            logloss 0.4925 0.0088 4    0.0044       0.95   0.4785    0.5065
 #> 8              brier 0.1639 0.0038 4    0.0019       0.95   0.1579    0.1699
@@ -664,7 +664,7 @@ est_obj <- estimate(
 est_obj
 #> <funcml_estimand> ATE via g-computation
 #> Treatment: smoke (Yes vs No)
-#> Estimate: 0.0897 | SE: 0.0006 | 95% normal CI [0.0886, 0.0908]
+#> Estimate: 0.0897 | SE: 0.0118 | 95% normal CI [0.0665, 0.1129]
 ```
 
 By default, `plot()` shows the model-implied potential outcome
@@ -744,14 +744,15 @@ citation("funcml")
 #> To cite package 'funcml' in publications use:
 #> 
 #>   El Badisy I (????). _funcml: Functional Machine Learning Framework_.
-#>   R package version 0.9.8, <https://CRAN.R-project.org/package=funcml>.
+#>   R package version 0.9.10,
+#>   <https://CRAN.R-project.org/package=funcml>.
 #> 
 #> A BibTeX entry for LaTeX users is
 #> 
 #>   @Manual{,
 #>     title = {funcml: Functional Machine Learning Framework},
 #>     author = {Imad {El Badisy}},
-#>     note = {R package version 0.9.8},
+#>     note = {R package version 0.9.10},
 #>     url = {https://CRAN.R-project.org/package=funcml},
 #>   }
 ```
