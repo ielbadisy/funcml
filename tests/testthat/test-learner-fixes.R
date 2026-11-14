@@ -208,3 +208,35 @@ test_that("mlp warns on arguments the densemlp engine does not support", {
   g <- defaulttunegrid("mlp")
   expect_false("weight_decay" %in% names(g))
 })
+
+test_that("stacking fits its meta-learner on out-of-fold base predictions", {
+  skip_if_not_installed("rpart")
+  set.seed(40)
+  dat <- data.frame(x1 = rnorm(150), x2 = rnorm(150))
+  dat$y <- dat$x1 + rnorm(150)
+  spec <- list(
+    learners = c("glm", "rpart"),
+    learner_specs = list(rpart = list(cp = 0, minsplit = 2, minbucket = 1))
+  )
+  f1 <- fit(y ~ x1 + x2, data = dat, model = "stacking", spec = spec, seed = 1)
+  meta_x <- f1$state$meta_x
+  expect_false(is.null(meta_x))
+  expect_equal(dim(meta_x), c(150L, 2L))
+  # a fully grown tree reproduces y in sample; its out-of-fold predictions do not
+  X <- funcml:::.encode_new(f1, dat, na_action = stats::na.fail)
+  in_sample <- funcml:::.ensemble_predict_base_models(
+    f1$state$base_models, X, "regression", NULL
+  )$rpart
+  expect_gt(cor(in_sample, dat$y), 0.99)
+  expect_lt(cor(meta_x[, "rpart"], dat$y), 0.9)
+  expect_equal(f1$state$folds, 5L)
+
+  f2 <- fit(y ~ x1 + x2, data = dat, model = "stacking", spec = spec, seed = 1)
+  f3 <- fit(y ~ x1 + x2, data = dat, model = "stacking", spec = spec, seed = 2)
+  expect_equal(f1$state$meta_x, f2$state$meta_x)
+  expect_equal(predict(f1, dat[1:5, ]), predict(f2, dat[1:5, ]))
+  expect_false(isTRUE(all.equal(f1$state$meta_x, f3$state$meta_x)))
+  f4 <- fit(y ~ x1 + x2, data = dat, model = "stacking",
+            spec = c(spec, list(folds = 3L)), seed = 1)
+  expect_equal(f4$state$folds, 3L)
+})

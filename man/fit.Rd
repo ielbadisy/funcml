@@ -54,6 +54,13 @@ regression only: \code{pls}.
 \details{
 The learner engine packages are installed with \code{funcml}, so the advertised
 registry is intended to be available after a standard installation.
+
+The \code{stacking} ensemble takes \code{spec = list(learners, learner_specs, meta_model, folds)}. Its meta-learner is fitted on out-of-fold base-learner
+predictions from \code{folds}-fold cross-validation (default 5, drawn from the
+current random stream, so \code{seed} makes them reproducible); the base
+learners are then refitted on all rows for prediction. The out-of-fold
+meta-features are stored at \verb{$state$meta_x}. \code{superlearner} works the same
+way with a \code{resampling} object instead of \code{folds}.
 }
 \examples{
 fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")

@@ -1222,16 +1222,24 @@ build_registry <- function() {
     stacking = list(
       package = "stats",
       tasks = c("regression", "classification"),
-      defaults = list(learners = NULL, learner_specs = list(), meta_model = "glmnet"),
+      defaults = list(learners = NULL, learner_specs = list(), meta_model = "glmnet", folds = 5L),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, levels, ...) {
         learners <- spec$learners %||% .ensemble_default_learners(task, levels)
         .ensemble_validate_learners(learners, task)
         learner_specs <- .ensemble_prepare_specs(learners, spec$learner_specs %||% list())
-        base_models <- .ensemble_fit_base_models(X, y, learners, learner_specs, task, levels)
-        base_preds <- .ensemble_predict_base_models(base_models, X, task, levels)
-        meta_x <- .ensemble_meta_matrix(base_preds, learners, levels)
+        folds <- spec$folds %||% 5L
+        if (!is.numeric(folds) || length(folds) != 1L || folds < 2 || folds > nrow(X)) {
+          stop("`folds` for stacking must be a single integer between 2 and the number of rows.", call. = FALSE)
+        }
+        folds <- as.integer(folds)
+        # Meta-features are out-of-fold base predictions, so the meta-learner
+        # is not fitted on predictions the base learners made for their own
+        # training rows. Folds come from the current RNG (set by `seed`).
+        meta_x <- .ensemble_oof_meta_matrix(X, y, learners, learner_specs, task, levels,
+                                            resampling = cv(folds))
         meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels, meta_model = spec$meta_model %||% "glmnet")
+        base_models <- .ensemble_fit_base_models(X, y, learners, learner_specs, task, levels)
         list(
           ensemble = "stacking",
           learners = learners,
@@ -1240,7 +1248,9 @@ build_registry <- function() {
           meta_fit = meta_fit,
           levels = levels,
           task = task,
-          meta_features = colnames(meta_x)
+          meta_features = colnames(meta_x),
+          meta_x = meta_x,
+          folds = folds
         )
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
