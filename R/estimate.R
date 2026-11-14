@@ -12,12 +12,22 @@
 #' @param control_level Optional control level for binary treatment.
 #' @param spec Hyperparameter list passed to `fit()`.
 #' @param type Prediction type override for the outcome model.
-#' @param interval Interval method: `"normal"` or `"bootstrap"`.
+#' @param interval Interval method: `"normal"` or `"bootstrap"`. The standard
+#'   error accounts for estimation of the outcome model. With `model = "glm"`
+#'   and `interval = "normal"` it is a delta-method standard error of the
+#'   g-computation contrast (plus, for ATE and ATT, the sampling variance of
+#'   the averaged unit-level effects). For other learners, and for
+#'   `interval = "bootstrap"`, it is the standard deviation of `n_boot`
+#'   nonparametric bootstrap estimates, each refitting the outcome model;
+#'   `"normal"` then uses estimate +/- z * SE and `"bootstrap"` uses
+#'   percentile limits.
 #' @param conf_level Confidence level for uncertainty intervals.
-#' @param n_boot Number of bootstrap resamples used when `interval = "bootstrap"`.
+#' @param n_boot Number of bootstrap resamples used when the standard error
+#'   or interval is bootstrapped (see `interval`).
 #'   A resample with no treated or no control rows is redrawn, and a resample
 #'   whose fit fails is dropped with a warning (an error if more than half
-#'   fail). The counts are returned in `$bootstrap`.
+#'   fail). The counts, the replicate estimates (`estimates`) and their
+#'   standard deviation (`std_error`) are returned in `$bootstrap`.
 #' @param seed Optional seed.
 #' @param fit Optional preconfigured `funcml_fit` object.
 #' @param ... Passed to `fit()`.
@@ -111,9 +121,10 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
   )
 
   boot_info <- attr(ci, "bootstrap")
+  std_error <- attr(ci, "std_error") %||% est_core$std_error
   out <- list(
     estimate = est_core$estimate,
-    std_error = est_core$std_error,
+    std_error = std_error,
     conf_int = stats::setNames(as.numeric(ci), c("lower", "upper")),
     conf_level = conf_level,
     interval_method = interval,
@@ -230,7 +241,8 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
 
   list(
     estimate = if (estimand == "IATE") NA_real_ else stats::weighted.mean(ite, w = weights),
-    std_error = if (estimand == "IATE") NA_real_ else .weighted_se(ite, weights),
+    std_error = if (estimand == "IATE") NA_real_ else
+      .gcomp_delta_se(base_fit, cf_treated, cf_control, weights, ite, estimand),
     effects = data.frame(
       row_id = seq_along(ite),
       effect = ite,
@@ -249,9 +261,11 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
     return(stats::setNames(c(NA_real_, NA_real_), c("lower", "upper")))
   }
 
-  if (interval == "normal") {
-    crit <- stats::qnorm(1 - alpha / 2)
-    return(stats::setNames(estimate_value + c(-1, 1) * crit * se_value, c("lower", "upper")))
+  crit <- stats::qnorm(1 - alpha / 2)
+  if (interval == "normal" && is.finite(se_value)) {
+    ci <- stats::setNames(estimate_value + c(-1, 1) * crit * se_value, c("lower", "upper"))
+    attr(ci, "std_error") <- se_value
+    return(ci)
   }
 
   boot_vals <- .bootstrap_estimand(
@@ -267,15 +281,23 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
     fit_obj = fit_obj,
     n_boot = n_boot
   )
-  ci <- stats::setNames(
-    as.numeric(stats::quantile(boot_vals, probs = c(alpha / 2, 1 - alpha / 2), na.rm = TRUE, names = FALSE)),
-    c("lower", "upper")
-  )
+  boot_se <- stats::sd(boot_vals, na.rm = TRUE)
+  ci <- if (interval == "normal") {
+    stats::setNames(estimate_value + c(-1, 1) * crit * boot_se, c("lower", "upper"))
+  } else {
+    stats::setNames(
+      as.numeric(stats::quantile(boot_vals, probs = c(alpha / 2, 1 - alpha / 2), na.rm = TRUE, names = FALSE)),
+      c("lower", "upper")
+    )
+  }
+  attr(ci, "std_error") <- boot_se
   attr(ci, "bootstrap") <- list(
     n_boot = length(boot_vals),
     n_used = sum(!is.na(boot_vals)),
     n_failed = attr(boot_vals, "n_failed"),
-    n_redrawn = attr(boot_vals, "n_redrawn")
+    n_redrawn = attr(boot_vals, "n_redrawn"),
+    estimates = as.numeric(boot_vals),
+    std_error = boot_se
   )
   ci
 }
@@ -339,6 +361,50 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
   attr(vals, "n_redrawn") <- n_redrawn
   attr(vals, "n_failed") <- n_failed
   vals
+}
+
+# Delta-method standard error of the g-computation contrast for a `glm`
+# outcome model. The contrast is sum_i w_i (mu1_i - mu0_i) with normalized
+# weights, mu = linkinv(x' beta). Its gradient in beta is
+# sum_i w_i (mu.eta(eta1_i) x1_i - mu.eta(eta0_i) x0_i), so the model part of
+# the variance is g' V g with V = vcov(beta). For ATE and ATT a second term,
+# the variance of the weighted mean of the unit-level effects, accounts for
+# averaging over the sampled covariates (asymptotically uncorrelated with
+# beta). CATE averages over fixed target rows and keeps the model term only.
+# Returns NA for learners other than glm; the caller then bootstraps.
+.gcomp_delta_se <- function(base_fit, cf_treated, cf_control, weights, ite, estimand) {
+  g <- base_fit$state$state
+  if (!identical(base_fit$model, "glm") || !inherits(g, "glm")) {
+    return(NA_real_)
+  }
+  res <- tryCatch({
+    beta <- stats::coef(g)
+    keep <- !is.na(beta)
+    tt <- stats::delete.response(stats::terms(g))
+    design <- function(newdata) {
+      X <- .encode_new(base_fit, newdata, na_action = base_fit$na_action)
+      mm <- stats::model.matrix(tt, data = data.frame(X))
+      mm[, keep, drop = FALSE]
+    }
+    mm1 <- design(cf_treated)
+    mm0 <- design(cf_control)
+    b <- beta[keep]
+    mu_eta <- stats::family(g)$mu.eta
+    w <- as.numeric(weights) / sum(weights)
+    d1 <- mu_eta(as.numeric(mm1 %*% b))
+    d0 <- mu_eta(as.numeric(mm0 %*% b))
+    grad <- colSums(w * (d1 * mm1 - d0 * mm0))
+    V <- stats::vcov(g)[names(b), names(b), drop = FALSE]
+    v_model <- as.numeric(crossprod(grad, V %*% grad))
+    v_x <- if (estimand %in% c("ATE", "ATT")) {
+      se_x <- .weighted_se(ite, weights)
+      if (is.finite(se_x)) se_x^2 else 0
+    } else {
+      0
+    }
+    sqrt(v_model + v_x)
+  }, error = function(e) NA_real_)
+  if (!is.finite(res)) NA_real_ else res
 }
 
 .weighted_se <- function(x, w) {

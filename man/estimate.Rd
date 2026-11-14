@@ -46,14 +46,24 @@ is treated as the treatment variable unless \code{treatment} is supplied.}
 
 \item{type}{Prediction type override for the outcome model.}
 
-\item{interval}{Interval method: \code{"normal"} or \code{"bootstrap"}.}
+\item{interval}{Interval method: \code{"normal"} or \code{"bootstrap"}. The standard
+error accounts for estimation of the outcome model. With \code{model = "glm"}
+and \code{interval = "normal"} it is a delta-method standard error of the
+g-computation contrast (plus, for ATE and ATT, the sampling variance of
+the averaged unit-level effects). For other learners, and for
+\code{interval = "bootstrap"}, it is the standard deviation of \code{n_boot}
+nonparametric bootstrap estimates, each refitting the outcome model;
+\code{"normal"} then uses estimate +/- z * SE and \code{"bootstrap"} uses
+percentile limits.}
 
 \item{conf_level}{Confidence level for uncertainty intervals.}
 
-\item{n_boot}{Number of bootstrap resamples used when \code{interval = "bootstrap"}.
+\item{n_boot}{Number of bootstrap resamples used when the standard error
+or interval is bootstrapped (see \code{interval}).
 A resample with no treated or no control rows is redrawn, and a resample
 whose fit fails is dropped with a warning (an error if more than half
-fail). The counts are returned in \verb{$bootstrap}.}
+fail). The counts, the replicate estimates (\code{estimates}) and their
+standard deviation (\code{std_error}) are returned in \verb{$bootstrap}.}
 
 \item{seed}{Optional seed.}
 

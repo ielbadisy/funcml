@@ -105,3 +105,46 @@ test_that("estimate() reports positivity problems and survives degenerate bootst
   expect_true(res$bootstrap$n_redrawn >= 0L)
   expect_equal(res$bootstrap$n_failed, 0L)
 })
+
+test_that("glm g-computation ATE has a delta-method SE matching lm", {
+  set.seed(2)
+  n <- 2000
+  x <- rnorm(n)
+  a <- rbinom(n, 1, plogis(x))
+  y <- 1 + 0.5 * a + x + rnorm(n)
+  d <- data.frame(y, a = factor(a), x)
+  est <- estimate(d, y ~ a + x, model = "glm", treatment = "a", estimand = "ATE")
+  lm_se <- summary(stats::lm(y ~ a + x, data = d))$coefficients["a1", "Std. Error"]
+  expect_equal(est$std_error, lm_se, tolerance = 1e-6)
+  expect_gt(diff(est$conf_int), 0.15)
+})
+
+test_that("glm delta-method SE agrees with the bootstrap for a binary outcome", {
+  set.seed(3)
+  n <- 800
+  x <- rnorm(n)
+  a <- rbinom(n, 1, plogis(0.5 * x))
+  y <- factor(rbinom(n, 1, plogis(-0.3 + 0.8 * a + x)), labels = c("no", "yes"))
+  d <- data.frame(y, a, x)
+  est <- estimate(d, y ~ a + x, model = "glm", treatment = "a", estimand = "ATE")
+  boot <- estimate(d, y ~ a + x, model = "glm", treatment = "a", estimand = "ATE",
+                   interval = "bootstrap", n_boot = 200, seed = 4)
+  expect_gt(est$std_error, 0.02)
+  expect_equal(est$std_error, boot$std_error, tolerance = 0.25)
+  expect_length(boot$bootstrap$estimates, 200)
+  expect_equal(boot$std_error, stats::sd(boot$bootstrap$estimates))
+})
+
+test_that("non-glm learners get a bootstrap SE under the normal interval", {
+  set.seed(6)
+  n <- 150
+  x <- rnorm(n)
+  a <- rbinom(n, 1, 0.5)
+  y <- 1 + a + x + rnorm(n)
+  d <- data.frame(y, a, x)
+  est <- estimate(d, y ~ a + x, model = "rpart", treatment = "a", estimand = "ATE",
+                  n_boot = 20, seed = 1)
+  expect_gt(est$std_error, 0)
+  expect_length(est$bootstrap$estimates, 20)
+  expect_equal(unname(est$conf_int), est$estimate + c(-1, 1) * stats::qnorm(0.975) * est$std_error)
+})
