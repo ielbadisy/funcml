@@ -13,6 +13,14 @@
 #' The learner engine packages are installed with `funcml`, so the advertised
 #' registry is intended to be available after a standard installation.
 #'
+#' The `stacking` ensemble takes `spec = list(learners, learner_specs,
+#' meta_model, folds)`. Its meta-learner is fitted on out-of-fold base-learner
+#' predictions from `folds`-fold cross-validation (default 5, drawn from the
+#' current random stream, so `seed` makes them reproducible); the base
+#' learners are then refitted on all rows for prediction. The out-of-fold
+#' meta-features are stored at `$state$meta_x`. `superlearner` works the same
+#' way with a `resampling` object instead of `folds`.
+#'
 #' @param formula Model formula.
 #' @param data Data frame.
 #' @param model Learner id (see `learners()`).
