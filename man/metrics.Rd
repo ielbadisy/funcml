@@ -85,6 +85,8 @@ mce(
 \item{pred}{Predicted numeric values or class labels.}
 
 \item{prob_matrix}{Matrix or vector of predicted probabilities (classification).
+For \code{logloss()} and \code{brier()} with a binary outcome, a plain numeric
+vector is read as the probability of the second (positive) factor level.
 For \code{brier()}, a binary task returns the standard binary Brier score
 \code{mean((p - y)^2)}, with \code{p} the probability of the second (positive)
 class and \code{y} its 0/1 indicator (range 0 to 1). With more than two

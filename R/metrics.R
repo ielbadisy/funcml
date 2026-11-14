@@ -75,6 +75,8 @@ listmetrics <- function(direction = NULL, columns = NULL) {
 #' @param truth Observed outcomes.
 #' @param pred Predicted numeric values or class labels.
 #' @param prob_matrix Matrix or vector of predicted probabilities (classification).
+#'   For `logloss()` and `brier()` with a binary outcome, a plain numeric
+#'   vector is read as the probability of the second (positive) factor level.
 #'   For `brier()`, a binary task returns the standard binary Brier score
 #'   `mean((p - y)^2)`, with `p` the probability of the second (positive)
 #'   class and `y` its 0/1 indicator (range 0 to 1). With more than two
@@ -172,10 +174,36 @@ mape <- function(truth, pred) {
   mean(abs((truth[keep] - pred[keep]) / truth[keep]))
 }
 
+# Coerce probabilities to a matrix with one column per class level, named by
+# level. A plain vector is read as the probability of the second (positive)
+# level and is only accepted for a binary outcome.
+.metric_prob_matrix <- function(truth, prob_matrix) {
+  lev <- if (is.factor(truth)) levels(truth) else levels(factor(truth))
+  if (is.null(dim(prob_matrix))) {
+    if (length(lev) != 2L) {
+      stop("A probability vector is only accepted for a binary outcome; ",
+           "supply a matrix with one column per class level.", call. = FALSE)
+    }
+    prob_matrix <- as.numeric(prob_matrix)
+    prob_matrix <- cbind(1 - prob_matrix, prob_matrix)
+    colnames(prob_matrix) <- lev
+    return(prob_matrix)
+  }
+  prob_matrix <- as.matrix(prob_matrix)
+  if (is.null(colnames(prob_matrix))) {
+    if (ncol(prob_matrix) != length(lev)) {
+      stop("Probability matrix has no column names and its column count does not ",
+           "match the number of class levels.", call. = FALSE)
+    }
+    colnames(prob_matrix) <- lev
+  }
+  prob_matrix
+}
+
 #' @rdname metrics
 #' @export
 logloss <- function(truth, prob_matrix) {
-  if (!is.matrix(prob_matrix)) prob_matrix <- cbind(1 - prob_matrix, prob_matrix)
+  prob_matrix <- .metric_prob_matrix(truth, prob_matrix)
   truth_idx <- match(truth, colnames(prob_matrix))
   p <- prob_matrix[cbind(seq_along(truth_idx), truth_idx)]
   -mean(log(p + 1e-15))
@@ -184,7 +212,7 @@ logloss <- function(truth, prob_matrix) {
 #' @rdname metrics
 #' @export
 brier <- function(truth, prob_matrix) {
-  if (!is.matrix(prob_matrix)) prob_matrix <- cbind(1 - prob_matrix, prob_matrix)
+  prob_matrix <- .metric_prob_matrix(truth, prob_matrix)
   truth_onehot <- matrix(0, nrow = length(truth), ncol = ncol(prob_matrix))
   colnames(truth_onehot) <- colnames(prob_matrix)
   truth_onehot[cbind(seq_along(truth), match(truth, colnames(prob_matrix)))] <- 1
