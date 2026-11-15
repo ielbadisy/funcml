@@ -61,6 +61,14 @@ current random stream, so \code{seed} makes them reproducible); the base
 learners are then refitted on all rows for prediction. The out-of-fold
 meta-features are stored at \verb{$state$meta_x}. \code{superlearner} works the same
 way with a \code{resampling} object instead of \code{folds}.
+
+\code{kknn} takes \code{spec = list(k, distance, kernel)}: \code{k} is the exact number
+of neighbours, \code{distance} the Minkowski power and \code{kernel} any kernel
+accepted by \code{\link[kknn:kknn]{kknn::kknn()}} (default \code{"optimal"}; for example
+\code{"rectangular"} gives an unweighted k-nearest-neighbour vote or mean).
+\code{e1071_svm} takes \code{spec = list(cost, gamma, kernel, epsilon)}; \code{epsilon}
+(default 0.1) is the width of the insensitive tube in support vector
+regression and is ignored for classification.
 }
 \examples{
 fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")

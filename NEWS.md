@@ -1,5 +1,11 @@
 # funcml 0.9.11
 
+* `kknn` treated `k` as the largest k of a leave-one-out search, so the
+  fitted model could use fewer neighbours than asked. `k` is now the exact
+  number of neighbours. The kernel, fixed at `"optimal"` before, is now the
+  spec entry `kernel` (default `"optimal"`).
+* `e1071_svm` gains the spec entry `epsilon` (default 0.1, the e1071
+  default), so support vector regression can be tuned on it.
 * New `splits()` draws the train/test row indices of any resampling scheme
   (`cv()`, `holdout()`, `groupcv()`, `timecv()`) outside `evaluate()`. For a
   holdout split the indices are returned directly as `$train` and `$test`.

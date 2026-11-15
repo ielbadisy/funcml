@@ -565,7 +565,7 @@ build_registry <- function() {
     e1071_svm = list(
       package = "e1071",
       tasks = c("regression", "classification"),
-      defaults = list(cost = 1, gamma = NULL, kernel = "radial"),
+      defaults = list(cost = 1, gamma = NULL, kernel = "radial", epsilon = 0.1),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("e1071", "e1071_svm")
@@ -574,6 +574,7 @@ build_registry <- function() {
         fit <- e1071::svm(
           y ~ ., data = df,
           cost = spec$cost, gamma = gamma, kernel = spec$kernel,
+          epsilon = spec$epsilon,
           type = if (task == "regression") "eps-regression" else "C-classification",
           probability = task == "classification"
         )
@@ -719,16 +720,18 @@ build_registry <- function() {
     kknn = list(
       package = "kknn",
       tasks = c("regression", "classification"),
-      defaults = list(k = 7, distance = 2),
+      defaults = list(k = 7, distance = 2, kernel = "optimal"),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("kknn", "kknn")
         df <- data.frame(y = y, X)
+        # `ks` fixes the number of neighbours at `k`; `kmax` would let the
+        # leave-one-out search pick any k up to `k`.
         fit <- kknn::train.kknn(
           y ~ ., data = df,
-          kmax = spec$k,
+          ks = spec$k,
           distance = spec$distance,
-          kernel = "optimal"
+          kernel = spec$kernel
         )
         list(state = fit)
       },
