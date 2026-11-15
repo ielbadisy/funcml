@@ -21,6 +21,14 @@
 #' meta-features are stored at `$state$meta_x`. `superlearner` works the same
 #' way with a `resampling` object instead of `folds`.
 #'
+#' `kknn` takes `spec = list(k, distance, kernel)`: `k` is the exact number
+#' of neighbours, `distance` the Minkowski power and `kernel` any kernel
+#' accepted by [kknn::kknn()] (default `"optimal"`; for example
+#' `"rectangular"` gives an unweighted k-nearest-neighbour vote or mean).
+#' `e1071_svm` takes `spec = list(cost, gamma, kernel, epsilon)`; `epsilon`
+#' (default 0.1) is the width of the insensitive tube in support vector
+#' regression and is ignored for classification.
+#'
 #' @param formula Model formula.
 #' @param data Data frame.
 #' @param model Learner id (see `learners()`).
