@@ -1,3 +1,11 @@
+# funcml 0.9.11
+
+* New `splits()` draws the train/test row indices of any resampling scheme
+  (`cv()`, `holdout()`, `groupcv()`, `timecv()`) outside `evaluate()`. For a
+  holdout split the indices are returned directly as `$train` and `$test`.
+  The result is frozen: passing it back to `evaluate()`, `compare()` or
+  `tune()` on the same data reuses the same folds.
+
 # funcml 0.9.10
 
 * `brier()` and `logloss()` given a plain probability vector for a binary

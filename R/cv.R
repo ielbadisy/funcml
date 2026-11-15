@@ -287,3 +287,60 @@ generate_folds <- function(n, y = NULL, resampling = cv(), data = NULL) {
   resampling$n <- n
   resampling
 }
+
+#' Draw the train/test row indices of a resampling scheme.
+#'
+#' `evaluate()` and `compare()` draw their folds internally. `splits()` draws
+#' them up front so the row indices can be used outside funcml (for example to
+#' fit a model on the training rows of a `holdout()` split by hand). The
+#' result is a frozen resampling object: passing it back to `evaluate()`,
+#' `compare()` or `tune()` on the same data reuses exactly these folds.
+#'
+#' @param resampling A resampling object from [cv()], [holdout()], [groupcv()]
+#'   or [timecv()].
+#' @param data Data frame the folds refer to.
+#' @param formula Optional model formula. When given (or when `outcome` is),
+#'   classification outcomes are stratified as in `evaluate()`, so the folds
+#'   are identical to those `evaluate()` draws with the same seed.
+#' @param outcome Optional outcome column name, an alternative to `formula`
+#'   for stratification.
+#' @return A `funcml_cv` object whose `folds` element is a list of splits,
+#'   each with `train` and `test` row indices, `repeat_id` and `fold`. For a
+#'   holdout split the indices are also returned directly as `train` and
+#'   `test`.
+#' @examples
+#' s <- splits(holdout(prop = 0.75, seed = 1), mtcars)
+#' length(s$train)
+#' fit_train <- fit(mpg ~ wt, mtcars[s$train, ], model = "glm")
+#' s5 <- splits(cv(5, seed = 1), mtcars)
+#' lengths(lapply(s5$folds, `[[`, "test"))
+#' @export
+splits <- function(resampling, data, formula = NULL, outcome = NULL) {
+  if (!inherits(resampling, "funcml_cv")) {
+    stop("`resampling` must be created by cv(), holdout(), groupcv() or timecv().", call. = FALSE)
+  }
+  if (!is.data.frame(data)) {
+    stop("`data` must be a data frame.", call. = FALSE)
+  }
+  y <- NULL
+  if (!is.null(formula)) {
+    y <- stats::model.response(stats::model.frame(formula, data, na.action = stats::na.pass))
+  } else if (!is.null(outcome)) {
+    if (!is.character(outcome) || length(outcome) != 1L || !outcome %in% names(data)) {
+      stop("`outcome` must be the name of a column of `data`.", call. = FALSE)
+    }
+    y <- data[[outcome]]
+  }
+  if (!is.null(y) && infer_task(y) == "classification") {
+    y <- factor(y)
+  }
+  resampling$folds <- NULL
+  resampling$fixed <- NULL
+  out <- generate_folds(nrow(data), y, resampling, data = data)
+  out$fixed <- TRUE
+  if (identical(out$method, "holdout")) {
+    out$train <- out$folds[[1L]]$train
+    out$test <- out$folds[[1L]]$test
+  }
+  out
+}
