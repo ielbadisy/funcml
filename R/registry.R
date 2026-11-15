@@ -1153,8 +1153,14 @@ build_registry <- function() {
           eta = spec$eta,
           subsample = spec$subsample,
           colsample_bytree = spec$colsample_bytree,
-          objective = if (task == "regression") "reg:squarederror" else if (length(levels(y)) > 2) "multi:softprob" else "binary:logistic"
+          objective = if (task == "regression") spec$objective %||% "reg:squarederror" else if (length(levels(y)) > 2) "multi:softprob" else "binary:logistic"
         )
+        if (task == "regression" && !is.null(spec$tweedie_variance_power)) {
+          params$tweedie_variance_power <- spec$tweedie_variance_power
+        }
+        if (task == "regression" && params$objective %in% c("count:poisson", "reg:gamma", "reg:tweedie") && any(y < 0)) {
+          stop(sprintf("xgboost objective '%s' needs a non-negative outcome.", params$objective), call. = FALSE)
+        }
         if (task == "classification" && length(levels(y)) > 2) {
           params$num_class <- length(levels(y))
         }

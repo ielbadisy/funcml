@@ -29,6 +29,13 @@
 #' (default 0.1) is the width of the insensitive tube in support vector
 #' regression and is ignored for classification.
 #'
+#' For regression, `xgboost` accepts `spec$objective`, any xgboost regression
+#' objective (default `"reg:squarederror"`), for example `"count:poisson"`
+#' for counts, `"reg:gamma"` or `"reg:tweedie"` (with
+#' `spec$tweedie_variance_power`, default 1.5 in xgboost). Predictions are
+#' on the response (mean) scale. Classification objectives are set
+#' automatically.
+#'
 #' @param formula Model formula.
 #' @param data Data frame.
 #' @param model Learner id (see `learners()`).
