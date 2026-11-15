@@ -69,6 +69,13 @@ accepted by \code{\link[kknn:kknn]{kknn::kknn()}} (default \code{"optimal"}; for
 \code{e1071_svm} takes \code{spec = list(cost, gamma, kernel, epsilon)}; \code{epsilon}
 (default 0.1) is the width of the insensitive tube in support vector
 regression and is ignored for classification.
+
+For regression, \code{xgboost} accepts \code{spec$objective}, any xgboost regression
+objective (default \code{"reg:squarederror"}), for example \code{"count:poisson"}
+for counts, \code{"reg:gamma"} or \code{"reg:tweedie"} (with
+\code{spec$tweedie_variance_power}, default 1.5 in xgboost). Predictions are
+on the response (mean) scale. Classification objectives are set
+automatically.
 }
 \examples{
 fit_obj <- fit(mpg ~ wt + hp, data = mtcars, model = "glm")

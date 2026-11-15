@@ -1,5 +1,9 @@
 # funcml 0.9.11
 
+* The `xgboost` learner accepts a regression `objective` in `spec`
+  (default `"reg:squarederror"`), so count and skewed outcomes can be fitted
+  with `"count:poisson"`, `"reg:gamma"` or `"reg:tweedie"` (plus
+  `tweedie_variance_power`). Predictions are on the mean scale.
 * New `bootvalidate()` for bootstrap internal validation of any learner.
   It returns the apparent performance, the Harrell optimism-corrected
   estimate (as `rms::validate()`), the leave-one-out bootstrap (OOB)
