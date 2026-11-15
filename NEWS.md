@@ -1,5 +1,12 @@
 # funcml 0.9.11
 
+* New `bootvalidate()` for bootstrap internal validation of any learner.
+  It returns the apparent performance, the Harrell optimism-corrected
+  estimate (as `rms::validate()`), the leave-one-out bootstrap (OOB)
+  estimate, and the Efron `.632` and Efron-Tibshirani `.632+` estimates
+  for each metric, with per-replicate values and the bootstrap indices.
+  With the same seed the optimism-corrected values match `rms::validate()`
+  for `lrm` and `ols` fits.
 * `kknn` treated `k` as the largest k of a leave-one-out search, so the
   fitted model could use fewer neighbours than asked. `k` is now the exact
   number of neighbours. The kernel, fixed at `"optimal"` before, is now the
