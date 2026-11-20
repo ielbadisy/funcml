@@ -375,7 +375,10 @@ listtunablelearners <- function(...) {
 #' @param ... Additional arguments passed to the underlying method.
 #' @return `print()` and `summary()` return the input object invisibly.
 #'   `predict()` returns predictions in the requested format. `coef()`
-#'   returns a named numeric coefficient vector when available.
+#'   returns a named numeric coefficient vector for `glm`/`lm` learners and,
+#'   for `glmnet`, the coefficients at the selected lambda
+#'   (`object$state$lambda_sel`), a matrix with one column per class for a
+#'   multinomial fit.
 #'
 #' @name fit-methods
 #' @aliases print.funcml_fit summary.funcml_fit predict.funcml_fit coef.funcml_fit
@@ -433,7 +436,17 @@ enginemodel <- function(fit) {
 #' @rdname fit-methods
 #' @export
 coef.funcml_fit <- function(object, ...) {
-  if (is.null(object$state$state)) stop("Coefficients not available for this model.", call. = FALSE)
-  if (!inherits(object$state$state, c("glm", "lm"))) stop("Coefficients not available for this model.", call. = FALSE)
-  stats::coef(object$state$state)
+  st <- object$state
+  if (inherits(st$state, "glmnet")) return(.glmnet_coef(st))
+  if (!inherits(st$state, c("glm", "lm"))) stop("Coefficients not available for this model.", call. = FALSE)
+  stats::coef(st$state)
+}
+
+# glmnet coefficients at the selected lambda as a named vector (a matrix with one column per class for
+# multinomial fits), without the constant column padded to single-predictor designs.
+.glmnet_coef <- function(st) {
+  cf <- stats::coef(st$state, s = st$lambda_sel)
+  dense <- function(x) stats::setNames(as.numeric(x), rownames(x))[rownames(x) != ".pad"]
+  if (!is.list(cf)) return(dense(cf))
+  do.call(cbind, lapply(cf, dense))
 }

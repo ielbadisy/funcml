@@ -44,7 +44,10 @@
 \value{
 \code{print()} and \code{summary()} return the input object invisibly.
 \code{predict()} returns predictions in the requested format. \code{coef()}
-returns a named numeric coefficient vector when available.
+returns a named numeric coefficient vector for \code{glm}/\code{lm} learners and,
+for \code{glmnet}, the coefficients at the selected lambda
+(\code{object$state$lambda_sel}), a matrix with one column per class for a
+multinomial fit.
 }
 \description{
 These methods provide the standard \code{print()}, \code{summary()}, \code{predict()}, and

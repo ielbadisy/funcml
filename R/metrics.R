@@ -94,7 +94,11 @@ listmetrics <- function(direction = NULL, columns = NULL) {
 #'   For multiclass `auc()`, aggregation mode: `"macro"` or `"weighted"`
 #'   (class-frequency weighted one-vs-rest AUC). Ignored for binary AUC.
 #' @param bins Number of bins for calibration summaries.
-#' @param strategy Binning strategy: `"quantile"` or `"uniform"`.
+#' @param strategy Binning strategy: `"quantile"` (bins of about equal size)
+#'   or `"uniform"` (equal-width bins on 0-1). When tied scores make
+#'   quantile break points coincide, the quantile bins are cut only between
+#'   distinct scores, so `min(bins, number of distinct scores)` bins are
+#'   returned, as close to equal size as the ties allow.
 #' @param positive Optional positive/event class for binary classification.
 #'   Defaults to the second factor level.
 #' @return Numeric scalar metric.
@@ -286,6 +290,8 @@ balancedaccuracy <- function(truth, pred_class) {
   if (m == 0L || n == 0L) {
     return(NA_real_)
   }
+  # Counts as doubles: m * n overflows integer arithmetic once n exceeds ~46,000 pairs per class.
+  m <- as.numeric(m); n <- as.numeric(n)
   (sum(pos_ranks) - n * (n + 1) / 2) / (m * n)
 }
 
@@ -409,6 +415,24 @@ aucweighted <- function(truth, prob) {
   )
 }
 
+# Quantile bins for tied scores: cut only between distinct values, choosing each cut so the next bin holds
+# about 1/k of the remaining rows (k bins left), and keeping a distinct value for every bin still to come.
+# This gives min(bins, number of distinct scores) bins, as close to equal size as the ties allow.
+.tied_quantile_breaks <- function(prob, bins) {
+  tb <- table(prob[!is.na(prob)])
+  u <- as.numeric(names(tb)); cnt <- as.numeric(tb); nu <- length(u)
+  k <- min(bins, nu)
+  cuts <- integer(); start <- 1L
+  for (b in seq_len(k - 1L)) {
+    left <- k - b
+    last <- nu - left
+    cs <- cumsum(cnt[start:last])
+    end <- start - 1L + which.min(abs(cs - sum(cnt[start:nu]) / (left + 1)))
+    cuts <- c(cuts, end); start <- end + 1L
+  }
+  c(u[1], (u[cuts] + u[cuts + 1L]) / 2, u[nu])
+}
+
 .calibration_breaks <- function(prob, bins = 10, strategy = c("quantile", "uniform")) {
   strategy <- match.arg(strategy)
   if (!is.numeric(bins) || length(bins) != 1L || bins < 1L) {
@@ -417,6 +441,7 @@ aucweighted <- function(truth, prob) {
   bins <- as.integer(bins)
   if (strategy == "quantile") {
     breaks <- unique(stats::quantile(prob, probs = seq(0, 1, length.out = bins + 1L), na.rm = TRUE, names = FALSE))
+    if (length(breaks) < bins + 1L) breaks <- .tied_quantile_breaks(prob, bins)
   } else {
     breaks <- seq(0, 1, length.out = bins + 1L)
   }
@@ -462,6 +487,48 @@ calibrationcurve <- function(truth, prob, bins = 10, strategy = c("quantile", "u
     )
   })
   .rbind_dt(out)
+}
+
+#' Calibration intercept and slope.
+#'
+#' Logistic recalibration of predicted probabilities for a binary outcome.
+#' The calibration intercept (calibration-in-the-large) is `a` in
+#' `logit P(y = 1) = a + logit(p)`, a logistic model with `logit(p)` as an
+#' offset; it is 0 when the mean prediction matches the event rate and is
+#' negative when risks are overestimated. The calibration slope is `b` in
+#' `logit P(y = 1) = a' + b * logit(p)`; it is 1 for a well calibrated model
+#' and below 1 when predictions are too extreme (overfitting). Both are
+#' fitted by [stats::glm()] with Wald confidence intervals. The slope matches
+#' `rms::val.prob()`'s `"Slope"`; `rms::val.prob()`'s `"Intercept"` is the
+#' recalibration intercept `a'`, returned here as `recalintercept`.
+#'
+#' @param truth Binary outcome (factor or vector with two values).
+#' @param prob Predicted probability of the positive class.
+#' @param positive Positive class; defaults to the second level.
+#' @param level Confidence level.
+#' @return A data frame with one row per term (`intercept`, `slope`,
+#'   `recalintercept`) and columns `term`, `estimate`, `se`, `lower`,
+#'   `upper`.
+#' @references
+#' Van Calster B, McLernon DJ, van Smeden M, Wynants L, Steyerberg EW (2019).
+#' Calibration: the Achilles heel of predictive analytics. BMC Medicine 17, 230.
+#' @examples
+#' set.seed(1)
+#' p <- runif(300)
+#' y <- rbinom(300, 1, plogis(0.8 * qlogis(p) - 0.3))
+#' calibrationfit(y, p)
+#' @export
+calibrationfit <- function(truth, prob, positive = NULL, level = 0.95) {
+  d <- .binary_truth_prob(truth, prob, positive = positive)
+  y <- d$truth
+  lp <- stats::qlogis(pmin(pmax(d$prob, 1e-15), 1 - 1e-15))
+  ci <- function(m, j, term) {
+    est <- stats::coef(m)[j]; se <- sqrt(diag(stats::vcov(m)))[j]; z <- stats::qnorm(1 - (1 - level) / 2)
+    data.frame(term = term, estimate = est, se = se, lower = est - z * se, upper = est + z * se, row.names = NULL)
+  }
+  m0 <- stats::glm(y ~ 1, family = stats::binomial(), offset = lp)
+  m1 <- stats::glm(y ~ lp, family = stats::binomial())
+  rbind(ci(m0, 1, "intercept"), ci(m1, 2, "slope"), ci(m1, 1, "recalintercept"))
 }
 
 #' @rdname metrics

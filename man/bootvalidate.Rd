@@ -68,7 +68,8 @@ over replicates.
 capped at \code{gamma}. The no-information value \code{gamma} is the metric
 computed on every pairing of an observed outcome with an apparent
 prediction (a random sample of 250,000 pairings when \code{n^2} exceeds
-that). Higher-is-better metrics (\code{auc}, \code{accuracy}, \code{rsq}, ...) are
+that). For \code{auc} and \code{auc_weighted}, \code{gamma} is exactly 0.5, the AUC
+over all pairings. Higher-is-better metrics (\code{auc}, \code{accuracy}, \code{rsq}, ...) are
 handled on the corresponding loss scale, so "worse" means lower.
 }
 
