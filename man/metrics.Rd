@@ -112,7 +112,11 @@ per class (multiclass).}
 
 \item{bins}{Number of bins for calibration summaries.}
 
-\item{strategy}{Binning strategy: \code{"quantile"} or \code{"uniform"}.}
+\item{strategy}{Binning strategy: \code{"quantile"} (bins of about equal size)
+or \code{"uniform"} (equal-width bins on 0-1). When tied scores make
+quantile break points coincide, the quantile bins are cut only between
+distinct scores, so \verb{min(bins, number of distinct scores)} bins are
+returned, as close to equal size as the ties allow.}
 }
 \value{
 Numeric scalar metric.

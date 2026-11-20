@@ -21,7 +21,8 @@
 #'   capped at `gamma`. The no-information value `gamma` is the metric
 #'   computed on every pairing of an observed outcome with an apparent
 #'   prediction (a random sample of 250,000 pairings when `n^2` exceeds
-#'   that). Higher-is-better metrics (`auc`, `accuracy`, `rsq`, ...) are
+#'   that). For `auc` and `auc_weighted`, `gamma` is exactly 0.5, the AUC
+#'   over all pairings. Higher-is-better metrics (`auc`, `accuracy`, `rsq`, ...) are
 #'   handled on the corresponding loss scale, so "worse" means lower.
 #'
 #' The OOB metric is computed per replicate and averaged, which for
@@ -183,6 +184,9 @@ print.funcml_bootvalidate <- function(x, digits = 4L, ...) {
   }
   prob <- if (is.null(scored$prob)) NULL else scored$prob[j, , drop = FALSE]
   vapply(metrics, function(m) {
+    # Over all n^2 pairings the scores are independent of the outcome, so the AUC is exactly 0.5;
+    # the sampled pairs would only add noise.
+    if (m %in% c("auc", "auc_weighted")) return(0.5)
     suppressWarnings(.loss(truth[i], scored$pred[j], task, m, prob_matrix = prob))
   }, numeric(1), USE.NAMES = FALSE)
 }

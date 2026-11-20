@@ -1,3 +1,25 @@
+# funcml 0.9.12
+
+* `auc()` overflowed integer arithmetic in the pair count (positives times
+  negatives) and returned `NA` for large samples. This broke
+  `bootvalidate()` with `metrics = "auc"` (and the default classification
+  metrics) for n of about 400 and more, where the no-information value was
+  computed on 250,000 sampled pairs. Fixed; the no-information AUC in
+  `bootvalidate()` is now exactly 0.5 (bug fix: `gamma` and `est632plus`
+  for `auc` change slightly at large n).
+* `coef()` on a `glmnet` fit returns the coefficients at the selected
+  lambda (`$state$lambda_sel`), as `coef(enginemodel(m), s = m$state$lambda_sel)`,
+  a matrix with one column per class for multinomial fits.
+* `calibrationcurve()`, `ece()` and `mce()` with `strategy = "quantile"`
+  collapsed to few bins when tied scores made quantile break points
+  coincide. The bins are now cut between distinct scores, giving
+  `min(bins, number of distinct scores)` bins of near equal size (bug fix:
+  results change only for tied scores).
+* New `calibrationfit()` returns the calibration intercept
+  (calibration-in-the-large), the calibration slope and the recalibration
+  intercept with Wald confidence intervals, matching `glm()` and
+  `rms::val.prob()`.
+
 # funcml 0.9.11
 
 * The `xgboost` learner accepts a regression `objective` in `spec`
