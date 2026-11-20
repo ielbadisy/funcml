@@ -12,7 +12,8 @@ listmetrics(direction = NULL, columns = NULL)
 \item{columns}{Optional character vector of columns to return.}
 }
 \value{
-Data frame of metric metadata.
+Data frame of metric metadata. \code{direction} is \code{"maximize"}, \code{"minimize"} or
+\code{"target"} (calibration metrics with an ideal value: \code{calslope} 1, \code{citl} 0).
 }
 \description{
 List available metrics used in scoring and resampling summaries.

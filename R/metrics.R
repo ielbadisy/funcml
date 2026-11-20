@@ -2,7 +2,8 @@
 #'
 #' @param direction Optional character filter: `"maximize"` or `"minimize"`.
 #' @param columns Optional character vector of columns to return.
-#' @return Data frame of metric metadata.
+#' @return Data frame of metric metadata. `direction` is `"maximize"`, `"minimize"` or
+#'   `"target"` (calibration metrics with an ideal value: `calslope` 1, `citl` 0).
 #' @examples
 #' listmetrics()
 #' listmetrics(direction = "minimize")
@@ -30,13 +31,13 @@ listmetrics <- function(direction = NULL, columns = NULL) {
       "rmse", "mae", "mse", "medae", "mape", "rsq",
       "accuracy", "precision", "recall", "specificity", "f1",
       "balanced_accuracy", "logloss", "brier", "auc", "auc_weighted",
-      "ece", "mce"
+      "ece", "mce", "calslope", "citl"
     ),
     direction = c(
       "minimize", "minimize", "minimize", "minimize", "minimize", "maximize",
       "maximize", "maximize", "maximize", "maximize", "maximize",
       "maximize", "minimize", "minimize", "maximize", "maximize",
-      "minimize", "minimize"
+      "minimize", "minimize", "target", "target"
     ),
     summary = c(
       "Root mean squared error for regression predictions.",
@@ -56,13 +57,15 @@ listmetrics <- function(direction = NULL, columns = NULL) {
       "Area under the ROC curve.",
       "Weighted multiclass area under the ROC curve.",
       "Expected calibration error for binary classification.",
-      "Maximum calibration error for binary classification."
+      "Maximum calibration error for binary classification.",
+      "Calibration slope (logistic recalibration) for binary classification.",
+      "Calibration-in-the-large (intercept with the logit as offset) for binary classification."
     ),
     range = c(
       "[0, Inf)", "[0, Inf)", "[0, Inf)", "[0, Inf)", "[0, Inf)", "(-Inf, 1]",
       "[0, 1]", "[0, 1]", "[0, 1]", "[0, 1]", "[0, 1]",
       "[0, 1]", "[0, Inf)", "[0, 1] binary, [0, 2] multiclass", "[0, 1]", "[0, 1]",
-      "[0, 1]", "[0, 1]"
+      "[0, 1]", "[0, 1]", "(-Inf, Inf)", "(-Inf, Inf)"
     ),
     stringsAsFactors = FALSE
   )
@@ -101,6 +104,8 @@ listmetrics <- function(direction = NULL, columns = NULL) {
 #'   returned, as close to equal size as the ties allow.
 #' @param positive Optional positive/event class for binary classification.
 #'   Defaults to the second factor level.
+#' @details `calslope()` and `citl()` are the `slope` and `intercept` rows of
+#'   [calibrationfit()]: ideal values 1 and 0.
 #' @return Numeric scalar metric.
 #' @name metrics
 #' @examples
@@ -144,6 +149,8 @@ listmetrics <- function(direction = NULL, columns = NULL) {
 #' calibrationcurve(truth_cls, prob_cls[, "yes"])
 #' ece(truth_cls, prob_cls[, "yes"])
 #' mce(truth_cls, prob_cls[, "yes"])
+#' calslope(truth_cls, prob_cls[, "yes"])
+#' citl(truth_cls, prob_cls[, "yes"])
 #' @export
 rmse <- function(truth, pred) {
   sqrt(mean((truth - pred)^2))
@@ -553,13 +560,30 @@ mce <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), pos
   max(curve$abs_gap[nonempty])
 }
 
+#' @rdname metrics
+#' @export
+calslope <- function(truth, prob, positive = NULL) {
+  calibrationfit(truth, prob, positive = positive)$estimate[2]
+}
+
+#' @rdname metrics
+#' @export
+citl <- function(truth, prob, positive = NULL) {
+  calibrationfit(truth, prob, positive = positive)$estimate[1]
+}
+
+# Metrics scored from predicted probabilities.
+.prob_metrics <- c("logloss", "brier", "auc", "auc_weighted", "ece", "mce", "calslope", "citl")
+# Calibration metrics: ideal value 1 (slope) or 0 (CITL), neither "higher" nor "lower" is better.
+.target_metrics <- c(calslope = 1, citl = 0)
+
 .loss <- function(truth, pred, task, metric, prob_matrix = NULL) {
   metric <- match.arg(metric, c(
     "rmse", "mae", "mse", "medae", "mape", "rsq",
     "logloss", "brier", "accuracy", "precision", "recall",
-    "specificity", "f1", "balanced_accuracy", "auc", "auc_weighted", "ece", "mce"
+    "specificity", "f1", "balanced_accuracy", "auc", "auc_weighted", "ece", "mce", "calslope", "citl"
   ))
-  if (task == "regression" && metric %in% c("logloss", "brier", "accuracy", "precision", "recall", "specificity", "f1", "balanced_accuracy", "auc", "auc_weighted", "ece", "mce")) {
+  if (task == "regression" && metric %in% c("accuracy", "precision", "recall", "specificity", "f1", "balanced_accuracy", .prob_metrics)) {
     stop(sprintf("Metric '%s' is classification-only.", metric), call. = FALSE)
   }
   if (task == "classification" && metric %in% c("rmse", "mae", "mse", "medae", "mape", "rsq")) {
@@ -578,7 +602,7 @@ mce <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), pos
 
   truth <- factor(truth)
   pred_class <- if (is.null(pred)) NULL else factor(pred, levels = levels(truth))
-  if (metric %in% c("logloss", "brier", "auc", "auc_weighted", "ece", "mce")) {
+  if (metric %in% .prob_metrics) {
     if (is.null(prob_matrix)) stop(sprintf("Metric '%s' requires probabilities.", metric), call. = FALSE)
     prob_matrix <- .normalize_prob_matrix(prob_matrix, levels(truth))
   }
@@ -595,6 +619,8 @@ mce <- function(truth, prob, bins = 10, strategy = c("quantile", "uniform"), pos
     brier = brier(truth, prob_matrix),
     ece = ece(truth, prob_matrix),
     mce = mce(truth, prob_matrix),
+    calslope = calslope(truth, prob_matrix),
+    citl = citl(truth, prob_matrix),
     auc = auc(truth, prob_matrix),
     auc_weighted = aucweighted(truth, prob_matrix)
   )

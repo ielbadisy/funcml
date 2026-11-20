@@ -54,6 +54,7 @@ tune <- function(data, formula, model, grid = NULL, resampling = cv(5),
     set.seed(seed)
   }
   dirs <- metric_direction(metric)
+  if (dirs == "target") stop(sprintf("Metric '%s' is a calibration measure, not a tuning criterion.", metric), call. = FALSE)
   search_grid <- .select_tuning_configs(grid, search = search, n_evals = n_evals)
   nested <- NULL
   if (!is.null(outer_resampling)) {
@@ -131,6 +132,7 @@ tune <- function(data, formula, model, grid = NULL, resampling = cv(5),
 }
 
 metric_direction <- function(metric) {
+  if (metric %in% names(.target_metrics)) return("target")
   if (metric %in% c("rmse", "mae", "mse", "medae", "mape", "logloss", "brier", "ece", "mce")) "min" else "max"
 }
 
@@ -271,7 +273,7 @@ plot.funcml_tune <- function(x, ...) {
 
   type_use <- type %||% if (fit_obj$task == "regression") {
     "response"
-  } else if (metric %in% c("logloss", "brier", "auc", "auc_weighted", "ece", "mce")) {
+  } else if (metric %in% .prob_metrics) {
     "prob"
   } else {
     "class"

@@ -25,6 +25,12 @@
 #'   over all pairings. Higher-is-better metrics (`auc`, `accuracy`, `rsq`, ...) are
 #'   handled on the corresponding loss scale, so "worse" means lower.
 #'
+#' Calibration metrics `calslope` and `citl` (binary outcomes) have an
+#' ideal value (1 and 0) rather than a direction: their optimism and
+#' corrected values follow `rms::validate()`'s `Slope` (the apparent slope
+#' of a logistic regression is 1, so corrected = 1 - optimism), while
+#' `gamma` and `est632plus` are `NA`.
+#'
 #' The OOB metric is computed per replicate and averaged, which for
 #' non-additive metrics (`auc`, `ece`) is the usual approximation of the
 #' per-observation leave-one-out bootstrap.
@@ -37,6 +43,8 @@
 #' @param metrics Character vector of metric names. Defaults to
 #'   `c("rmse", "mse", "rsq")` for regression and
 #'   `c("auc", "brier", "logloss", "accuracy")` for classification.
+#'   Binary outcomes also accept `"calslope"` (calibration slope) and
+#'   `"citl"` (calibration-in-the-large).
 #' @param seed Optional seed for the bootstrap draws.
 #' @param ncores Optional number of CPU cores for the replicates.
 #' @param ... Passed to [fit()].
@@ -153,7 +161,7 @@ print.funcml_bootvalidate <- function(x, digits = 4L, ...) {
 # Score a fitted model on `newdata`; keeps the predictions for the
 # no-information rate.
 .bv_score <- function(fit_obj, newdata, truth, task, metrics) {
-  prob_metrics <- c("logloss", "brier", "auc", "auc_weighted", "ece", "mce")
+  prob_metrics <- .prob_metrics
   if (task == "regression") {
     pred <- as.numeric(predict(fit_obj, newdata = newdata, type = "response"))
     vals <- vapply(metrics, function(m) .loss(truth, pred, task, m), numeric(1))
@@ -187,6 +195,7 @@ print.funcml_bootvalidate <- function(x, digits = 4L, ...) {
     # Over all n^2 pairings the scores are independent of the outcome, so the AUC is exactly 0.5;
     # the sampled pairs would only add noise.
     if (m %in% c("auc", "auc_weighted")) return(0.5)
+    if (m %in% names(.target_metrics)) return(NA_real_)
     suppressWarnings(.loss(truth[i], scored$pred[j], task, m, prob_matrix = prob))
   }, numeric(1), USE.NAMES = FALSE)
 }
@@ -194,6 +203,10 @@ print.funcml_bootvalidate <- function(x, digits = 4L, ...) {
 .bv_estimates <- function(app, boot, orig, oob, gamma, direction) {
   optimism <- mean(boot - orig)
   oob_mean <- mean(oob)
+  if (identical(direction, "target")) {
+    return(c(apparent = app, optimism = optimism, corrected = app - optimism, oob = oob_mean,
+             est632 = 0.368 * app + 0.632 * oob_mean, est632plus = NA_real_, gamma = NA_real_))
+  }
   # .632+ on the loss scale (larger = worse).
   s <- if (identical(direction, "min")) 1 else -1
   a <- s * app

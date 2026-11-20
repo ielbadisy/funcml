@@ -290,7 +290,7 @@ plot.funcml_eval <- function(x, ...) {
   train_data <- data[fold$train, , drop = FALSE]
   test_data <- data[fold$test, , drop = FALSE]
   fit_fold <- fit(formula, train_data, model, spec = spec, ...)
-  prob_metrics <- c("logloss", "brier", "auc", "auc_weighted", "ece", "mce")
+  prob_metrics <- .prob_metrics
   type_use <- type %||% if (task == "regression") "response" else if (any(metrics %in% prob_metrics)) "prob" else "class"
   preds <- predict(fit_fold, newdata = test_data, type = type_use)
   truth <- y_all[fold$test]

@@ -352,6 +352,7 @@ compare <- function(data, formula, models, specs = NULL,
 
 .comparison_score <- function(x, metric) {
   direction <- metric_direction(metric[1])
+  if (direction == "target") return(abs(x - .target_metrics[[metric[1]]]))
   if (direction == "min") x else -x
 }
 
