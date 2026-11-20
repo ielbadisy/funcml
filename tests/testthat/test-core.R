@@ -198,7 +198,7 @@ test_that("listmetrics returns metric metadata", {
   expect_s3_class(metrics_tbl, "data.frame")
   expect_named(metrics_tbl, c("metric", "direction", "summary", "range"))
   expect_true(all(c("rmse", "mae", "accuracy", "auc", "ece") %in% metrics_tbl$metric))
-  expect_true(all(metrics_tbl$direction %in% c("maximize", "minimize")))
+  expect_true(all(metrics_tbl$direction %in% c("maximize", "minimize", "target")))
   expect_true(all(nzchar(metrics_tbl$summary)))
   expect_true(all(nzchar(metrics_tbl$range)))
 })

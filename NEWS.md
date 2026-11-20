@@ -1,3 +1,7 @@
+# funcml 0.9.13
+
+* New calibration metrics `calslope()` (calibration slope) and `citl()` (calibration-in-the-large), the `slope` and `intercept` rows of `calibrationfit()`. As metric names `"calslope"` and `"citl"` they work in `bootvalidate()` and `evaluate()` and are listed by `listmetrics()` (direction `"target"`: ideal values 1 and 0). In `bootvalidate()` the optimism-corrected slope equals `rms::validate()`'s corrected `Slope` when both are seeded identically; `gamma` and `est632plus` are `NA` for these metrics. `tune()` refuses them as tuning criteria; `compare()` ranks them by distance to the ideal value.
+
 # funcml 0.9.12
 
 * `auc()` overflowed integer arithmetic in the pair count (positives times

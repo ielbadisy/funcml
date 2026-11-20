@@ -21,6 +21,8 @@
 \alias{calibrationcurve}
 \alias{ece}
 \alias{mce}
+\alias{calslope}
+\alias{citl}
 \title{Regression and classification metrics.}
 \usage{
 rmse(truth, pred)
@@ -78,6 +80,10 @@ mce(
   strategy = c("quantile", "uniform"),
   positive = NULL
 )
+
+calslope(truth, prob, positive = NULL)
+
+citl(truth, prob, positive = NULL)
 }
 \arguments{
 \item{truth}{Observed outcomes.}
@@ -124,6 +130,10 @@ Numeric scalar metric.
 \description{
 Base R implementations used across evaluation and interpretation utilities.
 }
+\details{
+\code{calslope()} and \code{citl()} are the \code{slope} and \code{intercept} rows of
+\code{\link[=calibrationfit]{calibrationfit()}}: ideal values 1 and 0.
+}
 \examples{
 truth_reg <- c(3, 5, 2.5, 7)
 pred_reg <- c(2.8, 4.9, 2.7, 6.8)
@@ -165,4 +175,6 @@ aucweighted(truth_multi, prob_multi)
 calibrationcurve(truth_cls, prob_cls[, "yes"])
 ece(truth_cls, prob_cls[, "yes"])
 mce(truth_cls, prob_cls[, "yes"])
+calslope(truth_cls, prob_cls[, "yes"])
+citl(truth_cls, prob_cls[, "yes"])
 }

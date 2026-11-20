@@ -29,7 +29,9 @@ bootvalidate(
 
 \item{metrics}{Character vector of metric names. Defaults to
 \code{c("rmse", "mse", "rsq")} for regression and
-\code{c("auc", "brier", "logloss", "accuracy")} for classification.}
+\code{c("auc", "brier", "logloss", "accuracy")} for classification.
+Binary outcomes also accept \code{"calslope"} (calibration slope) and
+\code{"citl"} (calibration-in-the-large).}
 
 \item{seed}{Optional seed for the bootstrap draws.}
 
@@ -72,6 +74,12 @@ that). For \code{auc} and \code{auc_weighted}, \code{gamma} is exactly 0.5, the 
 over all pairings. Higher-is-better metrics (\code{auc}, \code{accuracy}, \code{rsq}, ...) are
 handled on the corresponding loss scale, so "worse" means lower.
 }
+
+Calibration metrics \code{calslope} and \code{citl} (binary outcomes) have an
+ideal value (1 and 0) rather than a direction: their optimism and
+corrected values follow \code{rms::validate()}'s \code{Slope} (the apparent slope
+of a logistic regression is 1, so corrected = 1 - optimism), while
+\code{gamma} and \code{est632plus} are \code{NA}.
 
 The OOB metric is computed per replicate and averaged, which for
 non-additive metrics (\code{auc}, \code{ece}) is the usual approximation of the
