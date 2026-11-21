@@ -18,8 +18,9 @@ factor level.}
 \item{thresholds}{Numeric vector of risk thresholds in (0, 1).}
 }
 \value{
-A data frame with \code{threshold}, \code{model}, \code{treat_all}, and
-\code{treat_none} net benefit columns.
+A data frame of class \code{funcml_dcacurve} with \code{threshold}, \code{model},
+\code{treat_all}, and \code{treat_none} net benefit columns. \code{plot()} draws the
+decision curve (see \code{\link[=plot.funcml_dcacurve]{plot.funcml_dcacurve()}}).
 }
 \description{
 Computes net benefit across a range of risk thresholds for a binary
@@ -30,5 +31,6 @@ classifier's predicted probabilities, alongside the "treat all" and
 set.seed(1)
 truth <- factor(rbinom(200, 1, 0.3))
 prob <- pmin(pmax(rnorm(200, mean = ifelse(truth == 1, 0.6, 0.3), sd = 0.15), 0), 1)
-dca(truth, prob)
+dc <- dca(truth, prob)
+plot(dc)
 }

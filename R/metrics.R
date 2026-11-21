@@ -493,7 +493,43 @@ calibrationcurve <- function(truth, prob, bins = 10, strategy = c("quantile", "u
       stringsAsFactors = FALSE
     )
   })
-  .rbind_dt(out)
+  out <- .rbind_dt(out)
+  class(out) <- c("funcml_calcurve", "data.frame")
+  out
+}
+
+#' Plot a binned calibration curve.
+#'
+#' Draws the observed event rate against the mean predicted probability in
+#' each non-empty bin of a [calibrationcurve()] result (point size
+#' proportional to the bin count), with the ideal diagonal.
+#'
+#' @param x A `funcml_calcurve` data frame returned by [calibrationcurve()].
+#' @param title Optional plot title.
+#' @param ... Unused.
+#' @return A `ggplot2` object.
+#' @examples
+#' set.seed(1)
+#' p <- runif(300)
+#' y <- rbinom(300, 1, plogis(0.8 * qlogis(p)))
+#' plot(calibrationcurve(y, p))
+#' @export
+plot.funcml_calcurve <- function(x, title = NULL, ...) {
+  .calibration_plot(x, "Mean predicted probability", title = title)
+}
+
+.calibration_plot <- function(curve, xlab, title = NULL, subtitle = NULL) {
+  curve <- curve[curve$n > 0, , drop = FALSE]
+  ggplot2::ggplot(curve, ggplot2::aes(x = mean_pred, y = observed)) +
+    ggplot2::geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "grey55") +
+    ggplot2::geom_segment(ggplot2::aes(x = mean_pred, xend = mean_pred, y = 0, yend = observed),
+                          linewidth = 0.35, colour = "grey75") +
+    ggplot2::geom_line(colour = "black", linewidth = 0.7) +
+    ggplot2::geom_point(ggplot2::aes(size = n), colour = "black") +
+    ggplot2::scale_size_continuous(range = c(1.8, 5), guide = "none") +
+    ggplot2::coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+    ggplot2::labs(x = xlab, y = "Observed event rate", title = title, subtitle = subtitle) +
+    .publication_theme()
 }
 
 #' Calibration intercept and slope.
