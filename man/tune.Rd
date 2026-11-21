@@ -17,6 +17,7 @@ tune(
   outer_resampling = NULL,
   seed = NULL,
   ncores = NULL,
+  se_method = c("naive", "corrected"),
   ...
 )
 }
@@ -49,6 +50,11 @@ estimates for the tuned model-selection procedure.}
 
 \item{ncores}{Optional number of CPU cores used for tuning tasks. \code{NULL} or
 \code{1} runs sequentially.}
+
+\item{se_method}{Standard error of each configuration's cross-validated
+mean (and of the nested estimate): \code{"naive"} (default) or \code{"corrected"}
+(Nadeau and Bengio). See \code{\link[=evaluate]{evaluate()}}. It does not change the selection,
+which uses the mean.}
 
 \item{...}{Passed to \code{fit()}.}
 }

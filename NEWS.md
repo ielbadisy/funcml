@@ -32,6 +32,12 @@
 * `fit(seed = )` (and the seeds of `evaluate()`, `tune()`, `compare()`) did not reach the `densemlp`,
   `mlp` and `fastgbm` engines, which always used seed 1 (bug fix). Their seed is now drawn from R's
   random stream unless `spec$seed` is given, so it follows `seed` and `set.seed()`.
+* `compare()` gains `reference` (default: the first model) and returns `differences`: fold-wise paired
+  differences of each learner against the reference on the shared folds, with standard error, t interval
+  and p-value. They are printed under the results table.
+* `compare()` and `tune()` gain `se_method` (default `"naive"`, unchanged). `"corrected"` applies the
+  Nadeau and Bengio (2003) variance to the learner and configuration summaries, the nested estimates and
+  the paired differences (corrected resampled t test).
 
 # funcml 0.9.16
 
