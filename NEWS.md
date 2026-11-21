@@ -38,6 +38,8 @@
 * `compare()` and `tune()` gain `se_method` (default `"naive"`, unchanged). `"corrected"` applies the
   Nadeau and Bengio (2003) variance to the learner and configuration summaries, the nested estimates and
   the paired differences (corrected resampled t test).
+* `gbm` now fits multiclass outcomes (multinomial deviance). Its multiclass prediction branch existed
+  but was unreachable because the adapter declared `multiclass = FALSE`.
 
 # funcml 0.9.16
 

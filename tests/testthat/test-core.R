@@ -308,14 +308,6 @@ test_that("bart rejects multiclass classification", {
   )
 })
 
-test_that("gbm rejects multiclass classification", {
-  skip_if_not_installed("gbm")
-  expect_error(
-    fit(Species ~ ., data = iris, model = "gbm", spec = list(n.trees = 20, interaction.depth = 2)),
-    "does not support multiclass classification"
-  )
-})
-
 test_that("regression-only and classification-only learners reject unsupported tasks", {
   expect_error(
     fit(Species ~ ., data = iris, model = "pls"),
