@@ -24,7 +24,7 @@ test_that("ranger via funcml matches ranger on the native data frame", {
 })
 
 test_that("ranger same-fold CV AUC on heartdisease reaches the native-factor level", {
-  withr::local_options(ranger.num.threads = 1)
+  op <- options(ranger.num.threads = 1); on.exit(options(op))
   e <- evaluate(heart(), heart_disease ~ ., model = "ranger", resampling = cv(5, seed = 2026),
                 metrics = "auc", seed = 1)
   expect_gte(e$summary$mean[1], 0.84)
