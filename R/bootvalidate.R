@@ -193,7 +193,8 @@ plot.funcml_bootvalidate <- function(x, ..., what = c("optimism", "orig", "boot"
     ifelse(ms %in% names(.target_metrics), .target_metrics[ms], sm$apparent)
   lines <- data.frame(metric = rep(ms, 2), v = c(tapply(d$value, d$metric, mean)[ms], ref),
                       k = rep(c("mean", "ref"), each = length(ms)))
-  lab <- function(m) factor(m, levels = ms)
+  st <- levels(.metric_strip(ms))
+  lab <- function(m) factor(st[match(m, ms)], levels = st)
   d$metric <- lab(d$metric); lines$metric <- lab(lines$metric)
   xl <- switch(what, optimism = "Optimism (bootstrap-sample minus original-data performance)",
                orig = "Bootstrap model scored on the original data", boot = "Bootstrap model scored on its own sample")

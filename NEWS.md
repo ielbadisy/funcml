@@ -1,3 +1,12 @@
+# funcml 0.9.16
+
+* `plot(<funcml_bootvalidate>)` facet strips showed raw metric codes ("auc", "calslope"); they now carry
+  the same direction labels as `plot(<funcml_compare>)` and `plot(<funcml_eval>)`, e.g.
+  "auc (higher is better)" (bug fix).
+* `plot()` for `interpret(method = "ale")`, `"pdp"` and `"ice"` results gains `labels =`, a named vector
+  of per-feature axis titles (e.g. `c(age = "Age (years)")`). Each panel then shows its own title under
+  its axis; the default `NULL` keeps the strips and the shared "Feature value" title.
+
 # funcml 0.9.15
 
 Plot look and defaults changed (bug fixes); no numeric result changes except the ALE curve and the
