@@ -169,3 +169,15 @@ test_that("ATT bootstrap averages over the treated rows of each resample", {
   expect_lt(abs(mean(att$bootstrap$estimates) - att$estimate), 3 * att$std_error)
   expect_gt(abs(att$estimate - ate$estimate), 5 * att$std_error)
 })
+
+test_that("default treatment arms follow levels(), not row order", {
+  set.seed(10)
+  n <- 200; x <- rnorm(n); a <- rbinom(n, 1, 0.5); y <- 1 + 2 * a + x + rnorm(n)
+  d <- data.frame(y, a = factor(a, 0:1, c("ctl", "trt")), x)
+  d <- d[order(d$a, decreasing = TRUE), ]
+  e <- estimate(d, y ~ a + x, model = "glm", treatment = "a")
+  expect_equal(c(e$control_level, e$treatment_level), c("ctl", "trt"))
+  expect_gt(e$estimate, 0)
+  d$a <- as.character(d$a)
+  expect_equal(estimate(d, y ~ a + x, model = "glm", treatment = "a")$treatment_level, "trt")
+})

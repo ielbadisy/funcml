@@ -38,9 +38,10 @@ is treated as the treatment variable unless \code{treatment} is supplied.}
 \item{newdata}{Optional target population for \code{estimand = "CATE"} or
 \code{"IATE"}.}
 
-\item{treatment_level}{Optional treated level for binary treatment.}
+\item{treatment_level}{Optional treated level for binary treatment. Defaults to the second
+level of a factor (\code{levels()}), the larger sorted value of a character or numeric, or \code{TRUE}.}
 
-\item{control_level}{Optional control level for binary treatment.}
+\item{control_level}{Optional control level for binary treatment. Defaults to the other value.}
 
 \item{spec}{Hyperparameter list passed to \code{fit()}.}
 

@@ -8,8 +8,9 @@
 #' @param estimand One of `"ATE"`, `"ATT"`, `"CATE"`, or `"IATE"`.
 #' @param newdata Optional target population for `estimand = "CATE"` or
 #'   `"IATE"`.
-#' @param treatment_level Optional treated level for binary treatment.
-#' @param control_level Optional control level for binary treatment.
+#' @param treatment_level Optional treated level for binary treatment. Defaults to the second
+#'   level of a factor (`levels()`), the larger sorted value of a character or numeric, or `TRUE`.
+#' @param control_level Optional control level for binary treatment. Defaults to the other value.
 #' @param spec Hyperparameter list passed to `fit()`.
 #' @param type Prediction type override for the outcome model.
 #' @param interval Interval method: `"normal"` or `"bootstrap"`. The standard
@@ -152,9 +153,13 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
   if (is.logical(x)) {
     lev <- c(FALSE, TRUE)
     vals <- as.logical(x)
-  } else if (is.factor(x) || is.character(x)) {
+  } else if (is.factor(x)) {
+    # level order, not order of appearance, so the default arms do not depend on row order
     vals <- as.character(x)
-    lev <- unique(vals)
+    lev <- intersect(levels(x), vals)
+  } else if (is.character(x)) {
+    vals <- x
+    lev <- sort(unique(vals))
   } else if (is.numeric(x)) {
     vals <- x
     lev <- sort(unique(vals))
