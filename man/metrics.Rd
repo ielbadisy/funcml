@@ -108,7 +108,12 @@ sensitivity; \code{"macro"} averages the one-vs-rest metric over all classes
 with equal weight. Outcomes with more than two classes are always
 macro-averaged. \code{balancedaccuracy()} is the macro-averaged recall.
 For multiclass \code{auc()}, aggregation mode: \code{"macro"} or \code{"weighted"}
-(class-frequency weighted one-vs-rest AUC). Ignored for binary AUC.}
+(class-frequency weighted one-vs-rest AUC). Ignored for binary AUC.
+Classes declared in \code{truth} (factor levels) but absent from the data are
+kept: probabilities are never renormalised over the classes present. A
+one-vs-rest AUC is undefined for an absent class and is skipped; the
+weighted average then weights the present classes by their prevalence.
+A binary AUC is \code{NA} when one class is absent.}
 
 \item{positive}{Optional positive/event class for binary classification.
 Defaults to the second factor level.}
