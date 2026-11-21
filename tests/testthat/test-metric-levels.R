@@ -11,3 +11,15 @@ test_that("absent classes are kept and probabilities are not renormalised", {
   expect_equal(aw, auc(factor(y, levels = c("a", "b", "c")), P, average = "weighted"))
   expect_true(is.finite(aw))
 })
+
+test_that("macro F1 is the mean of per-class F1", {
+  y <- factor(c("a", "a", "a", "b", "b", "c", "c", "c", "c"))
+  p <- factor(c("a", "b", "a", "b", "c", "c", "c", "a", "c"), levels = levels(y))
+  per <- vapply(levels(y), function(k) {
+    tp <- sum(y == k & p == k); fp <- sum(y != k & p == k); fn <- sum(y == k & p != k)
+    2 * tp / (2 * tp + fp + fn)
+  }, numeric(1))
+  expect_equal(f1(y, p), mean(per))
+  yb <- factor(c("n", "y", "y", "n", "y")); pb <- factor(c("n", "y", "n", "y", "y"))
+  expect_equal(f1(yb, pb), 2 * 2 / (2 * 2 + 1 + 1))
+})

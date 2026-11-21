@@ -14,6 +14,9 @@
   loss, Brier score and multiclass AUC were computed on probabilities the model never produced (bug fix).
   The model's full class set is now kept; a one-vs-rest AUC is skipped for an absent class. Results change
   only on folds where a class is absent (small or rare-class data).
+* `f1(average = "macro")`, and `f1()` for outcomes with more than two classes, returned the harmonic mean
+  of macro precision and macro recall instead of the documented macro F1, the mean of the per-class F1
+  scores (bug fix). Binary F1 is unchanged.
 
 # funcml 0.9.16
 
