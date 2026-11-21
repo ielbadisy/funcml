@@ -13,6 +13,19 @@
 #' The learner engine packages are installed with `funcml`, so the advertised
 #' registry is intended to be available after a standard installation.
 #'
+#' Predictor encoding: most learners receive the one-hot model matrix built
+#' from `formula`. Tree learners whose engines split on factors themselves
+#' (`ranger`, `rpart`, `randomForest`, `gbm`, `C50`, `adaboost`, `ctree`,
+#' `cforest`) receive a data frame instead, with factor and character
+#' predictors kept as factors whose levels are fixed from the training data
+#' (logical predictors become 0/1). Prediction applies the same levels, so new
+#' data may lack some levels but may not add unseen ones. These learners fall
+#' back to the model matrix when the formula has interactions or matrix terms
+#' (for example `poly()`), or a factor has more levels than the engine accepts
+#' (53 for `randomForest`, 1024 for `gbm`). The encoding used is stored at
+#' `$encoding` (`"native"` or `"dummy"`). Inside `stacking` and
+#' `superlearner`, base learners always receive the model matrix.
+#'
 #' The `stacking` ensemble takes `spec = list(learners, learner_specs,
 #' meta_model, folds)`. Its meta-learner is fitted on out-of-fold base-learner
 #' predictions from `folds`-fold cross-validation (default 5, drawn from the
@@ -64,7 +77,9 @@ fit <- function(formula, data, model, spec = NULL, seed = NULL, na_action = stat
   if (native_na) {
     na_action <- stats::na.pass
   }
-  encoded <- .encode_train(data = data, formula = formula, na_action = na_action)
+  encoded <- .encode_train(data = data, formula = formula, na_action = na_action,
+                           native = identical(adapter$encoding, "native"),
+                           max_levels = adapter$max_levels %||% Inf)
   if (native_na && anyNA(encoded$y)) {
     stop(sprintf(
       "Model '%s' handles missing predictors, but the outcome has %d NA value(s). Remove those rows first.",
@@ -97,6 +112,7 @@ fit <- function(formula, data, model, spec = NULL, seed = NULL, na_action = stat
     contrasts = encoded$contrasts,
     features = encoded$features,
     has_intercept = encoded$has_intercept,
+    encoding = encoded$encoding,
     levels = encoded$levels,
     na_action = na_action,
     n = nrow(encoded$X),
@@ -223,6 +239,7 @@ learners <- function() {
       supports_prob = isTRUE(adapter$supports$prob),
       supports_multiclass = isTRUE(adapter$supports$multiclass),
       supports_importance = isTRUE(adapter$supports$importance),
+      encoding = adapter$encoding %||% "dummy",
       interpret = "interpret()",
       interpret_methods = .interpret_methods_for(adapter),
       has_interpret = TRUE,
@@ -243,7 +260,9 @@ learners <- function() {
 #' learner id, generic fit/predict/tune entry points, and availability in the
 #' current session.
 #'
-#' Additional capability metadata remains available through `columns =`.
+#' Additional capability metadata remains available through `columns =`,
+#' including `encoding`: `"native"` for learners that receive factor
+#' predictors as factors, `"dummy"` for the one-hot model matrix (see [fit()]).
 #'
 #' @param has_fit Optional logical filter for fit support.
 #' @param has_predict Optional logical filter for predict support.

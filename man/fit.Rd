@@ -55,6 +55,19 @@ regression only: \code{pls}.
 The learner engine packages are installed with \code{funcml}, so the advertised
 registry is intended to be available after a standard installation.
 
+Predictor encoding: most learners receive the one-hot model matrix built
+from \code{formula}. Tree learners whose engines split on factors themselves
+(\code{ranger}, \code{rpart}, \code{randomForest}, \code{gbm}, \code{C50}, \code{adaboost}, \code{ctree},
+\code{cforest}) receive a data frame instead, with factor and character
+predictors kept as factors whose levels are fixed from the training data
+(logical predictors become 0/1). Prediction applies the same levels, so new
+data may lack some levels but may not add unseen ones. These learners fall
+back to the model matrix when the formula has interactions or matrix terms
+(for example \code{poly()}), or a factor has more levels than the engine accepts
+(53 for \code{randomForest}, 1024 for \code{gbm}). The encoding used is stored at
+\verb{$encoding} (\code{"native"} or \code{"dummy"}). Inside \code{stacking} and
+\code{superlearner}, base learners always receive the model matrix.
+
 The \code{stacking} ensemble takes \code{spec = list(learners, learner_specs, meta_model, folds)}. Its meta-learner is fitted on out-of-fold base-learner
 predictions from \code{folds}-fold cross-validation (default 5, drawn from the
 current random stream, so \code{seed} makes them reproducible); the base

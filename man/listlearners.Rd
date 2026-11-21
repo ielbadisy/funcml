@@ -52,7 +52,9 @@ learner id, generic fit/predict/tune entry points, and availability in the
 current session.
 }
 \details{
-Additional capability metadata remains available through \verb{columns =}.
+Additional capability metadata remains available through \verb{columns =},
+including \code{encoding}: \code{"native"} for learners that receive factor
+predictors as factors, \code{"dummy"} for the one-hot model matrix (see \code{\link[=fit]{fit()}}).
 }
 \examples{
 listlearners()

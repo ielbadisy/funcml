@@ -1,3 +1,22 @@
+# funcml 0.9.18
+
+* Tree learners whose engines split on factors natively (`ranger`, `rpart`, `randomForest`, `gbm`,
+  `C50`, `adaboost`, `ctree`, `cforest`) now receive the predictors as a data frame with factor columns
+  kept as factors, instead of the one-hot model matrix. Levels are fixed from the training data, so
+  `predict()` accepts new data with missing levels or a single row; unseen levels are still an error.
+  Splits on one-hot columns cost these learners accuracy: same-fold 5-fold CV AUC on `heartdisease`
+  rises from 0.826 to 0.846 for `ranger` and from 0.734 to 0.795 for `rpart`. Results of these learners
+  change wherever the data have factor or character predictors. The other learners keep the model matrix.
+  The switch is a registry field (`encoding = "native"`); the encoding used is stored in the fit at
+  `$encoding`. Formulas with interactions or matrix terms, and factors with more levels than the engine
+  accepts (53 for `randomForest`, 1024 for `gbm`), fall back to the model matrix. Base learners inside
+  `stacking` and `superlearner` still receive the model matrix.
+* Native model importance (`interpret(method = "vip", importance_type = "model")`) of these learners is
+  now the engine's score per original variable instead of a sum over dummy columns.
+* `defaulttunegrid()` sizes `mtry` from the number of variables for these learners, so the grid never
+  asks for more variables than the engine sees.
+* `listlearners(columns = "encoding")` reports each learner's predictor encoding.
+
 # funcml 0.9.17
 
 * `estimate(interval = "bootstrap")` (and the bootstrap SE used for non-glm learners) predicted every
