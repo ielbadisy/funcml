@@ -96,6 +96,11 @@ listmetrics <- function(direction = NULL, columns = NULL) {
 #'   macro-averaged. `balancedaccuracy()` is the macro-averaged recall.
 #'   For multiclass `auc()`, aggregation mode: `"macro"` or `"weighted"`
 #'   (class-frequency weighted one-vs-rest AUC). Ignored for binary AUC.
+#'   Classes declared in `truth` (factor levels) but absent from the data are
+#'   kept: probabilities are never renormalised over the classes present. A
+#'   one-vs-rest AUC is undefined for an absent class and is skipped; the
+#'   weighted average then weights the present classes by their prevalence.
+#'   A binary AUC is `NA` when one class is absent.
 #' @param bins Number of bins for calibration summaries.
 #' @param strategy Binning strategy: `"quantile"` (bins of about equal size)
 #'   or `"uniform"` (equal-width bins on 0-1). When tied scores make
@@ -692,7 +697,11 @@ citl <- function(truth, prob, positive = NULL) {
                   rsq = rsq(truth, pred)))
   }
 
-  truth <- factor(truth)
+  # Keep the model's full class set: factor(truth) would drop classes absent from a fold and the
+  # probabilities would then be renormalised over the classes present, which the model never produced.
+  lev <- if (is.factor(truth)) levels(truth) else sort(unique(as.character(truth)))
+  if (!is.null(prob_matrix) && !is.null(colnames(prob_matrix))) lev <- union(colnames(prob_matrix), lev)
+  truth <- factor(as.character(truth), levels = lev)
   pred_class <- if (is.null(pred)) NULL else factor(pred, levels = levels(truth))
   if (metric %in% .prob_metrics) {
     if (is.null(prob_matrix)) stop(sprintf("Metric '%s' requires probabilities.", metric), call. = FALSE)

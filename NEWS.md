@@ -9,6 +9,11 @@
 * `estimate()` took the default control and treated arms of a factor or character treatment in order of
   appearance, so the sign of the effect depended on the row order (bug fix). Factors now use `levels()`
   (first level = control, second = treated) and characters use sorted values, as numerics already did.
+* Metrics in `evaluate()`, `tune()`, `compare()` and `bootvalidate()` dropped classes absent from a test
+  fold (`factor(truth)`) and renormalised the predicted probabilities over the classes present, so log
+  loss, Brier score and multiclass AUC were computed on probabilities the model never produced (bug fix).
+  The model's full class set is now kept; a one-vs-rest AUC is skipped for an absent class. Results change
+  only on folds where a class is absent (small or rare-class data).
 
 # funcml 0.9.16
 

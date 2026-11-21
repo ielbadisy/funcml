@@ -1,0 +1,13 @@
+test_that("absent classes are kept and probabilities are not renormalised", {
+  P <- rbind(c(.6, .3, .1), c(.2, .7, .1), c(.5, .2, .3), c(.1, .8, .1))
+  colnames(P) <- c("a", "b", "c")
+  y <- c("a", "b", "a", "b")
+  ll <- funcml:::.loss(y, colnames(P)[max.col(P, "first")], "classification", "logloss", prob_matrix = P)
+  expect_equal(ll, -mean(log(c(.6, .7, .5, .8))), tolerance = 1e-12)
+  br <- funcml:::.loss(y, NULL, "classification", "brier", prob_matrix = P)
+  Y <- cbind(a = c(1, 0, 1, 0), b = c(0, 1, 0, 1), c = 0)
+  expect_equal(br, mean(rowSums((P - Y)^2)))
+  aw <- funcml:::.loss(y, NULL, "classification", "auc_weighted", prob_matrix = P)
+  expect_equal(aw, auc(factor(y, levels = c("a", "b", "c")), P, average = "weighted"))
+  expect_true(is.finite(aw))
+})
