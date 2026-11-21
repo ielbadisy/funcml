@@ -2001,7 +2001,6 @@ summary.funcml_iml_local_model <- function(object, ...) {
 plot.funcml_calibration <- function(x, style = c("curve", "histogram"), ...) {
   style <- match.arg(style)
   curve <- x$result$curve
-  curve_nonempty <- curve[curve$n > 0, , drop = FALSE]
 
   if (style == "histogram") {
     hist_df <- data.frame(prob = x$result$prob, stringsAsFactors = FALSE)
@@ -2017,24 +2016,9 @@ plot.funcml_calibration <- function(x, style = c("curve", "histogram"), ...) {
     )
   }
 
-  ggplot2::ggplot(curve_nonempty, ggplot2::aes(x = mean_pred, y = observed)) +
-    ggplot2::geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "grey55") +
-    ggplot2::geom_line(colour = "black", linewidth = 0.7) +
-    ggplot2::geom_point(ggplot2::aes(size = n), colour = "black") +
-    ggplot2::geom_segment(
-      ggplot2::aes(x = mean_pred, xend = mean_pred, y = 0, yend = observed),
-      linewidth = 0.35,
-      colour = "grey75"
-    ) +
-    ggplot2::scale_size_continuous(range = c(1.8, 5), guide = "none") +
-    ggplot2::coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
-    ggplot2::labs(
-      x = sprintf("Mean predicted probability for '%s'", x$result$positive),
-      y = "Observed event rate",
-      title = "Calibration plot",
-      subtitle = sprintf("ECE = %.4f | MCE = %.4f", x$result$ece, x$result$mce)
-    ) +
-    .publication_theme()
+  .calibration_plot(curve, sprintf("Mean predicted probability for '%s'", x$result$positive),
+                    title = "Calibration plot",
+                    subtitle = sprintf("ECE = %.4f | MCE = %.4f", x$result$ece, x$result$mce))
 }
 
 #' @rdname interpret-calibration-methods

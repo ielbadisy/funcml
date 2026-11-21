@@ -1,3 +1,10 @@
+# funcml 0.9.14
+
+* `plot()` on a `dca()` result drew a pairs plot because `dca()` returned a plain data frame. `dca()` now returns a data frame of class `funcml_dcacurve` (columns unchanged) with a new `plot.funcml_dcacurve(x, ..., labels = NULL, ylim = NULL, title = NULL)` method: net benefit against threshold for one or more models (extra `dca()` results via `...`), with "treat all" (dashed) and "treat none" reference lines and a default net benefit axis from -0.05 to the largest net benefit. Plotted values equal `dcurves::dca()` (test).
+* `calibrationcurve()` had the same problem; it now returns class `funcml_calcurve` (columns unchanged) with a `plot()` method drawing observed against mean predicted risk per bin with the ideal diagonal.
+* `plot()` on `interpret(method = "dca")` uses the same drawing: sober black/grey lines and the -0.05 axis floor (was -0.1 and coloured lines). `interpret(method = "calibration")` plots share the calibration drawing code (same look).
+* `dcurves` added to Suggests (tests only).
+
 # funcml 0.9.13
 
 * New calibration metrics `calslope()` (calibration slope) and `citl()` (calibration-in-the-large), the `slope` and `intercept` rows of `calibrationfit()`. As metric names `"calslope"` and `"citl"` they work in `bootvalidate()` and `evaluate()` and are listed by `listmetrics()` (direction `"target"`: ideal values 1 and 0). In `bootvalidate()` the optimism-corrected slope equals `rms::validate()`'s corrected `Slope` when both are seeded identically; `gamma` and `est632plus` are `NA` for these metrics. `tune()` refuses them as tuning criteria; `compare()` ranks them by distance to the ideal value.

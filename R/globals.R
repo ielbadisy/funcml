@@ -1,4 +1,4 @@
-utils::globalVariables(c(
+utils::globalVariables(c("nb", "s",
   "value", "effect", "metric", "id", "feature", "weight",
   "importance", "shap", "config", "yhat", "contribution", "yval",
   "plot_value", "direction", "start", "end", "x", "y", "observation",
