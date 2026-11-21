@@ -517,7 +517,6 @@ build_registry <- function() {
         early_stopping = TRUE,
         patience = 10L,
         min_delta = 0,
-        seed = 1L,
         verbose = FALSE
       ),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
@@ -550,7 +549,6 @@ build_registry <- function() {
         early_stopping = TRUE,
         patience = 10L,
         min_delta = 0,
-        seed = 1L,
         verbose = FALSE,
         ncores = 1L
       ),
@@ -1217,7 +1215,6 @@ build_registry <- function() {
         gamma = 0,
         min_child_weight = 1,
         threads = 0L,
-        seed = 1L,
         verbose = FALSE
       ),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE, na = TRUE),

@@ -29,6 +29,9 @@
   `interpret_methods` column of `listlearners()` includes `local_model`, `profile` and `ceteris_paribus`.
 * `evaluate(data, fit = f)` failed with "argument formula is missing"; `formula` now defaults to the
   formula stored in `fit` (bug fix).
+* `fit(seed = )` (and the seeds of `evaluate()`, `tune()`, `compare()`) did not reach the `densemlp`,
+  `mlp` and `fastgbm` engines, which always used seed 1 (bug fix). Their seed is now drawn from R's
+  random stream unless `spec$seed` is given, so it follows `seed` and `set.seed()`.
 
 # funcml 0.9.16
 
