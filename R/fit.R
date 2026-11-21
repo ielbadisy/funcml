@@ -180,7 +180,8 @@ learners <- function() {
 }
 
 .interpret_methods_for <- function(adapter) {
-  methods <- c("vip", "permute", "pdp", "ice", "ale", "local", "lime", "shap", "interaction", "surrogate")
+  methods <- c("vip", "permute", "pdp", "ice", "ale", "local", "lime", "shap", "local_model", "interaction",
+               "surrogate", "profile", "ceteris_paribus")
   if ("classification" %in% adapter$tasks) {
     methods <- c(methods, "calibration", "dca")
   }
