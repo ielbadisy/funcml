@@ -74,6 +74,12 @@ tune <- function(data, formula, model, grid = NULL, resampling = cv(5),
       ...
     )
   }
+  # Draw the folds once and freeze them so every configuration is scored on the same splits;
+  # otherwise each configuration's seed redraws the folds and selection mixes fold noise in.
+  y_tune <- model.response(model.frame(formula, data, na.action = stats::na.pass))
+  if (infer_task(y_tune) == "classification") y_tune <- factor(y_tune)
+  resampling <- generate_folds(nrow(data), y_tune, resampling, data = data)
+  resampling$fixed <- TRUE
   rows <- split(search_grid, seq_len(nrow(search_grid)))
   row_ids <- seq_along(rows)
   row_seeds <- .task_seeds(seed, length(row_ids))

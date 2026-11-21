@@ -21,6 +21,10 @@
   ranger and randomForest adapters (`max.col()` default), so fold metrics such as accuracy depended on the
   random number stream for trees and kNN. Ties now go to the first class everywhere, as in `predict()`,
   `interpret()` and `bootvalidate()`.
+* `tune()` scored each configuration on different folds unless the resampling object carried its own
+  seed (each configuration's seed redrew the folds), so the selection mixed fold noise with the
+  hyperparameter effect (bug fix). The folds are now drawn once and shared by all configurations, as in
+  `compare()`. Tuning results change when `resampling` has no seed.
 
 # funcml 0.9.16
 
