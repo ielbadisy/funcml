@@ -1,3 +1,12 @@
+# funcml 0.9.17
+
+* `estimate(interval = "bootstrap")` (and the bootstrap SE used for non-glm learners) predicted every
+  replicate on the original rows. For the ATT the treated weights came from the resampled rows but were
+  applied to the original rows, so each replicate averaged the effects over a random subset instead of the
+  treated (bug fix). For the ATE the replicates missed the sampling variability of the covariates. Each
+  replicate now refits and averages over its own resampled rows; CATE still averages over `newdata`.
+  ATT and ATE bootstrap intervals change.
+
 # funcml 0.9.16
 
 * `plot(<funcml_bootvalidate>)` facet strips showed raw metric codes ("auc", "calslope"); they now carry

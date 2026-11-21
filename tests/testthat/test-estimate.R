@@ -149,3 +149,23 @@ test_that("non-glm learners get a bootstrap SE under the normal interval", {
   expect_length(est$bootstrap$estimates, 20)
   expect_equal(unname(est$conf_int), est$estimate + c(-1, 1) * stats::qnorm(0.975) * est$std_error)
 })
+
+test_that("ATT bootstrap averages over the treated rows of each resample", {
+  bw <- transform(birthweight, smoke = factor(smoke, 0:1, c("No", "Yes")), race = factor(race))
+  f <- birth_weight_g ~ smoke + age + lwt + race + ptl + ht + ui + ftv
+  d <- estimate(bw, f, model = "glm", treatment = "smoke", estimand = "ATT")
+  b <- estimate(bw, f, model = "glm", treatment = "smoke", estimand = "ATT",
+                interval = "bootstrap", n_boot = 200, seed = 7)
+  expect_equal(b$std_error, d$std_error, tolerance = 0.25)
+  ## with an effect that differs by arm, a replicate averaging over random rows
+  ## would centre on the ATE; centred on the ATT it must stay close to the estimate
+  set.seed(8)
+  n <- 600; x <- rnorm(n); a <- rbinom(n, 1, plogis(1.5 * x))
+  y <- 1 + a * (1 + 2 * x) + x + rnorm(n, sd = 0.3)
+  dd <- data.frame(y, a, x)
+  att <- estimate(dd, y ~ a * x, model = "glm", treatment = "a", estimand = "ATT",
+                  interval = "bootstrap", n_boot = 60, seed = 9)
+  ate <- estimate(dd, y ~ a * x, model = "glm", treatment = "a", estimand = "ATE")
+  expect_lt(abs(mean(att$bootstrap$estimates) - att$estimate), 3 * att$std_error)
+  expect_gt(abs(att$estimate - ate$estimate), 5 * att$std_error)
+})
