@@ -642,7 +642,7 @@ build_registry <- function() {
       package = "gbm",
       tasks = c("regression", "classification"),
       defaults = list(n.trees = 200, interaction.depth = 3, shrinkage = 0.05, n.minobsinnode = 10),
-      supports = list(prob = TRUE, multiclass = FALSE, importance = TRUE),
+      supports = list(prob = TRUE, multiclass = TRUE, importance = TRUE),
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("gbm", "gbm")
         distribution <- if (task == "regression") "gaussian" else if (length(unique(y)) > 2) "multinomial" else "bernoulli"
