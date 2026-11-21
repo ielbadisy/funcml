@@ -339,7 +339,10 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
         formula = formula,
         treatment = treatment,
         estimand = estimand,
-        target_data = target_data,
+        # ATE and ATT average over the resampled rows, so each replicate carries the
+        # sampling variability of the covariates and the ATT weights match those rows;
+        # CATE averages over the fixed user rows
+        target_data = if (estimand == "CATE") target_data else boot_data,
         trt_bin = boot_trt,
         pred_type = pred_type
       )$estimate
