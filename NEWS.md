@@ -17,6 +17,10 @@
 * `f1(average = "macro")`, and `f1()` for outcomes with more than two classes, returned the harmonic mean
   of macro precision and macro recall instead of the documented macro F1, the mean of the per-class F1
   scores (bug fix). Binary F1 is unchanged.
+* Class predictions from tied probabilities were broken at random in `evaluate()`, `tune()` and the
+  ranger and randomForest adapters (`max.col()` default), so fold metrics such as accuracy depended on the
+  random number stream for trees and kNN. Ties now go to the first class everywhere, as in `predict()`,
+  `interpret()` and `bootvalidate()`.
 
 # funcml 0.9.16
 

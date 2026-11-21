@@ -454,7 +454,7 @@ build_registry <- function() {
           colnames(prob) <- levels
         }
         if (type == "class") {
-          cls <- levels[max.col(prob)]
+          cls <- levels[max.col(prob, ties.method = "first")]
           return(factor(cls, levels = levels))
         }
         prob[, levels, drop = FALSE]
@@ -497,7 +497,7 @@ build_registry <- function() {
           colnames(prob) <- levels
         }
         if (type == "class") {
-          cls <- levels[max.col(prob)]
+          cls <- levels[max.col(prob, ties.method = "first")]
           return(factor(cls, levels = levels))
         }
         prob

@@ -289,7 +289,7 @@ plot.funcml_tune <- function(x, ..., title = NULL, subtitle = NULL, caption = NU
       if (is.null(colnames(prob_matrix))) {
         colnames(prob_matrix) <- fit_obj$levels
       }
-      pred_class <- factor(fit_obj$levels[max.col(prob_matrix)], levels = fit_obj$levels)
+      pred_class <- factor(fit_obj$levels[max.col(prob_matrix, ties.method = "first")], levels = fit_obj$levels)
     } else {
       pred_class <- preds
     }

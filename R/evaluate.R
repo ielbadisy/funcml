@@ -295,7 +295,7 @@ plot.funcml_eval <- function(x, ..., scales = "free_x", title = NULL, subtitle =
     if (type_use == "prob") {
       prob_matrix <- as.matrix(preds)
       if (is.null(colnames(prob_matrix))) colnames(prob_matrix) <- fit_fold$levels
-      pred_class <- factor(fit_fold$levels[max.col(prob_matrix)], levels = fit_fold$levels)
+      pred_class <- factor(fit_fold$levels[max.col(prob_matrix, ties.method = "first")], levels = fit_fold$levels)
     } else {
       pred_class <- preds
     }
