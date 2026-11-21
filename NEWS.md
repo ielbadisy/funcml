@@ -6,6 +6,9 @@
   treated (bug fix). For the ATE the replicates missed the sampling variability of the covariates. Each
   replicate now refits and averages over its own resampled rows; CATE still averages over `newdata`.
   ATT and ATE bootstrap intervals change.
+* `estimate()` took the default control and treated arms of a factor or character treatment in order of
+  appearance, so the sign of the effect depended on the row order (bug fix). Factors now use `levels()`
+  (first level = control, second = treated) and characters use sorted values, as numerics already did.
 
 # funcml 0.9.16
 
