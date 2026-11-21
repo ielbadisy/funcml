@@ -6,7 +6,7 @@
 \usage{
 evaluate(
   data,
-  formula,
+  formula = NULL,
   model = NULL,
   spec = NULL,
   resampling = cv(5),
@@ -24,7 +24,7 @@ evaluate(
 \arguments{
 \item{data}{Data frame.}
 
-\item{formula}{Model formula.}
+\item{formula}{Model formula. May be omitted when \code{fit} is supplied (its formula is used).}
 
 \item{model}{Learner id (ignored if \code{fit} supplied).}
 

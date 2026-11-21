@@ -1,7 +1,7 @@
 #' Cross-validated evaluation.
 #'
 #' @param data Data frame.
-#' @param formula Model formula.
+#' @param formula Model formula. May be omitted when `fit` is supplied (its formula is used).
 #' @param model Learner id (ignored if `fit` supplied).
 #' @param spec Hyperparameter list.
 #' @param resampling Resampling object from `cv()`.
@@ -57,7 +57,7 @@
 #' )
 #' eval_obj$summary
 #' @export
-evaluate <- function(data, formula, model = NULL, spec = NULL,
+evaluate <- function(data, formula = NULL, model = NULL, spec = NULL,
                      resampling = cv(5), metrics = NULL, type = NULL,
                      conf_level = 0.95, seed = NULL, fit = NULL,
                      ncores = NULL, se_method = c("naive", "corrected"),
@@ -72,6 +72,7 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
     task <- fit$task
   } else {
     if (is.null(model)) stop("Provide either `model` or `fit`.", call. = FALSE)
+    if (is.null(formula)) stop("Provide `formula` (or a `fit` that carries one).", call. = FALSE)
     base_model <- model
     base_spec <- spec
     task <- infer_task(model.response(model.frame(formula, data)))

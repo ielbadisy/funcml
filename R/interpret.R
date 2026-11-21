@@ -1,41 +1,13 @@
 # Native model-agnostic interpretability for funcml
 
 .interpretability_catalog <- function() {
+  m <- c("vip", "permute", "pdp", "ice", "ale", "local", "lime", "shap", "local_model", "interaction",
+         "surrogate", "profile", "ceteris_paribus", "calibration", "dca")
   data.frame(
-    compute = c(
-      "interpret(method = \"vip\")",
-      "interpret(method = \"permute\")",
-      "interpret(method = \"pdp\")",
-      "interpret(method = \"ice\")",
-      "interpret(method = \"ale\")",
-      "interpret(method = \"local\")",
-      "interpret(method = \"lime\")",
-      "interpret(method = \"shap\")",
-      "interpret(method = \"local_model\")",
-      "interpret(method = \"interaction\")",
-      "interpret(method = \"surrogate\")",
-      "interpret(method = \"profile\")",
-      "interpret(method = \"ceteris_paribus\")",
-      "interpret(method = \"calibration\")"
-    ),
-    plot = c(
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()",
-      "plot()"
-    ),
-    has_compute = rep(TRUE, 14L),
-    has_plot = rep(TRUE, 14L),
+    compute = sprintf("interpret(method = \"%s\")", m),
+    plot = rep("plot()", length(m)),
+    has_compute = rep(TRUE, length(m)),
+    has_plot = rep(TRUE, length(m)),
     stringsAsFactors = FALSE
   )
 }

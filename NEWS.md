@@ -25,6 +25,10 @@
   seed (each configuration's seed redrew the folds), so the selection mixed fold noise with the
   hyperparameter effect (bug fix). The folds are now drawn once and shared by all configurations, as in
   `compare()`. Tuning results change when `resampling` has no seed.
+* `listinterpretabilitymethods()` now lists all 15 `interpret()` methods (`dca` was missing), and the
+  `interpret_methods` column of `listlearners()` includes `local_model`, `profile` and `ceteris_paribus`.
+* `evaluate(data, fit = f)` failed with "argument formula is missing"; `formula` now defaults to the
+  formula stored in `fit` (bug fix).
 
 # funcml 0.9.16
 
