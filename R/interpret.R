@@ -706,7 +706,8 @@ interpret_vip <- function(fit, data, features, type, metric, class_level, pos_le
 }
 
 .interpret_vip_model <- function(fit, data, features) {
-  encoded <- .encode_train(data = data, formula = fit$formula, na_action = fit$na_action)
+  native <- identical(fit$encoding, "native")
+  encoded <- .encode_train(data = data, formula = fit$formula, na_action = fit$na_action, native = native)
   raw <- fit$adapter$importance(
     state = fit$state,
     X = encoded$X,
@@ -715,13 +716,16 @@ interpret_vip <- function(fit, data, features, type, metric, class_level, pos_le
     task = fit$task,
     levels = fit$levels
   )
-  # Engines report importance per design-matrix column, possibly under
-  # make.names() spellings; map each column back to its model term so that
+  # Engines report importance per design-matrix column (per variable for native-factor learners),
+  # possibly under make.names() spellings; map each column back to its model term so that
   # dummy-coded factor levels are summed into one score per feature.
-  mf <- stats::model.frame(fit$formula, data = data, na.action = fit$na_action)
-  mm <- stats::model.matrix(encoded$terms, mf, contrasts.arg = encoded$contrasts)
-  col_term <- attr(encoded$terms, "term.labels")[attr(mm, "assign")]
-  col_term <- col_term[match(encoded$features, colnames(mm)[attr(mm, "assign") > 0])]
+  col_term <- encoded$features
+  if (identical(encoded$encoding, "dummy")) {
+    mf <- stats::model.frame(fit$formula, data = data, na.action = fit$na_action)
+    mm <- stats::model.matrix(encoded$terms, mf, contrasts.arg = encoded$contrasts)
+    col_term <- attr(encoded$terms, "term.labels")[attr(mm, "assign")]
+    col_term <- col_term[match(encoded$features, colnames(mm)[attr(mm, "assign") > 0])]
+  }
   idx <- match(raw$feature, encoded$features)
   idx[is.na(idx)] <- match(raw$feature[is.na(idx)], make.names(encoded$features, unique = TRUE))
   raw_term <- col_term[idx]

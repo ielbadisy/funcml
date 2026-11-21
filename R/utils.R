@@ -109,7 +109,11 @@ infer_task <- function(y) {
   functionals::fmap(.x, .f, ncores = ncores, ...)
 }
 
-.encode_train <- function(data, formula, na_action = stats::na.fail) {
+# `native = TRUE` (learners with `encoding = "native"`) keeps the predictors as a data frame with
+# factor columns, levels fixed from the training data, so tree engines split on factors themselves.
+# It needs plain main effects; interactions, matrix terms or factors above `max_levels` levels fall
+# back to the model matrix. Logical columns become 0/1, as in the model matrix.
+.encode_train <- function(data, formula, na_action = stats::na.fail, native = FALSE, max_levels = Inf) {
   mf <- stats::model.frame(formula, data = data, na.action = na_action)
   y <- stats::model.response(mf)
   task <- infer_task(y)
@@ -124,10 +128,19 @@ infer_task <- function(y) {
 
   trm <- stats::terms(mf)
   contrasts <- attr(mf, "contrasts")
-  X <- stats::model.matrix(trm, mf, contrasts.arg = contrasts)
+  xlevels <- stats::.getXlevels(trm, mf)
   has_intercept <- attr(trm, "intercept") == 1
-  if (has_intercept && "(Intercept)" %in% colnames(X)) {
-    X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
+  vars <- attr(trm, "term.labels")
+  native <- native && length(vars) && all(vars %in% names(mf)) &&
+    all(vapply(mf[vars], function(v) is.null(dim(v)), logical(1))) &&
+    all(lengths(xlevels) <= max_levels)
+  if (native) {
+    X <- .native_frame(mf, vars, xlevels)
+  } else {
+    X <- stats::model.matrix(trm, mf, contrasts.arg = contrasts)
+    if (has_intercept && "(Intercept)" %in% colnames(X)) {
+      X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
+    }
   }
 
   list(
@@ -135,12 +148,20 @@ infer_task <- function(y) {
     task = task,
     levels = levels_y,
     terms = trm,
-    xlevels = stats::.getXlevels(trm, mf),
+    xlevels = xlevels,
     contrasts = contrasts,
     X = X,
     features = colnames(X),
-    has_intercept = has_intercept
+    has_intercept = has_intercept,
+    encoding = if (native) "native" else "dummy"
   )
+}
+
+.native_frame <- function(mf, vars, xlevels) {
+  X <- mf[vars]
+  for (v in names(xlevels)) X[[v]] <- factor(X[[v]], levels = xlevels[[v]])
+  for (v in vars[vapply(X, is.logical, logical(1))]) X[[v]] <- as.numeric(X[[v]])
+  X
 }
 
 .encode_new <- function(fit, newdata, na_action = stats::na.fail) {
@@ -175,6 +196,9 @@ infer_task <- function(y) {
     stats::model.frame(terms_no_y, data = newdata, xlev = fit$xlevels, na.action = na_action),
     error = function(e) stop("Design matrix mismatch: ", e$message, call. = FALSE)
   )
+  if (identical(fit$encoding, "native")) {
+    return(.native_frame(mf_new, fit$features, fit$xlevels))
+  }
   Xnew <- tryCatch(
     stats::model.matrix(terms_no_y, mf_new, contrasts.arg = fit$contrasts),
     error = function(e) stop("Design matrix mismatch: ", e$message, call. = FALSE)

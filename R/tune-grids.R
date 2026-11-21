@@ -3,8 +3,9 @@
 #' Returns a small, sensible hyperparameter grid for a learner, so that
 #' [tune()] and [compare()] with `tune = TRUE` work without the user writing
 #' a grid. Grids that depend on the data (for example `mtry`, `ncomp`, `k`, and
-#' the SVM `gamma`) are sized from the number of encoded predictors and the
-#' number of rows of `data`. Parameter names are the ones of each learner's
+#' the SVM `gamma`) are sized from the number of encoded predictors (the
+#' number of variables for learners that keep factors native, see [fit()]) and
+#' the number of rows of `data`. Parameter names are the ones of each learner's
 #' `spec` (see [fit()]).
 #'
 #' @param model Learner id, as in [listlearners()].
@@ -28,13 +29,15 @@ defaulttunegrid <- function(model, data = NULL, formula = NULL) {
   p <- 10L
   n <- 200L
   if (!is.null(data) && !is.null(formula)) {
-    mm <- tryCatch(
-      stats::model.matrix(formula, stats::model.frame(formula, data, na.action = stats::na.pass)),
+    adapter <- funcml_registry(model)
+    enc <- tryCatch(
+      .encode_train(data, formula, na_action = stats::na.pass, native = identical(adapter$encoding, "native"),
+                    max_levels = adapter$max_levels %||% Inf),
       error = function(e) NULL
     )
-    if (!is.null(mm)) {
-      p <- max(1L, ncol(mm) - 1L)
-      n <- nrow(mm)
+    if (!is.null(enc)) {
+      p <- max(1L, ncol(enc$X))
+      n <- nrow(enc$X)
     }
   }
   mtry <- sort(unique(pmax(1L, pmin(p, as.integer(round(c(0.5, 1, 2) * sqrt(p)))))))

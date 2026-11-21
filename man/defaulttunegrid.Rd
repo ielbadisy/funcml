@@ -22,8 +22,9 @@ with no tunable hyperparameters (\code{glm}, \code{lda}, \code{qda}, \code{fda},
 Returns a small, sensible hyperparameter grid for a learner, so that
 \code{\link[=tune]{tune()}} and \code{\link[=compare]{compare()}} with \code{tune = TRUE} work without the user writing
 a grid. Grids that depend on the data (for example \code{mtry}, \code{ncomp}, \code{k}, and
-the SVM \code{gamma}) are sized from the number of encoded predictors and the
-number of rows of \code{data}. Parameter names are the ones of each learner's
+the SVM \code{gamma}) are sized from the number of encoded predictors (the
+number of variables for learners that keep factors native, see \code{\link[=fit]{fit()}}) and
+the number of rows of \code{data}. Parameter names are the ones of each learner's
 \code{spec} (see \code{\link[=fit]{fit()}}).
 }
 \examples{

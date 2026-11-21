@@ -327,6 +327,7 @@ build_registry <- function() {
     ),
     rpart = list(
       package = "rpart",
+      encoding = "native",
       tasks = c("regression", "classification"),
       defaults = list(cp = 0.01, minsplit = 20),
       supports = list(prob = TRUE, multiclass = TRUE, importance = TRUE),
@@ -427,6 +428,7 @@ build_registry <- function() {
     ),
     ranger = list(
       package = "ranger",
+      encoding = "native",
       tasks = c("regression", "classification"),
       defaults = list(num.trees = 500, mtry = NULL, min.node.size = 5, importance = "impurity"),
       supports = list(prob = TRUE, multiclass = TRUE, importance = TRUE),
@@ -597,6 +599,7 @@ build_registry <- function() {
     ),
     randomForest = list(
       package = "randomForest",
+      encoding = "native", max_levels = 53,
       tasks = c("regression", "classification"),
       defaults = list(ntree = 500, mtry = NULL, nodesize = NULL),
       supports = list(prob = TRUE, multiclass = TRUE, importance = TRUE),
@@ -640,6 +643,7 @@ build_registry <- function() {
     ),
     gbm = list(
       package = "gbm",
+      encoding = "native", max_levels = 1024,
       tasks = c("regression", "classification"),
       defaults = list(n.trees = 200, interaction.depth = 3, shrinkage = 0.05, n.minobsinnode = 10),
       supports = list(prob = TRUE, multiclass = TRUE, importance = TRUE),
@@ -696,6 +700,7 @@ build_registry <- function() {
     ),
     C50 = list(
       package = "C50",
+      encoding = "native",
       tasks = c("classification"),
       defaults = list(trials = 1, model = "tree"),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
@@ -871,6 +876,7 @@ build_registry <- function() {
     ),
     adaboost = list(
       package = "ada",
+      encoding = "native",
       tasks = c("classification"),
       defaults = list(iter = 50, nu = 0.1, loss = "exponential", type = "discrete"),
       supports = list(prob = TRUE, multiclass = FALSE, importance = FALSE),
@@ -936,6 +942,7 @@ build_registry <- function() {
     ),
     ctree = list(
       package = "partykit",
+      encoding = "native",
       tasks = c("regression", "classification"),
       defaults = list(mincriterion = 0.95),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
@@ -963,6 +970,7 @@ build_registry <- function() {
     ),
     cforest = list(
       package = "partykit",
+      encoding = "native",
       tasks = c("regression", "classification"),
       defaults = list(ntree = 500, mtry = NULL, mincriterion = 0),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
