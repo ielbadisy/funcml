@@ -57,7 +57,8 @@ test_that("metrics are sane", {
   expect_equal(precision(truth_cls, pred_cls, average = "macro"), 5 / 6)
   expect_equal(recall(truth_cls, pred_cls, average = "macro"), 0.75)
   expect_equal(specificity(truth_cls, pred_cls, average = "macro"), 0.75)
-  expect_equal(f1(truth_cls, pred_cls, average = "macro"), 0.7894737, tolerance = 1e-7)
+  # macro F1: mean of per-class F1 (b: 0.8, a: 2/3), not 2PR/(P+R) of the macro P and R
+  expect_equal(f1(truth_cls, pred_cls, average = "macro"), (0.8 + 2 / 3) / 2)
   expect_equal(balancedaccuracy(truth_cls, pred_cls), 0.75)
   curve <- calibrationcurve(truth_cls, prob[, 2], bins = 2, strategy = "uniform")
   expect_equal(nrow(curve), 2)

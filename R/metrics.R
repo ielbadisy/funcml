@@ -279,6 +279,15 @@ specificity <- function(truth, pred_class, average = c("binary", "macro"), posit
 #' @rdname metrics
 #' @export
 f1 <- function(truth, pred_class, average = c("binary", "macro"), positive = NULL) {
+  average <- match.arg(average)
+  lev <- if (is.factor(truth)) levels(truth) else levels(factor(truth))
+  if (average == "macro" || length(lev) != 2L) {
+    # macro F1 is the mean of the per-class F1 = 2 TP / (2 TP + FP + FN), not the harmonic
+    # mean of macro precision and macro recall
+    return(.macro_class_metric(truth, pred_class,
+                               numerator = function(tp, fp, fn, tn) 2 * tp,
+                               denominator = function(tp, fp, fn, tn) 2 * tp + fp + fn))
+  }
   prec <- precision(truth, pred_class, average = average, positive = positive)
   rec <- recall(truth, pred_class, average = average, positive = positive)
   if (!is.finite(prec) || !is.finite(rec) || (prec + rec) == 0) {
