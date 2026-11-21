@@ -7,7 +7,7 @@
 \alias{summary.funcml_ice}
 \title{ICE result methods.}
 \usage{
-\method{plot}{funcml_ice}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
+\method{plot}{funcml_ice}(x, ..., labels = NULL, title = NULL, subtitle = NULL, caption = NULL)
 
 \method{print}{funcml_ice}(x, ...)
 
@@ -17,6 +17,8 @@
 \item{x}{A \code{funcml_ice} object.}
 
 \item{...}{Additional arguments passed to the underlying method.}
+
+\item{labels}{Optional named vector of per-feature axis titles (see \code{\link[=plot.funcml_ale]{plot.funcml_ale()}}).}
 
 \item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 

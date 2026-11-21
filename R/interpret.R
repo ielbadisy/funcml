@@ -255,6 +255,17 @@ listinterpretabilitymethods <- function(has_plot = NULL, columns = NULL) {
   sprintf("%s = %s", feature, .format_feature_value(value))
 }
 
+# Per-feature axis titles: strips moved under each panel as its x title, shared title dropped.
+.feature_axes <- function(labels) {
+  if (is.null(labels)) return(NULL)
+  lf <- function(f) unname(ifelse(f %in% names(labels), labels[f], f))
+  list(ggplot2::facet_wrap(~feature, scales = "free_x", strip.position = "bottom",
+                           labeller = ggplot2::as_labeller(lf)),
+       ggplot2::labs(x = NULL),
+       ggplot2::theme(strip.placement = "outside", strip.background = ggplot2::element_blank(),
+                      strip.text = ggplot2::element_text(face = "plain", size = ggplot2::rel(1.1))))
+}
+
 .publication_theme <- function() {
   themefuncml() +
     ggplot2::theme(legend.title = ggplot2::element_text(face = "bold"))
@@ -1553,6 +1564,7 @@ summary.funcml_permute <- function(object, ...) {
 #' @param x A `funcml_pdp` object.
 #' @param object A `funcml_pdp` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param labels Optional named vector of per-feature axis titles (see [plot.funcml_ale()]).
 #' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the partial dependence table
@@ -1574,7 +1586,7 @@ summary.funcml_permute <- function(object, ...) {
 #' summary(pdp)
 #' plot(pdp)
 #' @export
-plot.funcml_pdp <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
+plot.funcml_pdp <- function(x, ..., labels = NULL, title = NULL, subtitle = NULL, caption = NULL) {
   curves <- x$result$curves
   curves$plot_value <- .coerce_plot_value(curves$value)
   support <- x$result$support
@@ -1589,7 +1601,8 @@ plot.funcml_pdp <- function(x, ..., title = NULL, subtitle = NULL, caption = NUL
       y = .prediction_axis_label(x$task, x$type, context = "pdp")
     ) +
     .ttl(title, subtitle, caption) +
-    .publication_theme()
+    .publication_theme() +
+    .feature_axes(labels)
   if (x$task != "regression" && identical(x$type, "prob")) {
     p <- p + ggplot2::coord_cartesian(ylim = c(0, 1))
   }
@@ -1632,6 +1645,7 @@ summary.funcml_pdp <- function(object, ...) {
 #' @param x A `funcml_ice` object.
 #' @param object A `funcml_ice` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param labels Optional named vector of per-feature axis titles (see [plot.funcml_ale()]).
 #' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the ICE curve table invisibly.
@@ -1652,7 +1666,7 @@ summary.funcml_pdp <- function(object, ...) {
 #' summary(ice)
 #' plot(ice)
 #' @export
-plot.funcml_ice <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
+plot.funcml_ice <- function(x, ..., labels = NULL, title = NULL, subtitle = NULL, caption = NULL) {
   curves <- x$result$curves
   curves$plot_value <- .coerce_plot_value(curves$value)
   mean_df <- stats::aggregate(yhat ~ feature + value, data = curves, FUN = mean)
@@ -1668,7 +1682,8 @@ plot.funcml_ice <- function(x, ..., title = NULL, subtitle = NULL, caption = NUL
       y = .prediction_axis_label(x$task, x$type, context = "ice")
     ) +
     .ttl(title, subtitle, caption) +
-    .publication_theme()
+    .publication_theme() +
+    .feature_axes(labels)
 }
 
 #' @rdname interpret-ice-methods
@@ -1762,7 +1777,8 @@ plot.funcml_ceteris_paribus <- function(x, ..., title = NULL, subtitle = NULL, c
       y = .prediction_axis_label(x$task, x$type, context = "ice")
     ) +
     .ttl(title, subtitle, caption) +
-    .publication_theme()
+    .publication_theme() +
+    .feature_axes(labels)
   if (x$task != "regression" && identical(x$type, "prob")) {
     p <- p + ggplot2::coord_cartesian(ylim = c(0, 1))
   }
@@ -1777,6 +1793,9 @@ plot.funcml_ceteris_paribus <- function(x, ..., title = NULL, subtitle = NULL, c
 #' @param x A `funcml_ale` object.
 #' @param object A `funcml_ale` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param labels Optional named character vector of per-feature axis titles, e.g.
+#'   `c(age = "Age (years)")`; each panel then shows its own title under its axis. `NULL` (default)
+#'   keeps the feature names in the strips and one shared "Feature value" axis title.
 #' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the ALE curve table invisibly.
@@ -1797,7 +1816,7 @@ plot.funcml_ceteris_paribus <- function(x, ..., title = NULL, subtitle = NULL, c
 #' summary(ale)
 #' plot(ale)
 #' @export
-plot.funcml_ale <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
+plot.funcml_ale <- function(x, ..., labels = NULL, title = NULL, subtitle = NULL, caption = NULL) {
   curves <- x$result$curves
   curves$plot_value <- .coerce_plot_value(curves$value)
   support <- x$result$support
@@ -1813,7 +1832,8 @@ plot.funcml_ale <- function(x, ..., title = NULL, subtitle = NULL, caption = NUL
       y = .prediction_axis_label(x$task, x$type, context = "ale")
     ) +
     .ttl(title, subtitle, caption) +
-    .publication_theme()
+    .publication_theme() +
+    .feature_axes(labels)
   if (!is.null(support)) {
     p <- p + ggplot2::geom_rug(
       data = support,

@@ -7,7 +7,7 @@
 \alias{summary.funcml_ale}
 \title{ALE result methods.}
 \usage{
-\method{plot}{funcml_ale}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
+\method{plot}{funcml_ale}(x, ..., labels = NULL, title = NULL, subtitle = NULL, caption = NULL)
 
 \method{print}{funcml_ale}(x, ...)
 
@@ -17,6 +17,10 @@
 \item{x}{A \code{funcml_ale} object.}
 
 \item{...}{Additional arguments passed to the underlying method.}
+
+\item{labels}{Optional named character vector of per-feature axis titles, e.g.
+\code{c(age = "Age (years)")}; each panel then shows its own title under its axis. \code{NULL} (default)
+keeps the feature names in the strips and one shared "Feature value" axis title.}
 
 \item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 
