@@ -43,14 +43,30 @@
 #'   resampling (default `TRUE`). See Details.
 #' @param inner_resampling Optional resampling object for the inner tuning
 #'   loop when `nested = TRUE`. Defaults to the specification of `resampling`.
+#' @param se_method Standard error of each learner's cross-validated mean and
+#'   of the paired differences: `"naive"` (default, `sd / sqrt(J)`) or
+#'   `"corrected"` (Nadeau and Bengio 2003). See [evaluate()].
+#' @param reference Learner id the other learners are compared with in
+#'   `differences`. Defaults to the first element of `models`.
 #' @param ... Additional arguments passed to `evaluate()` or `tune()` / `fit()`.
-#' @details Missing values: if any variable used by `formula` contains `NA`,
+#' @details Paired differences: because all learners share the folds, the
+#'   fold-wise difference \eqn{d_j = m_j(\mathrm{model}) - m_j(\mathrm{reference})}
+#'   removes the variation between folds. `differences` reports, per learner and
+#'   metric, the mean of the \eqn{J} differences, its standard error (naive
+#'   \eqn{s_d/\sqrt{J}}, or corrected \eqn{s_d\sqrt{1/J + n_2/n_1}} with
+#'   \eqn{n_2/n_1} the test/train size ratio), a t interval and a two-sided
+#'   p-value on \eqn{J - 1} degrees of freedom. The naive test treats the folds
+#'   as independent and is anti-conservative; use `se_method = "corrected"`
+#'   (the Nadeau and Bengio corrected resampled t test) for inference.
+#'
+#'   Missing values: if any variable used by `formula` contains `NA`, Missing values: if any variable used by `formula` contains `NA`,
 #'   `compare()` stops before resampling with an error naming the affected
 #'   columns and the number of incomplete rows. Impute or drop incomplete rows
 #'   first. Predictor `NA` is accepted only when every learner in `models`
 #'   handles it natively (currently `fastgbm`); the outcome must be complete.
 #' @return A `funcml_compare` object: a list with `results` (one row per
-#'   learner and metric), `details` (per-learner evaluation and tuning
+#'   learner and metric), `differences` (paired differences against
+#'   `reference`, see Details), `details` (per-learner evaluation and tuning
 #'   objects), `predictions` (out-of-fold predictions of every learner, with a
 #'   `model` column and the columns described in [evaluate()]), the shared
 #'   `resampling`, and bookkeeping fields. The out-of-fold predictions are on
@@ -72,14 +88,18 @@ compare <- function(data, formula, models, specs = NULL,
                              conf_level = 0.95, seed = NULL, ncores = NULL,
                              tune = FALSE, grids = NULL,
                              metric = NULL, nested = TRUE,
-                             inner_resampling = NULL, ...) {
+                             inner_resampling = NULL, se_method = c("naive", "corrected"),
+                             reference = NULL, ...) {
   ncores <- .validate_ncores(ncores)
+  se_method <- match.arg(se_method)
   if (!is.character(models) || !length(models)) {
     stop("`models` must be a non-empty character vector.", call. = FALSE)
   }
   if (anyDuplicated(models)) {
     stop("`models` must not contain duplicates.", call. = FALSE)
   }
+  reference <- reference %||% models[[1]]
+  if (!reference %in% models) stop("`reference` must be one of `models`.", call. = FALSE)
   specs <- specs %||% list()
   if (!is.list(specs)) {
     stop("`specs` must be a list.", call. = FALSE)
@@ -132,7 +152,8 @@ compare <- function(data, formula, models, specs = NULL,
           type = type,
           conf_level = conf_level,
           seed = model_seeds[[i]],
-          ncores = NULL
+          ncores = NULL,
+          se_method = se_method
         ),
         dots
       )
@@ -169,7 +190,8 @@ compare <- function(data, formula, models, specs = NULL,
             metric = optimize_metric,
             type = type,
             seed = model_seeds[[i]],
-            ncores = NULL
+            ncores = NULL,
+            se_method = se_method
           ),
           model_spec,
           dots
@@ -187,7 +209,7 @@ compare <- function(data, formula, models, specs = NULL,
           inner_resampling = inner_spec, optimize_metric = optimize_metric,
           metrics = metrics_use, type = type, task = task, y = y,
           conf_level = conf_level, seed = model_seeds[[i]], tune_fn = tune_fn,
-          dots = dots
+          dots = dots, se_method = se_method
         )
         eval_obj <- nested_res$evaluate
         selected <- nested_res$selected
@@ -203,7 +225,8 @@ compare <- function(data, formula, models, specs = NULL,
             type = type,
             conf_level = conf_level,
             seed = model_seeds[[i]],
-            ncores = NULL
+            ncores = NULL,
+            se_method = se_method
           ),
           dots
         )
@@ -242,11 +265,37 @@ compare <- function(data, formula, models, specs = NULL,
     nested = isTRUE(tune) && isTRUE(nested),
     metric = if (isTRUE(tune)) optimize_metric else NULL,
     results = results,
+    differences = .compare_differences(
+      lapply(details, function(d) if (inherits(d, "funcml_eval")) d$folds else d$evaluate$folds),
+      reference, conf_level, se_method, .test_train_ratio(resampling$folds)
+    ),
+    reference = reference,
+    se_method = se_method,
     details = details,
     predictions = predictions,
     resampling = resampling
   )
   class(out) <- "funcml_compare"
+  out
+}
+
+# Fold-wise paired differences of each learner against `reference` (same folds), summarised with the
+# naive or Nadeau-Bengio corrected resampled t.
+.compare_differences <- function(folds, reference, conf_level, se_method, ratio) {
+  key <- function(f) paste(f$repeat_id, f$fold, f$metric)
+  ref <- folds[[reference]]
+  rows <- lapply(setdiff(names(folds), reference), function(m) {
+    f <- folds[[m]]
+    f$value <- f$value - ref$value[match(key(f), key(ref))]
+    f <- f[!is.na(f$value), , drop = FALSE]
+    if (!nrow(f)) return(NULL)
+    s <- .summarize_metric_uncertainty(f, conf_level, se_method, ratio)
+    t <- s$mean / s$std_error
+    data.frame(model = m, reference = reference, s[c("metric", "mean", "std_error", "conf_low", "conf_high")],
+               statistic = t, p_value = 2 * stats::pt(-abs(t), df = s$n - 1L), n = s$n)
+  })
+  out <- .rbind_dt(rows)
+  names(out)[names(out) == "mean"] <- "difference"
   out
 }
 
@@ -262,7 +311,7 @@ compare <- function(data, formula, models, specs = NULL,
 .compare_nested_eval <- function(data, formula, model, grid_fn, model_spec,
                                  resampling, inner_resampling, optimize_metric,
                                  metrics, type, task, y, conf_level, seed,
-                                 tune_fn, dots) {
+                                 tune_fn, dots, se_method = "naive") {
   folds <- resampling$folds
   fold_seeds <- .task_seeds(seed, length(folds))
   if (is.null(metrics)) {
@@ -306,6 +355,7 @@ compare <- function(data, formula, models, specs = NULL,
     summary = .summarize_metric_uncertainty(
       folds_df,
       conf_level = conf_level,
+      se_method = se_method,
       test_train_ratio = .test_train_ratio(folds)
     ),
     predictions = .rbind_dt(lapply(per_fold, `[[`, "predictions")),
@@ -314,7 +364,7 @@ compare <- function(data, formula, models, specs = NULL,
     task = task,
     model = model,
     resampling = resampling,
-    se_method = "naive",
+    se_method = se_method,
     nested = TRUE
   )
   class(eval_obj) <- "funcml_eval"
@@ -406,6 +456,11 @@ print.funcml_compare <- function(x, digits = 4L, ...) {
     })
   }
   print(.round_numeric_df(x$results, digits = digits))
+  if (!is.null(x$differences) && nrow(x$differences)) {
+    cat(sprintf("\nPaired differences vs %s (%s resampled t):\n", x$reference,
+                if (identical(x$se_method, "corrected")) "Nadeau-Bengio corrected" else "naive"))
+    print(.round_numeric_df(x$differences, digits = digits))
+  }
   invisible(x)
 }
 

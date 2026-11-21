@@ -20,6 +20,8 @@ compare(
   metric = NULL,
   nested = TRUE,
   inner_resampling = NULL,
+  se_method = c("naive", "corrected"),
+  reference = NULL,
   ...
 )
 }
@@ -62,11 +64,19 @@ resampling (default \code{TRUE}). See Details.}
 \item{inner_resampling}{Optional resampling object for the inner tuning
 loop when \code{nested = TRUE}. Defaults to the specification of \code{resampling}.}
 
+\item{se_method}{Standard error of each learner's cross-validated mean and
+of the paired differences: \code{"naive"} (default, \code{sd / sqrt(J)}) or
+\code{"corrected"} (Nadeau and Bengio 2003). See \code{\link[=evaluate]{evaluate()}}.}
+
+\item{reference}{Learner id the other learners are compared with in
+\code{differences}. Defaults to the first element of \code{models}.}
+
 \item{...}{Additional arguments passed to \code{evaluate()} or \code{tune()} / \code{fit()}.}
 }
 \value{
 A \code{funcml_compare} object: a list with \code{results} (one row per
-learner and metric), \code{details} (per-learner evaluation and tuning
+learner and metric), \code{differences} (paired differences against
+\code{reference}, see Details), \code{details} (per-learner evaluation and tuning
 objects), \code{predictions} (out-of-fold predictions of every learner, with a
 \code{model} column and the columns described in \code{\link[=evaluate]{evaluate()}}), the shared
 \code{resampling}, and bookkeeping fields. The out-of-fold predictions are on
@@ -95,7 +105,17 @@ older, faster behaviour of tuning and scoring on the same folds; that
 estimate is optimistic (the best of many configurations on the very folds
 used to pick it) and should not be reported as a performance estimate.
 
-Missing values: if any variable used by \code{formula} contains \code{NA},
+Paired differences: because all learners share the folds, the
+fold-wise difference \eqn{d_j = m_j(\mathrm{model}) - m_j(\mathrm{reference})}
+removes the variation between folds. \code{differences} reports, per learner and
+metric, the mean of the \eqn{J} differences, its standard error (naive
+\eqn{s_d/\sqrt{J}}, or corrected \eqn{s_d\sqrt{1/J + n_2/n_1}} with
+\eqn{n_2/n_1} the test/train size ratio), a t interval and a two-sided
+p-value on \eqn{J - 1} degrees of freedom. The naive test treats the folds
+as independent and is anti-conservative; use \code{se_method = "corrected"}
+(the Nadeau and Bengio corrected resampled t test) for inference.
+
+Missing values: if any variable used by \code{formula} contains \code{NA}, Missing values: if any variable used by \code{formula} contains \code{NA},
 \code{compare()} stops before resampling with an error naming the affected
 columns and the number of incomplete rows. Impute or drop incomplete rows
 first. Predictor \code{NA} is accepted only when every learner in \code{models}

@@ -15,6 +15,10 @@
 #'   `tune()` performs nested resampling and reports outer-fold performance
 #'   estimates for the tuned model-selection procedure.
 #' @param seed Optional seed.
+#' @param se_method Standard error of each configuration's cross-validated
+#'   mean (and of the nested estimate): `"naive"` (default) or `"corrected"`
+#'   (Nadeau and Bengio). See [evaluate()]. It does not change the selection,
+#'   which uses the mean.
 #' @param ncores Optional number of CPU cores used for tuning tasks. `NULL` or
 #'   `1` runs sequentially.
 #' @param ... Passed to `fit()`.
@@ -34,8 +38,9 @@ tune <- function(data, formula, model, grid = NULL, resampling = cv(5),
                  metric = NULL, type = NULL,
                  search = c("grid", "random"), n_evals = NULL,
                  outer_resampling = NULL, seed = NULL,
-                 ncores = NULL, ...) {
+                 ncores = NULL, se_method = c("naive", "corrected"), ...) {
   ncores <- .validate_ncores(ncores)
+  se_method <- match.arg(se_method)
   search <- match.arg(search)
   if (is.null(grid)) {
     grid <- defaulttunegrid(model, data = data, formula = formula)
@@ -71,6 +76,7 @@ tune <- function(data, formula, model, grid = NULL, resampling = cv(5),
       n_evals = n_evals,
       seed = seed,
       ncores = ncores,
+      se_method = se_method,
       ...
     )
   }
@@ -88,7 +94,7 @@ tune <- function(data, formula, model, grid = NULL, resampling = cv(5),
     spec_row <- as.list(row)
     eval_row <- evaluate(data, formula, model, spec = spec_row, resampling = resampling,
                          metrics = metric, type = type, seed = row_seeds[[i]],
-                         ncores = NULL, ...)
+                         ncores = NULL, se_method = se_method, ...)
     summary_row <- eval_row$summary[eval_row$summary$metric == metric, , drop = FALSE]
     c(
       spec_row,
@@ -211,7 +217,7 @@ plot.funcml_tune <- function(x, ..., title = NULL, subtitle = NULL, caption = NU
 
 .nested_resampling_summary <- function(data, formula, model, grid, resampling,
                                        outer_resampling, metric, type,
-                                       search, n_evals, seed, ncores, ...) {
+                                       search, n_evals, seed, ncores, se_method = "naive", ...) {
   y_all <- model.response(model.frame(formula, data))
   task <- infer_task(y_all)
   if (task == "classification") {
@@ -265,7 +271,8 @@ plot.funcml_tune <- function(x, ..., title = NULL, subtitle = NULL, caption = NU
   outer_folds <- .rbind_dt(outer_folds)
   list(
     folds = outer_folds,
-    summary = .summarize_metric_uncertainty(outer_folds),
+    summary = .summarize_metric_uncertainty(outer_folds, se_method = se_method,
+                                            test_train_ratio = .test_train_ratio(outer_resampling$folds)),
     resampling = outer_resampling
   )
 }
