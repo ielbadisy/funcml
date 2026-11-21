@@ -36,11 +36,12 @@ test_that("estimate supports binary outcome probabilities", {
   expect_s3_class(p, "ggplot")
   expect_equal(p$labels$x, "Predicted outcome")
   expect_equal(p$labels$y, "Density")
-  expect_match(p$labels$title, "ATE potential outcome distributions")
+  expect_null(p$labels$title)
+  expect_equal(plot(est, title = "ATE")$labels$title, "ATE")
   expect_s3_class(p_effects, "ggplot")
   expect_equal(p_effects$labels$x, "Estimated unit-level effect")
   expect_equal(p_effects$labels$y, "Count")
-  expect_match(p_effects$labels$title, "ATE estimate")
+  expect_null(p_effects$labels$title)
 })
 
 test_that("CATE requires newdata and returns weighted average over target rows", {

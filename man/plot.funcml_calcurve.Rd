@@ -4,22 +4,36 @@
 \alias{plot.funcml_calcurve}
 \title{Plot a binned calibration curve.}
 \usage{
-\method{plot}{funcml_calcurve}(x, title = NULL, ...)
+\method{plot}{funcml_calcurve}(
+  x,
+  title = NULL,
+  ...,
+  subtitle = NULL,
+  caption = NULL,
+  ci = TRUE,
+  level = 0.95
+)
 }
 \arguments{
 \item{x}{A \code{funcml_calcurve} data frame returned by \code{\link[=calibrationcurve]{calibrationcurve()}}.}
 
-\item{title}{Optional plot title.}
+\item{title, subtitle, caption}{Optional plot text; \code{NULL} (default) leaves it out.}
 
 \item{...}{Unused.}
+
+\item{ci}{Draw Wilson confidence intervals of the observed event rate per bin.}
+
+\item{level}{Confidence level of the intervals.}
 }
 \value{
-A \code{ggplot2} object.
+A \code{ggplot2} object. The axes run from 0 to 1 with a square panel;
+no coordinate system is set, so \code{coord_cartesian()} can be added to zoom.
 }
 \description{
 Draws the observed event rate against the mean predicted probability in
 each non-empty bin of a \code{\link[=calibrationcurve]{calibrationcurve()}} result (point size
-proportional to the bin count), with the ideal diagonal.
+proportional to the bin count), with Wilson confidence intervals for the
+observed rate and the ideal diagonal.
 }
 \examples{
 set.seed(1)

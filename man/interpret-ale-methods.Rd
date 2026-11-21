@@ -7,7 +7,7 @@
 \alias{summary.funcml_ale}
 \title{ALE result methods.}
 \usage{
-\method{plot}{funcml_ale}(x, ...)
+\method{plot}{funcml_ale}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
 
 \method{print}{funcml_ale}(x, ...)
 
@@ -17,6 +17,8 @@
 \item{x}{A \code{funcml_ale} object.}
 
 \item{...}{Additional arguments passed to the underlying method.}
+
+\item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 
 \item{object}{A \code{funcml_ale} object.}
 }

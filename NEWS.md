@@ -1,3 +1,45 @@
+# funcml 0.9.15
+
+Plot look and defaults changed (bug fixes); no numeric result changes except the ALE curve and the
+default permutation metric for classification, both noted below.
+
+* No plot method writes an automatic title or subtitle any more. Every `plot()` method takes
+  `title`, `subtitle` and `caption` arguments (default `NULL`, no text).
+* `plot(<funcml_compare>)` shared one value axis across metrics, so AUC and Brier were squeezed onto a
+  common scale. It now draws one panel per metric with free scales (`scales = "free_x"`, set
+  `"fixed"` for the old behaviour), strips such as "auc (higher is better)", models ordered best on
+  top by the first metric, a grey interval and a black point, without `coord_flip()`.
+* `plot(<funcml_eval>)` used blue labels and one shared axis. It now shows one free panel per metric
+  (fold values as a grey box with points, the mean and its interval) in greys and black, with the
+  same direction strips.
+* `interpret(method = "ale")` cut the feature at the inner deciles and plotted bin midpoints, so the
+  tails and the first bin were lost. Cut points are now the observed quantiles at 0, 1/K, ..., 1
+  (`grid.resolution`, default 20) and the curve is returned at the cut points, starting at the
+  minimum; results equal `iml::FeatureEffect(method = "ale")` on the same grid (test). ALE values
+  change (bug fix).
+* The interaction heatmap used different feature orders on its two axes. Both axes now share one order
+  (diagonal of self-pairs), with 45 degree x labels and a square panel.
+* `interpret(method = "permute")` scored predicted probabilities with accuracy by default. The default
+  for classification is now `"auc"` (`"accuracy"` only with `type = "class"`); explicit `metric =`
+  calls give the same numbers as before. The axis label states the direction ("Drop in AUC after
+  permutation", "Increase in RMSE after permutation").
+* `calibrationfit()` now returns class `funcml_calfit` (columns and values unchanged) with a new
+  `plot.funcml_calfit(x, ..., bins = 10, strategy, ci = TRUE, stats = TRUE)` method: the binned
+  calibration curve, the logistic recalibration curve and the estimated intercept and slope with their
+  intervals.
+* Calibration plots (`calibrationcurve()`, `interpret(method = "calibration")`) gain Wilson intervals
+  per bin (`ci = TRUE`, `level = 0.95`; equal to `prop.test(correct = FALSE)`, test) and no longer fix
+  the coordinate system, so `+ coord_cartesian()` works without a message (square panel kept).
+* New `plot.funcml_bootvalidate(x, ..., what = c("optimism", "orig", "boot"), metrics = NULL,
+  bins = 25)`: histograms of the bootstrap optimism (or apparent, or bootstrap) values per metric,
+  with the mean and a reference line (0 for optimism, 1 and 0 for `calslope` and `citl`).
+* The SHAP waterfall was a red/green bar chart without feature values. It now runs from the baseline
+  to the prediction, labels each bar "feature = value", and uses vermillion/blue (Okabe-Ito) for
+  contributions that raise or lower the prediction. All SHAP plots use the same two colours.
+* ROC, tuning, decision curve, estimand, surrogate and local-model plots use greys/black plus blue and
+  vermillion only.
+* `iml` added to Suggests (tests only); `tools` dropped from Imports (no longer used).
+
 # funcml 0.9.14
 
 * `plot()` on a `dca()` result drew a pairs plot because `dca()` returned a plain data frame. `dca()` now returns a data frame of class `funcml_dcacurve` (columns unchanged) with a new `plot.funcml_dcacurve(x, ..., labels = NULL, ylim = NULL, title = NULL)` method: net benefit against threshold for one or more models (extra `dca()` results via `...`), with "treat all" (dashed) and "treat none" reference lines and a default net benefit axis from -0.05 to the largest net benefit. Plotted values equal `dcurves::dca()` (test).

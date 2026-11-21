@@ -8,7 +8,7 @@
 \alias{plot.funcml_lime}
 \title{Local surrogate result methods for \code{local_model} and \code{lime}.}
 \usage{
-\method{plot}{funcml_iml_local_model}(x, ...)
+\method{plot}{funcml_iml_local_model}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
 
 \method{plot}{funcml_lime}(x, ...)
 
@@ -20,6 +20,8 @@
 \item{x}{A \code{funcml_iml_local_model} object.}
 
 \item{...}{Additional arguments passed to the underlying method.}
+
+\item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 
 \item{object}{A \code{funcml_iml_local_model} object.}
 }

@@ -151,8 +151,13 @@ evaluate <- function(data, formula, model = NULL, spec = NULL,
 #' @param object A `funcml_eval` object.
 #' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param scales Facet scales for `plot()`: `"free_x"` (default) gives each metric its own value
+#'   axis, `"fixed"` shares one.
+#' @param title,subtitle,caption Optional plot text; `NULL` (default) leaves it out.
 #' @return `print()` and `summary()` return the input object or summary
-#'   table invisibly. `plot()` returns a `ggplot2` object.
+#'   table invisibly. `plot()` returns a `ggplot2` object: one panel per
+#'   metric (fold values, box, mean and interval), strips saying which
+#'   direction is better.
 #'
 #' @name evaluate-methods
 #' @aliases print.funcml_eval summary.funcml_eval plot.funcml_eval
@@ -189,32 +194,21 @@ summary.funcml_eval <- function(object, digits = 4L, ...) {
 
 #' @rdname evaluate-methods
 #' @export
-plot.funcml_eval <- function(x, ...) {
-  df <- x$folds
-  ggplot2::ggplot(df, ggplot2::aes(x = value, y = stats::reorder(metric, value, FUN = median))) +
-    ggplot2::geom_boxplot(fill = "white", colour = "grey25", outlier.alpha = 0.3, width = 0.65) +
-    ggplot2::geom_point(
-      position = ggplot2::position_jitter(height = 0.12, width = 0),
-      alpha = 0.3,
-      size = 1.2,
-      colour = "grey30"
-    ) +
-    ggplot2::geom_point(
-      data = x$summary,
-      mapping = ggplot2::aes(x = mean, y = metric),
-      inherit.aes = FALSE,
-      size = 2.2,
-      colour = "black"
-    ) +
-    ggplot2::geom_segment(
-      data = x$summary,
-      mapping = ggplot2::aes(x = conf_low, xend = conf_high, y = metric, yend = metric),
-      inherit.aes = FALSE,
-      linewidth = 0.45,
-      colour = .funcml_palette$accent
-    ) +
-    ggplot2::labs(x = "Cross-validated metric value", y = NULL, title = "Cross-validation performance") +
-    themefuncml()
+plot.funcml_eval <- function(x, ..., scales = "free_x", title = NULL, subtitle = NULL, caption = NULL) {
+  df <- x$folds; sm <- x$summary
+  df$metric <- .metric_strip(df$metric); sm$metric <- .metric_strip(sm$metric)
+  ggplot2::ggplot(df, ggplot2::aes(x = value, y = "")) +
+    ggplot2::geom_boxplot(fill = "grey92", colour = "grey40", outlier.shape = NA, width = 0.5) +
+    ggplot2::geom_point(position = ggplot2::position_jitter(height = 0.1, width = 0, seed = 1),
+                        alpha = 0.5, size = 1.3, colour = "grey30") +
+    ggplot2::geom_segment(data = sm, ggplot2::aes(x = conf_low, xend = conf_high, y = 0.6, yend = 0.6),
+                          inherit.aes = FALSE, linewidth = 0.5, colour = "black") +
+    ggplot2::geom_point(data = sm, ggplot2::aes(x = mean, y = 0.6), inherit.aes = FALSE, size = 2.2, shape = 18) +
+    .metric_facets(scales) +
+    ggplot2::labs(x = "Cross-validated metric value (folds; diamond: mean and interval)", y = NULL) +
+    .ttl(title, subtitle, caption) +
+    themefuncml() +
+    ggplot2::theme(axis.ticks.y = ggplot2::element_blank())
 }
 
 .check_no_missing_model_vars <- function(formula, data, outcome_only = FALSE, caller = "evaluate") {

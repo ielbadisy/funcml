@@ -36,56 +36,38 @@
   list(data = row_df, baseline = baseline, prediction = prediction)
 }
 
+# Okabe-Ito: vermillion raises the prediction, blue lowers it.
+.shap_cols <- c(Positive = "#D55E00", Negative = "#0072B2")
 .shap_signed_scale <- function() {
-  ggplot2::scale_colour_manual(values = c(Positive = "#2ca25f", Negative = "#de2d26"))
+  ggplot2::scale_colour_manual(values = .shap_cols, labels = c(Positive = "Raises", Negative = "Lowers"))
 }
 
 .shap_signed_fill_scale <- function() {
-  ggplot2::scale_fill_manual(values = c(Positive = "#2ca25f", Negative = "#de2d26"))
+  ggplot2::scale_fill_manual(values = .shap_cols, labels = c(Positive = "Raises", Negative = "Lowers"))
 }
 
-.shap_bar_data <- function(df, row_id, max_display = 10L) {
-  row_df <- df[df$observation == row_id, , drop = FALSE]
-  row_df <- row_df[order(-abs(row_df$shap)), , drop = FALSE]
-  prediction <- row_df$prediction[1]
-  baseline <- row_df$baseline[1]
-  if (nrow(row_df) > max_display) {
-    keep <- row_df[seq_len(max_display - 1L), , drop = FALSE]
-    rest <- row_df[-seq_len(max_display - 1L), , drop = FALSE]
-    other <- data.frame(
-      feature_label = sprintf("%d other features", nrow(rest)),
-      shap = sum(rest$shap),
-      stringsAsFactors = FALSE
-    )
-    row_df <- rbind(keep[, c("feature_label", "shap")], other)
-  } else {
-    row_df <- row_df[, c("feature_label", "shap")]
-  }
-  row_df <- row_df[order(abs(row_df$shap)), , drop = FALSE]
-  row_df$sign <- ifelse(row_df$shap >= 0, "Positive", "Negative")
-  row_df$y <- factor(row_df$feature_label, levels = row_df$feature_label)
-  list(data = row_df, baseline = baseline, prediction = prediction)
-}
-
+# Waterfall: bars run from the baseline E[f(x)] (bottom) to the prediction f(x) (top), largest |SHAP| on top;
+# y labels carry the feature values, bar labels the signed SHAP values.
 shap_plot_waterfall <- function(df, row_id = NULL, max_display = 10L) {
   row_id <- row_id %||% min(df$observation)
-  built <- .shap_bar_data(df, row_id, max_display = max_display)
-  built$data$hjust <- ifelse(built$data$shap >= 0, -0.15, 1.15)
-  ggplot2::ggplot(built$data, ggplot2::aes(y = y, x = shap, fill = sign)) +
-    ggplot2::geom_col(width = 0.65) +
-    ggplot2::geom_vline(xintercept = 0, colour = "black", linewidth = 0.4) +
-    ggplot2::geom_text(
-      ggplot2::aes(label = sprintf("%+.3f", shap), hjust = hjust),
-      size = 3.1, colour = "grey20"
-    ) +
-    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0.18)) +
+  b <- .shap_waterfall_data(df, row_id, max_display = max_display)
+  d <- b$data; d$yi <- seq_len(nrow(d))
+  d$lx <- pmax(d$start, d$end); d$hj <- -0.1
+  rng <- range(c(d$start, d$end))
+  ggplot2::ggplot(d) +
+    ggplot2::geom_vline(xintercept = b$baseline, linetype = "dashed", colour = "grey55", linewidth = 0.4) +
+    ggplot2::geom_vline(xintercept = b$prediction, colour = "grey25", linewidth = 0.4) +
+    ggplot2::geom_rect(ggplot2::aes(xmin = pmin(start, end), xmax = pmax(start, end), ymin = yi - 0.35,
+                                    ymax = yi + 0.35, fill = sign)) +
+    ggplot2::geom_text(ggplot2::aes(x = lx, y = yi, label = sprintf("%+.3f", shap)), hjust = -0.1, size = 3,
+                       colour = "grey20") +
+    ggplot2::scale_y_continuous(breaks = d$yi, labels = d$feature_label, expand = ggplot2::expansion(add = 0.5)) +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.04, 0.2))) +
     .shap_signed_fill_scale() +
-    ggplot2::labs(
-      x = "SHAP value",
-      y = NULL, fill = NULL,
-      title = sprintf("SHAP waterfall (observation %s, prediction = %.3f)", row_id, built$prediction)
-    ) +
-    themefuncml()
+    ggplot2::labs(x = sprintf("Prediction (dashed: baseline E[f(x)] = %.3f; solid: f(x) = %.3f)",
+                              b$baseline, b$prediction), y = NULL, fill = NULL) +
+    themefuncml() +
+    ggplot2::theme(legend.position = "bottom", panel.grid.major.y = ggplot2::element_blank())
 }
 
 shap_plot_force <- function(df, row_id = NULL) {
@@ -102,8 +84,7 @@ shap_plot_force <- function(df, row_id = NULL) {
     .shap_signed_scale() +
     ggplot2::labs(
       x = sprintf("Prediction (baseline = %.3f)", built$baseline),
-      y = NULL, colour = NULL,
-      title = sprintf("SHAP force (observation %s, prediction = %.3f)", row_id, built$prediction)
+      y = NULL, colour = NULL
     ) +
     themefuncml() +
     ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
@@ -125,7 +106,7 @@ shap_plot_importance <- function(df) {
       hjust = -0.15, size = 3.1, colour = "grey20"
     ) +
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.15))) +
-    ggplot2::labs(x = "Mean |SHAP value|", y = NULL, title = "SHAP feature importance") +
+    ggplot2::labs(x = "Mean |SHAP value|", y = NULL) +
     themefuncml()
 }
 
@@ -203,7 +184,7 @@ shap_plot_dependence <- function(df, v, color_var = "auto", features = unique(df
   p +
     ggplot2::geom_hline(yintercept = 0, colour = "grey70", linewidth = 0.3) +
     ggplot2::geom_point(alpha = 0.75, size = 1.6) +
-    ggplot2::labs(x = v, y = "SHAP value", title = sprintf("SHAP dependence: %s", v)) +
+    ggplot2::labs(x = v, y = "SHAP value") +
     themefuncml()
 }
 
@@ -229,8 +210,7 @@ shap_plot_dependence2d <- function(df, x_var, y_var, s_inter = NULL) {
     ggplot2::geom_point(size = 2.2, alpha = 0.85) +
     ggplot2::scale_colour_gradient2(low = "#0072B2", mid = "grey90", high = "#D55E00", midpoint = 0) +
     ggplot2::labs(
-      x = x_var, y = y_var, colour = "SHAP\ninteraction",
-      title = sprintf("SHAP interaction: %s x %s", x_var, y_var)
+      x = x_var, y = y_var, colour = "SHAP\ninteraction"
     ) +
     themefuncml()
 }
@@ -263,7 +243,7 @@ shap_plot_interaction <- function(s_inter, kind = c("bar", "beeswarm")) {
           hjust = -0.15, size = 3.1, colour = "grey20"
         ) +
         ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.15))) +
-        ggplot2::labs(x = "Mean |SHAP interaction|", y = NULL, title = "SHAP interaction strength") +
+        ggplot2::labs(x = "Mean |SHAP interaction|", y = NULL) +
         themefuncml()
     )
   }
@@ -282,6 +262,6 @@ shap_plot_interaction <- function(s_inter, kind = c("bar", "beeswarm")) {
   ggplot2::ggplot(long, ggplot2::aes(x = value, y = pair)) +
     ggplot2::geom_vline(xintercept = 0, colour = "grey70", linewidth = 0.3) +
     ggplot2::geom_jitter(height = 0.25, width = 0, alpha = 0.7, size = 1.4, colour = "grey35") +
-    ggplot2::labs(x = "SHAP interaction value", y = NULL, title = "SHAP interaction strength") +
+    ggplot2::labs(x = "SHAP interaction value", y = NULL) +
     themefuncml()
 }

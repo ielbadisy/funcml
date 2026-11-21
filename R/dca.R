@@ -69,7 +69,7 @@ dca <- function(truth, prob, positive = NULL, thresholds = seq(0.01, 0.99, by = 
 #'   to the argument names, or `"Model"` for a single curve.
 #' @param ylim Net benefit axis limits. Defaults to `-0.05` to the largest
 #'   net benefit, so the steep fall of "treat all" does not flatten the plot.
-#' @param title Optional plot title.
+#' @param title,subtitle,caption Optional plot text; `NULL` (default) leaves it out.
 #' @return A `ggplot2` object.
 #' @examples
 #' set.seed(1)
@@ -79,15 +79,16 @@ dca <- function(truth, prob, positive = NULL, thresholds = seq(0.01, 0.99, by = 
 #' plot(dca(y, p1))
 #' plot(dca(y, p1), dca(y, p2), labels = c("Strong", "Weak"))
 #' @export
-plot.funcml_dcacurve <- function(x, ..., labels = NULL, ylim = NULL, title = NULL) {
+plot.funcml_dcacurve <- function(x, ..., labels = NULL, ylim = NULL, title = NULL, subtitle = NULL,
+                                 caption = NULL) {
   cs <- c(list(x), list(...))
   nm <- names(cs)
   labels <- labels %||% if (length(cs) == 1L) "Model" else ifelse(nzchar(nm %||% ""), nm, paste("Model", seq_along(cs)))
-  .dca_plot(cs, labels, ylim = ylim, title = title)
+  .dca_plot(cs, labels, ylim = ylim) + .ttl(title, subtitle, caption)
 }
 
 # Shared decision-curve drawing for dca() curves and interpret(method = "dca").
-.dca_plot <- function(cs, labels, ylim = NULL, title = NULL) {
+.dca_plot <- function(cs, labels, ylim = NULL) {
   ref <- cs[[1L]]
   mods <- do.call(rbind, Map(function(d, l) data.frame(threshold = d$threshold, nb = d$model, s = l), cs, labels))
   refs <- data.frame(threshold = rep(ref$threshold, 2L), nb = c(ref$treat_all, ref$treat_none),
@@ -105,7 +106,7 @@ plot.funcml_dcacurve <- function(x, ..., labels = NULL, ylim = NULL, title = NUL
     ggplot2::scale_colour_manual(values = cols) +
     ggplot2::scale_linetype_manual(values = ltys) +
     ggplot2::coord_cartesian(ylim = ylim) +
-    ggplot2::labs(x = "Threshold probability", y = "Net benefit", colour = NULL, linetype = NULL, title = title) +
+    ggplot2::labs(x = "Threshold probability", y = "Net benefit", colour = NULL, linetype = NULL) +
     themefuncml() +
     ggplot2::theme(legend.position = "bottom")
 }
@@ -118,6 +119,7 @@ plot.funcml_dcacurve <- function(x, ..., labels = NULL, ylim = NULL, title = NUL
 #' @param x A `funcml_dca` object.
 #' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments (unused).
+#' @param title,subtitle,caption Optional plot text; `NULL` (default) leaves it out.
 #' @return `print()` returns the input object invisibly. `plot()` returns a
 #'   `ggplot2` object.
 #' @name dca-methods
@@ -131,6 +133,6 @@ print.funcml_dca <- function(x, digits = 4L, ...) {
 
 #' @rdname dca-methods
 #' @export
-plot.funcml_dca <- function(x, ...) {
-  .dca_plot(list(x$result$curve), "Model", title = "Decision curve analysis")
+plot.funcml_dca <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
+  .dca_plot(list(x$result$curve), "Model") + .ttl(title, subtitle, caption)
 }

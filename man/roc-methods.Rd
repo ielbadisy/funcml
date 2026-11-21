@@ -8,7 +8,7 @@
 \usage{
 \method{print}{funcml_roc}(x, digits = 4L, ...)
 
-\method{plot}{funcml_roc}(x, ...)
+\method{plot}{funcml_roc}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
 }
 \arguments{
 \item{x}{A \code{funcml_roc} object.}
@@ -16,6 +16,8 @@
 \item{digits}{Number of digits numeric columns are rounded to when printed.}
 
 \item{...}{Additional arguments (unused).}
+
+\item{title, subtitle, caption}{Optional plot text; \code{NULL} (default) leaves it out.}
 }
 \value{
 \code{print()} returns the input object invisibly. \code{plot()} returns a

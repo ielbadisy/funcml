@@ -4,7 +4,15 @@
 \alias{plot.funcml_dcacurve}
 \title{Plot a decision curve.}
 \usage{
-\method{plot}{funcml_dcacurve}(x, ..., labels = NULL, ylim = NULL, title = NULL)
+\method{plot}{funcml_dcacurve}(
+  x,
+  ...,
+  labels = NULL,
+  ylim = NULL,
+  title = NULL,
+  subtitle = NULL,
+  caption = NULL
+)
 }
 \arguments{
 \item{x}{A \code{funcml_dcacurve} data frame returned by \code{\link[=dca]{dca()}}.}
@@ -18,7 +26,7 @@ to the argument names, or \code{"Model"} for a single curve.}
 \item{ylim}{Net benefit axis limits. Defaults to \code{-0.05} to the largest
 net benefit, so the steep fall of "treat all" does not flatten the plot.}
 
-\item{title}{Optional plot title.}
+\item{title, subtitle, caption}{Optional plot text; \code{NULL} (default) leaves it out.}
 }
 \value{
 A \code{ggplot2} object.

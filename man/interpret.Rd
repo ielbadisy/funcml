@@ -47,7 +47,9 @@ interpret(
 
 \item{type}{Prediction scale: regression -> "response"; classification -> "prob" or "class".}
 
-\item{metric}{Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc/auc_weighted).}
+\item{metric}{Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc/auc_weighted).
+Defaults to \code{"rmse"} for regression and \code{"auc"} for classification (\code{"accuracy"} when
+\code{type = "class"}).}
 
 \item{importance_type}{Importance engine for \code{method = "vip"}:
 \code{"permute"} (permutation importance, the default), \code{"model"} (the
@@ -86,7 +88,11 @@ profile per row; the grid of each feature is built from \code{data}).}
 
 \item{nsamples}{Row subsample for speed (reference/background set).}
 
-\item{grid}{Optional list of grids per feature for PDP/ICE/ALE.}
+\item{grid}{Optional list of grids per feature for PDP/ICE/ALE. For ALE the
+grid values are the bin cut points; by default they are the observed
+quantiles at 0, 1/K, ..., 1 with K = \code{grid.resolution} (passed in \code{...},
+default 20), so the curve spans the whole range of the feature, and the
+curve is returned at the cut points (as \code{iml::FeatureEffect}).}
 
 \item{seed}{Optional seed for determinism.}
 

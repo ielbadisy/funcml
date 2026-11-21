@@ -5,12 +5,14 @@
 \alias{plot.funcml_ceteris_paribus}
 \title{Ceteris paribus result methods.}
 \usage{
-\method{plot}{funcml_ceteris_paribus}(x, ...)
+\method{plot}{funcml_ceteris_paribus}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
 }
 \arguments{
 \item{x}{A \code{funcml_ceteris_paribus} object.}
 
 \item{...}{Additional arguments (unused).}
+
+\item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 }
 \value{
 A \code{ggplot2} object.

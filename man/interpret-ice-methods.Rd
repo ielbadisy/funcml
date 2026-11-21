@@ -7,7 +7,7 @@
 \alias{summary.funcml_ice}
 \title{ICE result methods.}
 \usage{
-\method{plot}{funcml_ice}(x, ...)
+\method{plot}{funcml_ice}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
 
 \method{print}{funcml_ice}(x, ...)
 
@@ -17,6 +17,8 @@
 \item{x}{A \code{funcml_ice} object.}
 
 \item{...}{Additional arguments passed to the underlying method.}
+
+\item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 
 \item{object}{A \code{funcml_ice} object.}
 }

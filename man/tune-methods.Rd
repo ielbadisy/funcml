@@ -11,7 +11,7 @@
 
 \method{summary}{funcml_tune}(object, digits = 4L, ...)
 
-\method{plot}{funcml_tune}(x, ...)
+\method{plot}{funcml_tune}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
 }
 \arguments{
 \item{x}{A \code{funcml_tune} object.}
@@ -21,6 +21,8 @@
 \item{...}{Additional arguments passed to the underlying method.}
 
 \item{object}{A \code{funcml_tune} object.}
+
+\item{title, subtitle, caption}{Optional plot text; \code{NULL} (default) leaves it out.}
 }
 \value{
 \code{print()} and \code{summary()} return the input object or results table

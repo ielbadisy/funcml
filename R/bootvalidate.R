@@ -158,6 +158,58 @@ print.funcml_bootvalidate <- function(x, digits = 4L, ...) {
   invisible(x)
 }
 
+#' Plot the bootstrap distribution behind a bootstrap validation.
+#'
+#' One histogram panel per metric (own value axis) of the per-replicate
+#' optimism `boot - orig` (default), of `orig` (each bootstrap model scored
+#' on the original data, e.g. the calibration slope of the refitted models),
+#' or of `boot` (apparent performance in the bootstrap sample). The solid line
+#' is the mean, which for `what = "optimism"` is the optimism that
+#' [bootvalidate()] subtracts; the dashed line is the reference: no optimism
+#' (0) for `"optimism"`, the ideal value for `calslope` (1) and `citl` (0),
+#' and the apparent value otherwise.
+#'
+#' @param x A `funcml_bootvalidate` object.
+#' @param ... Unused.
+#' @param what Which replicate quantity to show: `"optimism"`, `"orig"` or `"boot"`.
+#' @param metrics Metrics to show (default all).
+#' @param bins Number of histogram bins.
+#' @param title,subtitle,caption Optional plot text; `NULL` (default) leaves it out.
+#' @return A `ggplot2` object; its data has columns `metric`, `replicate`, `value`.
+#' @examples
+#' bv <- bootvalidate(mtcars, mpg ~ wt + hp, model = "glm", B = 30, seed = 1)
+#' plot(bv)
+#' plot(bv, what = "orig", metrics = "rsq")
+#' @export
+plot.funcml_bootvalidate <- function(x, ..., what = c("optimism", "orig", "boot"), metrics = NULL, bins = 25,
+                                     title = NULL, subtitle = NULL, caption = NULL) {
+  what <- match.arg(what)
+  r <- x$replicates
+  ms <- metrics %||% x$summary$metric
+  r <- r[r$metric %in% ms, , drop = FALSE]
+  d <- data.frame(metric = r$metric, replicate = r$replicate, value = if (what == "optimism") r$boot - r$orig else r[[what]])
+  sm <- x$summary[match(ms, x$summary$metric), , drop = FALSE]
+  ref <- if (what == "optimism") rep(0, length(ms)) else
+    ifelse(ms %in% names(.target_metrics), .target_metrics[ms], sm$apparent)
+  lines <- data.frame(metric = rep(ms, 2), v = c(tapply(d$value, d$metric, mean)[ms], ref),
+                      k = rep(c("mean", "ref"), each = length(ms)))
+  lab <- function(m) factor(m, levels = ms)
+  d$metric <- lab(d$metric); lines$metric <- lab(lines$metric)
+  xl <- switch(what, optimism = "Optimism (bootstrap-sample minus original-data performance)",
+               orig = "Bootstrap model scored on the original data", boot = "Bootstrap model scored on its own sample")
+  ggplot2::ggplot(d, ggplot2::aes(x = value)) +
+    ggplot2::geom_histogram(bins = bins, fill = "grey85", colour = "grey55", linewidth = 0.2) +
+    ggplot2::geom_vline(data = lines, ggplot2::aes(xintercept = v, linetype = k), linewidth = 0.6,
+                        show.legend = FALSE) +
+    ggplot2::scale_linetype_manual(values = c(mean = "solid", ref = "dashed")) +
+    ggplot2::facet_wrap(~metric, scales = "free") +
+    ggplot2::scale_x_continuous(n.breaks = 4) +
+    ggplot2::labs(x = xl, y = "Replicates") +
+    .ttl(title, subtitle, caption) +
+    themefuncml() +
+    ggplot2::theme(panel.spacing.x = ggplot2::unit(1.5, "lines"))
+}
+
 # Score a fitted model on `newdata`; keeps the predictions for the
 # no-information rate.
 .bv_score <- function(fit_obj, newdata, truth, task, metrics) {
