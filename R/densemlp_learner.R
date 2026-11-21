@@ -91,7 +91,7 @@
     early_stopping = spec$early_stopping %||% TRUE,
     patience = spec$patience %||% 10L,
     min_delta = spec$min_delta %||% 0,
-    seed = spec$seed %||% 1L,
+    seed = .engine_seed(spec),
     verbose = isTRUE(spec$verbose %||% FALSE),
     ncores = spec$ncores %||% 1L
   )

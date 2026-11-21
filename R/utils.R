@@ -290,3 +290,7 @@ merge_spec <- function(defaults, spec, dots = list()) {
 
   factor(as.character(raw), levels = levels)
 }
+
+# Native engines (densemlp, fastgbm) keep their own RNG; draw their seed from R's stream so that
+# fit(seed = ), evaluate(seed = ) and set.seed() control them like every other learner.
+.engine_seed <- function(spec) spec$seed %||% sample.int(.Machine$integer.max, 1L)

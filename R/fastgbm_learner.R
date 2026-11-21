@@ -33,7 +33,7 @@
     gamma = spec$gamma %||% 0,
     min_child_weight = spec$min_child_weight %||% 1,
     threads = spec$threads %||% 0L,
-    seed = spec$seed %||% 1L,
+    seed = .engine_seed(spec),
     verbose = isTRUE(spec$verbose %||% FALSE)
   )
 
