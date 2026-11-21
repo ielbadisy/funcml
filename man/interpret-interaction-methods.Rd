@@ -7,7 +7,7 @@
 \alias{summary.funcml_interaction}
 \title{Interaction result methods.}
 \usage{
-\method{plot}{funcml_interaction}(x, ...)
+\method{plot}{funcml_interaction}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
 
 \method{print}{funcml_interaction}(x, ...)
 
@@ -17,6 +17,8 @@
 \item{x}{A \code{funcml_interaction} object.}
 
 \item{...}{Additional arguments passed to the underlying method.}
+
+\item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 
 \item{object}{A \code{funcml_interaction} object.}
 }

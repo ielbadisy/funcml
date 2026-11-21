@@ -59,7 +59,7 @@ test_that("plot labels follow method-specific semantics", {
   ale_plot <- plot(ale_obj)
   sh_plot <- plot(sh_obj, kind = "summary")
 
-  expect_match(perm_plot$labels$x, "Change in RMSE after permutation")
+  expect_match(perm_plot$labels$x, "Increase in RMSE after permutation")
   expect_equal(pdp_plot$labels$y, "Partial dependence")
   expect_match(ale_plot$labels$y, "ALE on response scale")
   expect_equal(sh_plot$labels$x, "SHAP value (impact on model output)")
@@ -101,14 +101,14 @@ test_that("shap supports dependence, 2d dependence, force, and interaction plots
   expect_s3_class(p_inter, "ggplot")
 })
 
-test_that("ceteris paribus plot has its own title and marks the observed point", {
+test_that("ceteris paribus plot has no automatic title and marks the observed point", {
   fit_obj <- fit(mpg ~ wt + hp + disp, data = mtcars, model = "glm")
   cp <- interpret(fit_obj, mtcars, method = "ceteris_paribus", newdata = mtcars[3, ],
                   features = c("wt", "hp"))
   p <- plot(cp)
   expect_s3_class(p, "ggplot")
-  expect_equal(p$labels$title, "Ceteris paribus profile")
-  expect_false(grepl("ICE", p$labels$title))
+  expect_null(p$labels$title)
+  expect_equal(plot(cp, title = "Profile")$labels$title, "Profile")
   geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   expect_true("GeomPoint" %in% geoms)
   pts <- p$layers[[which(geoms == "GeomPoint")]]$data
@@ -120,7 +120,6 @@ test_that("ceteris paribus plot has its own title and marks the observed point",
   cp3 <- interpret(fit_obj, mtcars, method = "ceteris_paribus", newdata = mtcars[1:3, ],
                    features = "wt")
   p3 <- plot(cp3)
-  expect_match(p3$labels$title, "Ceteris paribus profiles \\(3 observations\\)")
   geoms3 <- vapply(p3$layers, function(l) class(l$geom)[1], character(1))
   expect_equal(nrow(p3$layers[[which(geoms3 == "GeomPoint")]]$data), 3L)
 
@@ -136,7 +135,7 @@ test_that("ceteris paribus plot has its own title and marks the observed point",
   expect_s3_class(plot(cp_mixed), "ggplot")
   ggplot2::ggplot_build(plot(cp_mixed))
 
-  # plain ICE keeps its title
+  # no automatic ICE title
   ice <- interpret(fit_obj, mtcars, method = "ice", features = "wt", nsamples = 10)
-  expect_equal(plot(ice)$labels$title, "ICE plot")
+  expect_null(plot(ice)$labels$title)
 })

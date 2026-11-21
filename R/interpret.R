@@ -280,13 +280,11 @@ listinterpretabilitymethods <- function(has_plot = NULL, columns = NULL) {
 
 .permute_axis_label <- function(x) {
   metric <- x$result$metric %||% x$metric %||% "metric"
-  comparison <- x$result$comparison %||% "difference"
-  direction <- if (comparison == "difference") {
-    sprintf("Change in %s after permutation", toupper(metric))
-  } else {
-    sprintf("Relative change in %s after permutation", toupper(metric))
+  nm <- if (nchar(metric) <= 4) toupper(metric) else metric
+  if ((x$result$comparison %||% "difference") != "difference") {
+    return(sprintf("Relative change in %s after permutation", nm))
   }
-  direction
+  sprintf("%s in %s after permutation", if (.metric_smaller_is_better(metric)) "Increase" else "Drop", nm)
 }
 
 .support_frame <- function(data_use, features) {
@@ -390,6 +388,8 @@ listinterpretabilitymethods <- function(has_plot = NULL, columns = NULL) {
 #' @param features Optional subset of features; defaults to all predictors.
 #' @param type Prediction scale: regression -> "response"; classification -> "prob" or "class".
 #' @param metric Loss/score for importance (reg: rmse/mae/mse/medae/mape/rsq; cls: accuracy/precision/recall/specificity/f1/balanced_accuracy/logloss/brier/ece/mce/auc/auc_weighted).
+#'   Defaults to `"rmse"` for regression and `"auc"` for classification (`"accuracy"` when
+#'   `type = "class"`).
 #' @param importance_type Importance engine for `method = "vip"`:
 #'   `"permute"` (permutation importance, the default), `"model"` (the
 #'   learner's native importance, e.g. impurity for `ranger`; an error for
@@ -430,7 +430,11 @@ listinterpretabilitymethods <- function(has_plot = NULL, columns = NULL) {
 #'   profile per row; the grid of each feature is built from `data`).
 #' @param nsim Number of Monte Carlo simulations (importance/SHAP) or repetitions.
 #' @param nsamples Row subsample for speed (reference/background set).
-#' @param grid Optional list of grids per feature for PDP/ICE/ALE.
+#' @param grid Optional list of grids per feature for PDP/ICE/ALE. For ALE the
+#'   grid values are the bin cut points; by default they are the observed
+#'   quantiles at 0, 1/K, ..., 1 with K = `grid.resolution` (passed in `...`,
+#'   default 20), so the curve spans the whole range of the feature, and the
+#'   curve is returned at the cut points (as `iml::FeatureEffect`).
 #' @param seed Optional seed for determinism.
 #' @param bins Number of bins for calibration diagnostics.
 #' @param strategy Binning strategy for calibration diagnostics.
@@ -488,7 +492,9 @@ interpret <- function(fit, data, formula = fit$formula,
   }
 
   task <- fit$task
-  metric <- metric %||% if (task == "regression") "rmse" else "accuracy"
+  # Classification default: AUC on the probabilities. Accuracy at a 0.5 cut barely moves for a rare outcome,
+  # and log loss explodes on the 0/1 leaf probabilities of trees. Accuracy stays the default for `type = "class"`.
+  metric <- metric %||% if (task == "regression") "rmse" else if (identical(type, "class")) "accuracy" else "auc"
   if (method == "permute") {
     importance_type <- "permute"
   }
@@ -918,43 +924,36 @@ interpret_ceteris_paribus <- function(fit, data, features, type, class_level, po
   )
 }
 
+# ALE (Apley and Zhu 2020): cut points at observed quantiles 0, 1/K, ..., 1 (tails kept), bins (z[k-1], z[k]]
+# with the minimum in the first bin, curve evaluated at the cut points starting from 0 at z[0], then centred
+# so its mean over the observations is 0 (bin-count weighted mean of the bin end-point averages, as iml).
 interpret_ale <- function(fit, data, features, type, class_level, pos_level, grid, nsamples,
                           grid.resolution = 20, ...) {
   data_use <- if (!is.null(nsamples) && nrow(data) > nsamples) data[sample(seq_len(nrow(data)), nsamples), , drop = FALSE] else data
+  pv <- function(d) .pdp_predict_values(fit, d, type = type, class_level = class_level, pos_level = pos_level)
   out <- lapply(features, function(feat) {
     x <- data_use[[feat]]
     if (!is.numeric(x)) {
       return(NULL)
     }
-    cuts <- sort(unique(as.numeric(.grid_values(x, grid = grid[[feat]], grid.resolution = grid.resolution, quantiles = TRUE))))
+    cuts <- sort(unique(as.numeric(grid[[feat]] %||%
+      stats::quantile(x, seq(0, 1, length.out = grid.resolution + 1L), type = 1, names = FALSE, na.rm = TRUE))))
     if (length(cuts) < 2) {
       return(NULL)
     }
-    mids <- (cuts[-1] + cuts[-length(cuts)]) / 2
-    effects <- numeric(length(mids))
-    counts <- numeric(length(mids))
-    for (i in seq_along(mids)) {
-      lower <- cuts[i]
-      upper <- cuts[i + 1]
-      idx <- which(x >= lower & x <= upper)
-      if (!length(idx)) {
-        effects[i] <- NA_real_
-        next
-      }
-      low_dat <- data_use[idx, , drop = FALSE]
-      high_dat <- data_use[idx, , drop = FALSE]
-      low_dat[[feat]] <- lower
-      high_dat[[feat]] <- upper
-      effects[i] <- mean(
-        .pdp_predict_values(fit, high_dat, type = type, class_level = class_level, pos_level = pos_level) -
-          .pdp_predict_values(fit, low_dat, type = type, class_level = class_level, pos_level = pos_level)
-      )
-      counts[i] <- length(idx)
-    }
-    effects[is.na(effects)] <- 0
-    cum <- cumsum(effects)
-    centered <- cum - stats::weighted.mean(cum, w = pmax(counts, 1))
-    data.frame(feature = feat, value = mids, effect = centered, stringsAsFactors = FALSE)
+    bin <- cut(x, cuts, include.lowest = TRUE, labels = FALSE)
+    K <- length(cuts) - 1L
+    counts <- tabulate(bin, K)
+    effects <- vapply(seq_len(K), function(k) {
+      idx <- which(bin == k)
+      if (!length(idx)) return(0)
+      lo <- hi <- data_use[idx, , drop = FALSE]
+      lo[[feat]] <- cuts[k]; hi[[feat]] <- cuts[k + 1L]
+      mean(pv(hi) - pv(lo))
+    }, numeric(1))
+    f <- c(0, cumsum(effects))
+    f <- f - sum(counts * (f[-1] + f[-(K + 1L)]) / 2) / sum(counts)
+    data.frame(feature = feat, value = cuts, effect = f, stringsAsFactors = FALSE)
   })
   out <- Filter(Negate(is.null), out)
   curves <- if (length(out)) .rbind_dt(out) else data.frame(feature = character(), value = numeric(), effect = numeric())
@@ -1466,6 +1465,7 @@ plot_vi <- function(df, ylab, title) {
 #' @param x A `funcml_permute` object.
 #' @param object A `funcml_permute` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the permutation importance table
 #'   invisibly.
@@ -1487,7 +1487,7 @@ plot_vi <- function(df, ylab, title) {
 #' summary(perm)
 #' plot(perm)
 #' @export
-plot.funcml_permute <- function(x, ...) {
+plot.funcml_permute <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
   df <- x$result$scores
   df <- df[order(df$importance, decreasing = TRUE), , drop = FALSE]
   df$feature <- factor(df$feature, levels = rev(df$feature))
@@ -1517,16 +1517,16 @@ plot.funcml_permute <- function(x, ...) {
         ) +
         ggplot2::labs(
           x = .permute_axis_label(x),
-          y = NULL,
-          title = "Permutation feature importance"
+          y = NULL
         ) +
+        .ttl(title, subtitle, caption) +
         .publication_theme()
     )
   }
   ggplot2::ggplot(df, ggplot2::aes(x = importance, y = feature)) +
     ggplot2::geom_vline(xintercept = 0, colour = "grey75", linewidth = 0.4) +
     ggplot2::geom_point(size = 2.3, colour = "black") +
-    ggplot2::labs(x = .permute_axis_label(x), y = NULL, title = "Permutation feature importance") +
+    ggplot2::labs(x = .permute_axis_label(x), y = NULL) + .ttl(title, subtitle, caption) +
     .publication_theme()
 }
 
@@ -1553,6 +1553,7 @@ summary.funcml_permute <- function(object, ...) {
 #' @param x A `funcml_pdp` object.
 #' @param object A `funcml_pdp` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the partial dependence table
 #'   invisibly.
@@ -1573,7 +1574,7 @@ summary.funcml_permute <- function(object, ...) {
 #' summary(pdp)
 #' plot(pdp)
 #' @export
-plot.funcml_pdp <- function(x, ...) {
+plot.funcml_pdp <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
   curves <- x$result$curves
   curves$plot_value <- .coerce_plot_value(curves$value)
   support <- x$result$support
@@ -1585,9 +1586,9 @@ plot.funcml_pdp <- function(x, ...) {
     ggplot2::facet_wrap(~feature, scales = "free_x") +
     ggplot2::labs(
       x = "Feature value",
-      y = .prediction_axis_label(x$task, x$type, context = "pdp"),
-      title = "Partial dependence plot"
+      y = .prediction_axis_label(x$task, x$type, context = "pdp")
     ) +
+    .ttl(title, subtitle, caption) +
     .publication_theme()
   if (x$task != "regression" && identical(x$type, "prob")) {
     p <- p + ggplot2::coord_cartesian(ylim = c(0, 1))
@@ -1631,6 +1632,7 @@ summary.funcml_pdp <- function(object, ...) {
 #' @param x A `funcml_ice` object.
 #' @param object A `funcml_ice` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the ICE curve table invisibly.
 #'
@@ -1650,7 +1652,7 @@ summary.funcml_pdp <- function(object, ...) {
 #' summary(ice)
 #' plot(ice)
 #' @export
-plot.funcml_ice <- function(x, ...) {
+plot.funcml_ice <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
   curves <- x$result$curves
   curves$plot_value <- .coerce_plot_value(curves$value)
   mean_df <- stats::aggregate(yhat ~ feature + value, data = curves, FUN = mean)
@@ -1663,9 +1665,9 @@ plot.funcml_ice <- function(x, ...) {
     ggplot2::facet_wrap(~feature, scales = "free_x") +
     ggplot2::labs(
       x = "Feature value",
-      y = .prediction_axis_label(x$task, x$type, context = "ice"),
-      title = if (isTRUE(x$diagnostics$centered)) "Centered ICE plot" else "ICE plot"
+      y = .prediction_axis_label(x$task, x$type, context = "ice")
     ) +
+    .ttl(title, subtitle, caption) +
     .publication_theme()
 }
 
@@ -1695,6 +1697,7 @@ summary.funcml_ice <- function(object, ...) {
 #'
 #' @param x A `funcml_ceteris_paribus` object.
 #' @param ... Additional arguments (unused).
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return A `ggplot2` object.
 #'
 #' @name interpret-ceteris-paribus-methods
@@ -1711,7 +1714,7 @@ summary.funcml_ice <- function(object, ...) {
 #' )
 #' plot(cp)
 #' @export
-plot.funcml_ceteris_paribus <- function(x, ...) {
+plot.funcml_ceteris_paribus <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
   curves <- x$result$curves
   newdata <- x$result$newdata
   observed <- x$result$observed
@@ -1737,12 +1740,6 @@ plot.funcml_ceteris_paribus <- function(x, ...) {
   curves$plot_value <- plot_values[seq_len(nrow(curves))]
 
   n_profiles <- length(unique(curves$id))
-  title <- if (n_profiles > 1L) {
-    sprintf("Ceteris paribus profiles (%d observations)", n_profiles)
-  } else {
-    "Ceteris paribus profile"
-  }
-
   p <- ggplot2::ggplot(curves, ggplot2::aes(x = plot_value, y = yhat, group = id)) +
     ggplot2::geom_line(
       colour = if (n_profiles > 1L) "grey35" else .funcml_palette$ink,
@@ -1762,10 +1759,9 @@ plot.funcml_ceteris_paribus <- function(x, ...) {
     ggplot2::facet_wrap(~feature, scales = "free_x") +
     ggplot2::labs(
       x = "Feature value",
-      y = .prediction_axis_label(x$task, x$type, context = "ice"),
-      title = title,
-      subtitle = "Other features fixed at their observed values. Point: observed value."
+      y = .prediction_axis_label(x$task, x$type, context = "ice")
     ) +
+    .ttl(title, subtitle, caption) +
     .publication_theme()
   if (x$task != "regression" && identical(x$type, "prob")) {
     p <- p + ggplot2::coord_cartesian(ylim = c(0, 1))
@@ -1781,6 +1777,7 @@ plot.funcml_ceteris_paribus <- function(x, ...) {
 #' @param x A `funcml_ale` object.
 #' @param object A `funcml_ale` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the ALE curve table invisibly.
 #'
@@ -1800,7 +1797,7 @@ plot.funcml_ceteris_paribus <- function(x, ...) {
 #' summary(ale)
 #' plot(ale)
 #' @export
-plot.funcml_ale <- function(x, ...) {
+plot.funcml_ale <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
   curves <- x$result$curves
   curves$plot_value <- .coerce_plot_value(curves$value)
   support <- x$result$support
@@ -1813,9 +1810,9 @@ plot.funcml_ale <- function(x, ...) {
     ggplot2::facet_wrap(~feature, scales = "free_x") +
     ggplot2::labs(
       x = "Feature value",
-      y = .prediction_axis_label(x$task, x$type, context = "ale"),
-      title = "Accumulated local effects"
+      y = .prediction_axis_label(x$task, x$type, context = "ale")
     ) +
+    .ttl(title, subtitle, caption) +
     .publication_theme()
   if (!is.null(support)) {
     p <- p + ggplot2::geom_rug(
@@ -1854,6 +1851,7 @@ summary.funcml_ale <- function(object, ...) {
 #' @param x A `funcml_local` object.
 #' @param object A `funcml_local` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the local explanation payload
 #'   invisibly.
@@ -1874,8 +1872,8 @@ summary.funcml_ale <- function(object, ...) {
 #' summary(local_obj)
 #' plot(local_obj)
 #' @export
-plot.funcml_local <- function(x, ...) {
-  plot_vi(x$result$weights, "Weight", "Local surrogate weights")
+plot.funcml_local <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
+  plot_vi(x$result$weights, "Weight", NULL) + .ttl(title, subtitle, caption)
 }
 
 #' @rdname interpret-local-methods
@@ -1902,6 +1900,7 @@ summary.funcml_local <- function(object, ...) {
 #' @param x A `funcml_iml_local_model` object.
 #' @param object A `funcml_iml_local_model` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the local model explanation payload
 #'   invisibly.
@@ -1922,7 +1921,7 @@ summary.funcml_local <- function(object, ...) {
 #' summary(local_model)
 #' plot(local_model)
 #' @export
-plot.funcml_iml_local_model <- function(x, ...) {
+plot.funcml_iml_local_model <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
   df <- x$result$results
   df$feature <- factor(df$feature.value, levels = rev(df$feature.value))
   df$hjust <- ifelse(df$effect >= 0, -0.15, 1.15)
@@ -1934,18 +1933,12 @@ plot.funcml_iml_local_model <- function(x, ...) {
       size = 3.1, colour = "grey20"
     ) +
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0.18)) +
-    ggplot2::scale_fill_manual(values = c(`TRUE` = "#2ca25f", `FALSE` = "#de2d26")) +
+    ggplot2::scale_fill_manual(values = c(`TRUE` = "#D55E00", `FALSE` = "#0072B2")) +
     ggplot2::labs(
       x = "Approximate local contribution",
-      y = NULL,
-      title = "Local surrogate contributions",
-      subtitle = sprintf(
-        "Black-box prediction = %.3f | local surrogate = %.3f | fidelity = %.3f",
-        x$diagnostics$prediction %||% NA_real_,
-        x$result$local_prediction %||% NA_real_,
-        x$result$fidelity %||% NA_real_
-      )
+      y = NULL
     ) +
+    .ttl(title, subtitle, caption) +
     .publication_theme()
 }
 
@@ -1981,6 +1974,8 @@ summary.funcml_iml_local_model <- function(object, ...) {
 #' @param style Plot style: `"curve"` or `"histogram"`.
 #' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
+#' @param ci Draw Wilson confidence intervals of the observed rate per bin (`style = "curve"`).
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns a list with calibration curve and
 #'   summary diagnostics invisibly.
@@ -1998,7 +1993,7 @@ summary.funcml_iml_local_model <- function(object, ...) {
 #' summary(cal)
 #' plot(cal)
 #' @export
-plot.funcml_calibration <- function(x, style = c("curve", "histogram"), ...) {
+plot.funcml_calibration <- function(x, style = c("curve", "histogram"), ..., ci = TRUE, title = NULL, subtitle = NULL, caption = NULL) {
   style <- match.arg(style)
   curve <- x$result$curve
 
@@ -2009,16 +2004,15 @@ plot.funcml_calibration <- function(x, style = c("curve", "histogram"), ...) {
         ggplot2::geom_histogram(bins = x$diagnostics$bins %||% 10L, fill = "grey80", colour = "white") +
         ggplot2::labs(
           x = sprintf("Predicted probability for '%s'", x$result$positive),
-          y = "Count",
-          title = "Predicted probability distribution"
+          y = "Count"
         ) +
+        .ttl(title, subtitle, caption) +
         .publication_theme()
     )
   }
 
-  .calibration_plot(curve, sprintf("Mean predicted probability for '%s'", x$result$positive),
-                    title = "Calibration plot",
-                    subtitle = sprintf("ECE = %.4f | MCE = %.4f", x$result$ece, x$result$mce))
+  .calibration_plot(curve, sprintf("Mean predicted probability for '%s'", x$result$positive), ci = ci) +
+    .ttl(title, subtitle, caption)
 }
 
 #' @rdname interpret-calibration-methods
@@ -2054,7 +2048,10 @@ summary.funcml_calibration <- function(object, digits = 4L, ...) {
 #'   `"dependence2d"`, or `"interaction"`.
 #' @param ... Additional arguments passed to the underlying method. For
 #'   `kind = "summary"`/`"beeswarm"`, `v` restricts the plot to a single
-#'   feature (default: all interpreted features).
+#'   feature (default: all interpreted features). The waterfall (`row_id`
+#'   picks the observation) runs from the baseline to the prediction, with the
+#'   feature values in the labels; vermillion raises, blue lowers the prediction.
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the SHAP contribution table
 #'   invisibly.
@@ -2075,8 +2072,13 @@ summary.funcml_calibration <- function(object, digits = 4L, ...) {
 #' summary(shap)
 #' plot(shap)
 #' @export
-plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "force", "summary", "beeswarm", "importance", "bar", "dependence", "dependence2d", "interaction"), ...) {
+plot.funcml_shap <- function(x, kind = c("auto", "waterfall", "force", "summary", "beeswarm", "importance", "bar", "dependence", "dependence2d", "interaction"), ...,
+                            title = NULL, subtitle = NULL, caption = NULL) {
   kind <- match.arg(kind)
+  .shap_dispatch(x, kind, ...) + .ttl(title, subtitle, caption)
+}
+
+.shap_dispatch <- function(x, kind, ...) {
   df <- x$result
   dots <- list(...)
   if (kind == "auto") {
@@ -2137,6 +2139,7 @@ summary.funcml_shap <- function(object, ...) {
 #' @param x A `funcml_surrogate` object.
 #' @param object A `funcml_surrogate` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the surrogate model summary object
 #'   invisibly.
@@ -2155,7 +2158,7 @@ summary.funcml_shap <- function(object, ...) {
 #' summary(surrogate)
 #' plot(surrogate)
 #' @export
-plot.funcml_surrogate <- function(x, ...) {
+plot.funcml_surrogate <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
   surrogate_pred <- if (!is.null(x$result$nodes)) as.numeric(x$result$nodes) else as.numeric(stats::fitted(x$result$model))
   target <- tryCatch(as.numeric(x$result$model$y), error = function(e) NULL)
   if (is.null(target) || length(target) != length(surrogate_pred)) {
@@ -2163,7 +2166,7 @@ plot.funcml_surrogate <- function(x, ...) {
     return(
       ggplot2::ggplot(surrogate_df, ggplot2::aes(x = index, y = surrogate)) +
         ggplot2::geom_line(colour = "black", linewidth = 0.55, alpha = 0.9) +
-        ggplot2::labs(x = "Observation", y = "Surrogate prediction", title = "Global surrogate predictions") +
+        ggplot2::labs(x = "Observation", y = "Surrogate prediction") + .ttl(title, subtitle, caption) +
         .publication_theme()
     )
   }
@@ -2171,13 +2174,12 @@ plot.funcml_surrogate <- function(x, ...) {
   ggplot2::ggplot(surrogate_df, ggplot2::aes(x = target, y = surrogate)) +
     ggplot2::geom_abline(slope = 1, intercept = 0, colour = "grey65", linewidth = 0.5, linetype = "dashed") +
     ggplot2::geom_point(colour = "black", alpha = 0.65, size = 2) +
-    ggplot2::geom_smooth(method = "lm", se = FALSE, formula = y ~ x, colour = "#3182bd", linewidth = 0.8) +
+    ggplot2::geom_smooth(method = "lm", se = FALSE, formula = y ~ x, colour = "#0072B2", linewidth = 0.8) +
     ggplot2::labs(
       x = "Black-box prediction",
-      y = "Surrogate prediction",
-      title = "Global surrogate fidelity",
-      subtitle = sprintf("R^2 = %.3f", x$result$fidelity)
+      y = "Surrogate prediction"
     ) +
+    .ttl(title, subtitle, caption) +
     .publication_theme()
 }
 
@@ -2205,6 +2207,7 @@ summary.funcml_surrogate <- function(object, ...) {
 #' @param x A `funcml_interaction` object.
 #' @param object A `funcml_interaction` object.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text for `plot()`; `NULL` (default) leaves it out.
 #' @return `plot()` returns a `ggplot2` object. `print()` returns the input
 #'   object invisibly. `summary()` returns the interaction summary table
 #'   invisibly.
@@ -2226,20 +2229,22 @@ summary.funcml_surrogate <- function(object, ...) {
 #' summary(interaction_obj)
 #' plot(interaction_obj)
 #' @export
-plot.funcml_interaction <- function(x, ...) {
+plot.funcml_interaction <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
   pairwise <- x$result$pairwise
-  pairwise$feature_x <- factor(pairwise$feature_x, levels = unique(pairwise$feature_x))
-  pairwise$feature_y <- factor(pairwise$feature_y, levels = rev(unique(pairwise$feature_y)))
+  # one feature order on both axes (y reversed), so the empty self-pairs sit on the diagonal
+  v <- unique(c(pairwise$feature_x, pairwise$feature_y))
+  pairwise$feature_x <- factor(pairwise$feature_x, levels = v)
+  pairwise$feature_y <- factor(pairwise$feature_y, levels = rev(v))
   ggplot2::ggplot(pairwise, ggplot2::aes(x = feature_x, y = feature_y, fill = interaction)) +
     ggplot2::geom_tile(colour = "white") +
-    ggplot2::scale_fill_gradient(low = "white", high = "#08519c", name = "Interaction") +
-    ggplot2::labs(
-      x = "Feature",
-      y = "Feature",
-      title = if (is.null(x$result$anchor_feature)) "Feature interaction heatmap" else sprintf("Interaction heatmap for %s", x$result$anchor_feature)
-    ) +
+    ggplot2::scale_fill_gradient(low = "white", high = "#0072B2", name = "Interaction") +
+    ggplot2::scale_x_discrete(limits = v, drop = FALSE) +
+    ggplot2::scale_y_discrete(limits = rev(v), drop = FALSE) +
+    ggplot2::labs(x = NULL, y = NULL) +
+    .ttl(title, subtitle, caption) +
     .publication_theme() +
-    ggplot2::theme(panel.grid = ggplot2::element_blank())
+    ggplot2::theme(panel.grid = ggplot2::element_blank(), aspect.ratio = 1,
+                   axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
 }
 
 #' @rdname interpret-interaction-methods

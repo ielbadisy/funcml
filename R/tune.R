@@ -145,6 +145,7 @@ metric_direction <- function(metric) {
 #' @param object A `funcml_tune` object.
 #' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text; `NULL` (default) leaves it out.
 #' @return `print()` and `summary()` return the input object or results table
 #'   invisibly. `plot()` returns a `ggplot2` object.
 #'
@@ -183,7 +184,7 @@ summary.funcml_tune <- function(object, digits = 4L, ...) {
 
 #' @rdname tune-methods
 #' @export
-plot.funcml_tune <- function(x, ...) {
+plot.funcml_tune <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
   df <- x$results
   df$config_label <- .format_tune_config(df)
   ord <- if (x$direction == "max") order(df$mean, decreasing = TRUE) else order(df$mean, decreasing = FALSE)
@@ -191,15 +192,15 @@ plot.funcml_tune <- function(x, ...) {
   df$config_label <- factor(df$config_label, levels = rev(df$config_label))
   best_label <- .format_tune_config(x$best)[1]
   ggplot2::ggplot(df, ggplot2::aes(x = mean, y = config_label)) +
-    ggplot2::geom_segment(ggplot2::aes(x = conf_low, xend = conf_high, yend = config_label), linewidth = 0.45, colour = "#2b8cbe") +
+    ggplot2::geom_segment(ggplot2::aes(x = conf_low, xend = conf_high, yend = config_label), linewidth = 0.45, colour = "grey45") +
     ggplot2::geom_point(size = 2.2, colour = "black") +
     ggplot2::geom_point(data = df[df$config_label == best_label, , drop = FALSE], size = 2.8, colour = .funcml_palette$accent) +
     ggplot2::labs(
-      x = sprintf("%s (%s)", toupper(x$metric), x$direction),
-      y = NULL,
-      title = sprintf("%s search results", tools::toTitleCase(x$search))
+      x = sprintf("%s (%s is better; blue: best)", x$metric, if (x$direction == "max") "higher" else "lower"),
+      y = NULL
     ) +
-  themefuncml()
+    .ttl(title, subtitle, caption) +
+    themefuncml()
 }
 
 .nested_resampling_summary <- function(data, formula, model, grid, resampling,

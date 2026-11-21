@@ -7,7 +7,7 @@
 \alias{summary.funcml_local}
 \title{Local surrogate result methods.}
 \usage{
-\method{plot}{funcml_local}(x, ...)
+\method{plot}{funcml_local}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
 
 \method{print}{funcml_local}(x, ...)
 
@@ -17,6 +17,8 @@
 \item{x}{A \code{funcml_local} object.}
 
 \item{...}{Additional arguments passed to the underlying method.}
+
+\item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 
 \item{object}{A \code{funcml_local} object.}
 }

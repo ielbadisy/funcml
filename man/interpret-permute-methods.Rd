@@ -7,7 +7,7 @@
 \alias{summary.funcml_permute}
 \title{Permutation importance result methods.}
 \usage{
-\method{plot}{funcml_permute}(x, ...)
+\method{plot}{funcml_permute}(x, ..., title = NULL, subtitle = NULL, caption = NULL)
 
 \method{print}{funcml_permute}(x, ...)
 
@@ -17,6 +17,8 @@
 \item{x}{A \code{funcml_permute} object.}
 
 \item{...}{Additional arguments passed to the underlying method.}
+
+\item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 
 \item{object}{A \code{funcml_permute} object.}
 }

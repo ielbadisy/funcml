@@ -375,8 +375,12 @@ compare <- function(data, formula, models, specs = NULL,
 #' @param object A `funcml_compare` object.
 #' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param scales Facet scales for `plot()`: `"free_x"` (default) gives each metric its own value
+#'   axis, `"fixed"` shares one.
+#' @param title,subtitle,caption Optional plot text; `NULL` (default) leaves it out.
 #' @return `print()` and `summary()` return the input object or results table
-#'   invisibly. `plot()` returns a `ggplot2` object.
+#'   invisibly. `plot()` returns a `ggplot2` object: one panel per metric, strips saying
+#'   which direction is better, models ordered best on top by the first metric.
 #'
 #' @name compare-methods
 #' @aliases print.funcml_compare summary.funcml_compare plot.funcml_compare
@@ -414,17 +418,18 @@ summary.funcml_compare <- function(object, digits = 4L, ...) {
 
 #' @rdname compare-methods
 #' @export
-plot.funcml_compare <- function(x, ...) {
+plot.funcml_compare <- function(x, ..., scales = "free_x", title = NULL, subtitle = NULL, caption = NULL) {
   df <- x$results
-  ggplot2::ggplot(df, ggplot2::aes(x = mean, y = stats::reorder(model, mean))) +
-    ggplot2::geom_segment(ggplot2::aes(x = conf_low, xend = conf_high, yend = stats::reorder(model, mean)), linewidth = 0.45, colour = .funcml_palette$accent) +
+  m1 <- df[df$metric == df$metric[1], , drop = FALSE]
+  d1 <- metric_direction(m1$metric[1])
+  key <- switch(d1, max = m1$mean, min = -m1$mean, target = -abs(m1$mean - .target_metrics[[m1$metric[1]]]))
+  df$model <- factor(df$model, levels = unique(m1$model[order(key)]))
+  df$metric <- .metric_strip(df$metric)
+  ggplot2::ggplot(df, ggplot2::aes(x = mean, y = model)) +
+    ggplot2::geom_segment(ggplot2::aes(x = conf_low, xend = conf_high, yend = model), linewidth = 0.5, colour = "grey45") +
     ggplot2::geom_point(size = 2.4, colour = "black") +
-    ggplot2::coord_flip() +
-    ggplot2::facet_wrap(~metric, scales = "free_x") +
-    ggplot2::labs(
-      x = "Mean cross-validated metric",
-      y = NULL,
-      title = if (x$tuned) "Tuned learner comparison" else "Learner comparison"
-    ) +
+    .metric_facets(scales) +
+    ggplot2::labs(x = sprintf("Mean cross-validated metric (%g%% CI)", 100 * x$results$conf_level[1]), y = NULL) +
+    .ttl(title, subtitle, caption) +
     themefuncml()
 }

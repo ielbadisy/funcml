@@ -429,6 +429,7 @@ estimate <- function(data, formula, model = NULL, treatment = NULL,
 #' @param bins Number of bins used when `style = "effects"`.
 #' @param alpha Fill opacity used when `style = "outcomes"`.
 #' @param ... Additional arguments passed to the underlying method.
+#' @param title,subtitle,caption Optional plot text; `NULL` (default) leaves it out.
 #' @return `print()` and `summary()` return the input object or summary table
 #'   invisibly. `plot()` returns a `ggplot2` object.
 #'
@@ -490,19 +491,16 @@ summary.funcml_estimand <- function(object, ...) {
 
 #' @rdname estimate-methods
 #' @export
-plot.funcml_estimand <- function(x, style = c("outcomes", "effects"), bins = 24, alpha = 0.45, ...) {
+plot.funcml_estimand <- function(x, style = c("outcomes", "effects"), bins = 24, alpha = 0.45, ...,
+                                 title = NULL, subtitle = NULL, caption = NULL) {
   style <- match.arg(style)
-  if (style == "effects") {
-    return(.plot_estimand_effects(x, bins = bins))
-  }
-
-  .plot_estimand_outcomes(x, alpha = alpha)
+  p <- if (style == "effects") .plot_estimand_effects(x, bins = bins) else .plot_estimand_outcomes(x, alpha = alpha)
+  p + .ttl(title, subtitle, caption)
 }
 
 .plot_estimand_effects <- function(x, bins = 24) {
   df <- x$effects
   center_line <- if (x$estimand == "IATE") mean(df$effect) else x$estimate
-  estimate_label <- if (x$estimand == "IATE") "Mean individualized effect" else "Estimated average effect"
   ggplot2::ggplot(df, ggplot2::aes(x = effect)) +
     ggplot2::geom_histogram(
       bins = bins,
@@ -523,14 +521,7 @@ plot.funcml_estimand <- function(x, style = c("outcomes", "effects"), bins = 24,
     ) +
     ggplot2::labs(
       x = "Estimated unit-level effect",
-      y = "Count",
-      title = sprintf("%s estimate", x$estimand),
-      subtitle = sprintf(
-        "%s: %s vs %s | %s = %.3f",
-        x$treatment, x$treatment_level, x$control_level,
-        estimate_label,
-        center_line
-      )
+      y = "Count"
     ) +
     .publication_theme()
 }
@@ -566,12 +557,6 @@ plot.funcml_estimand <- function(x, style = c("outcomes", "effects"), bins = 24,
     mean = vapply(split_df, function(z) stats::weighted.mean(z$outcome_value, w = z$weight), numeric(1)),
     stringsAsFactors = FALSE
   )
-  effect_value <- if (x$estimand == "IATE") {
-    mean(df$effect)
-  } else {
-    x$estimate
-  }
-  effect_label <- if (x$estimand == "IATE") "Mean individualized effect" else "Estimated average effect"
 
   ggplot2::ggplot(plot_df, ggplot2::aes(x = outcome_value, fill = scenario, colour = scenario, weight = weight)) +
     ggplot2::geom_density(alpha = alpha, linewidth = 0.65, adjust = 1.05) +
@@ -583,23 +568,16 @@ plot.funcml_estimand <- function(x, style = c("outcomes", "effects"), bins = 24,
       show.legend = FALSE
     ) +
     ggplot2::scale_fill_manual(
-      values = stats::setNames(c(.funcml_palette$accent, .funcml_palette$positive), levels(plot_df$scenario)),
+      values = stats::setNames(c(.funcml_palette$accent, .funcml_palette$negative), levels(plot_df$scenario)),
       name = NULL
     ) +
     ggplot2::scale_colour_manual(
-      values = stats::setNames(c(.funcml_palette$accent, .funcml_palette$positive), levels(plot_df$scenario)),
+      values = stats::setNames(c(.funcml_palette$accent, .funcml_palette$negative), levels(plot_df$scenario)),
       name = NULL
     ) +
     ggplot2::labs(
       x = "Predicted outcome",
-      y = "Density",
-      title = sprintf("%s potential outcome distributions", x$estimand),
-      subtitle = sprintf(
-        "%s: %s vs %s | %s = %.3f",
-        x$treatment, x$treatment_level, x$control_level,
-        effect_label,
-        effect_value
-      )
+      y = "Density"
     ) +
     .publication_theme() +
     ggplot2::theme(legend.position = "bottom")

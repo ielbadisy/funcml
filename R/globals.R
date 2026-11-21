@@ -10,7 +10,7 @@ utils::globalVariables(c("nb", "s",
   "prob", "mean_pred", "observed", "n", "self", "outcome_value",
   "scenario", "mean", "sensitivity", "specificity", "threshold",
   "net_benefit", "strategy", "scaled_value", "colour_value", "mean_abs",
-  "pair", "hjust"
+  "pair", "hjust", "cilo", "cihi", "k", "v", "yi", "lx"
 ))
 
 #' @importFrom stats median model.frame model.response predict setNames

@@ -58,3 +58,27 @@ themefuncml <- function(base_size = 10) {
     ...
   )
 }
+
+# Title, subtitle and caption of every plot method; NULL (the default) leaves the text out.
+.ttl <- function(title = NULL, subtitle = NULL, caption = NULL) {
+  ggplot2::labs(title = title, subtitle = subtitle, caption = caption)
+}
+
+# Facet strip label stating which way a metric improves.
+.metric_strip <- function(m) {
+  m <- as.character(m)
+  d <- vapply(m, function(z) {
+    dir <- metric_direction(z)
+    if (dir == "target") sprintf("closer to %g is better", .target_metrics[[z]]) else
+      sprintf("%s is better", if (dir == "max") "higher" else "lower")
+  }, character(1))
+  u <- unique(m)
+  factor(sprintf("%s (%s)", m, d), levels = sprintf("%s (%s)", u, d[match(u, m)]))
+}
+
+# Free value axes per metric facet with room between panels so tick labels do not collide.
+.metric_facets <- function(scales = "free_x") {
+  list(ggplot2::facet_wrap(~metric, scales = scales),
+       ggplot2::scale_x_continuous(n.breaks = 4, expand = ggplot2::expansion(mult = 0.1)),
+       ggplot2::theme(panel.spacing.x = ggplot2::unit(1.5, "lines")))
+}

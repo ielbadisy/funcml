@@ -16,9 +16,10 @@ calibrationfit(truth, prob, positive = NULL, level = 0.95)
 \item{level}{Confidence level.}
 }
 \value{
-A data frame with one row per term (\code{intercept}, \code{slope},
-\code{recalintercept}) and columns \code{term}, \code{estimate}, \code{se}, \code{lower},
-\code{upper}.
+A data frame of class \code{funcml_calfit} with one row per term
+(\code{intercept}, \code{slope}, \code{recalintercept}) and columns \code{term}, \code{estimate},
+\code{se}, \code{lower}, \code{upper}. The outcome and probabilities are kept as the
+attribute \code{"data"} for \code{\link[=plot.funcml_calfit]{plot.funcml_calfit()}}.
 }
 \description{
 Logistic recalibration of predicted probabilities for a binary outcome.
@@ -36,7 +37,9 @@ recalibration intercept \verb{a'}, returned here as \code{recalintercept}.
 set.seed(1)
 p <- runif(300)
 y <- rbinom(300, 1, plogis(0.8 * qlogis(p) - 0.3))
-calibrationfit(y, p)
+cf <- calibrationfit(y, p)
+cf
+plot(cf)
 }
 \references{
 Van Calster B, McLernon DJ, van Smeden M, Wynants L, Steyerberg EW (2019).

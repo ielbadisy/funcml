@@ -99,6 +99,7 @@ aucci <- function(truth, prob, positive = NULL, conf_level = 0.95,
 #' @param x A `funcml_roc` object.
 #' @param digits Number of digits numeric columns are rounded to when printed.
 #' @param ... Additional arguments (unused).
+#' @param title,subtitle,caption Optional plot text; `NULL` (default) leaves it out.
 #' @return `print()` returns the input object invisibly. `plot()` returns a
 #'   `ggplot2` object.
 #' @name roc-methods
@@ -112,15 +113,16 @@ print.funcml_roc <- function(x, digits = 4L, ...) {
 
 #' @rdname roc-methods
 #' @export
-plot.funcml_roc <- function(x, ...) {
+plot.funcml_roc <- function(x, ..., title = NULL, subtitle = NULL, caption = NULL) {
   df <- x$curve
   ggplot2::ggplot(df, ggplot2::aes(x = 1 - specificity, y = sensitivity)) +
     ggplot2::geom_abline(slope = 1, intercept = 0, colour = "grey70", linetype = "dashed") +
-    ggplot2::geom_line(colour = .funcml_palette$accent, linewidth = 0.8) +
+    ggplot2::geom_path(colour = "black", linewidth = 0.7) +
     ggplot2::labs(
       x = "1 - Specificity",
-      y = "Sensitivity",
-      title = sprintf("ROC curve (AUC = %.3f)", x$auc)
+      y = "Sensitivity"
     ) +
-    themefuncml()
+    .ttl(title, subtitle, caption) +
+    themefuncml() +
+    ggplot2::theme(aspect.ratio = 1)
 }

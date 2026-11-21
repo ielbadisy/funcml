@@ -11,7 +11,16 @@
 
 \method{summary}{funcml_estimand}(object, ...)
 
-\method{plot}{funcml_estimand}(x, style = c("outcomes", "effects"), bins = 24, alpha = 0.45, ...)
+\method{plot}{funcml_estimand}(
+  x,
+  style = c("outcomes", "effects"),
+  bins = 24,
+  alpha = 0.45,
+  ...,
+  title = NULL,
+  subtitle = NULL,
+  caption = NULL
+)
 }
 \arguments{
 \item{x}{A \code{funcml_estimand} object.}
@@ -27,6 +36,8 @@ existing histogram of estimated unit-level effects.}
 \item{bins}{Number of bins used when \code{style = "effects"}.}
 
 \item{alpha}{Fill opacity used when \code{style = "outcomes"}.}
+
+\item{title, subtitle, caption}{Optional plot text; \code{NULL} (default) leaves it out.}
 }
 \value{
 \code{print()} and \code{summary()} return the input object or summary table

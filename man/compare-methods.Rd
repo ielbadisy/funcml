@@ -11,7 +11,7 @@
 
 \method{summary}{funcml_compare}(object, digits = 4L, ...)
 
-\method{plot}{funcml_compare}(x, ...)
+\method{plot}{funcml_compare}(x, ..., scales = "free_x", title = NULL, subtitle = NULL, caption = NULL)
 }
 \arguments{
 \item{x}{A \code{funcml_compare} object.}
@@ -21,10 +21,16 @@
 \item{...}{Additional arguments passed to the underlying method.}
 
 \item{object}{A \code{funcml_compare} object.}
+
+\item{scales}{Facet scales for \code{plot()}: \code{"free_x"} (default) gives each metric its own value
+axis, \code{"fixed"} shares one.}
+
+\item{title, subtitle, caption}{Optional plot text; \code{NULL} (default) leaves it out.}
 }
 \value{
 \code{print()} and \code{summary()} return the input object or results table
-invisibly. \code{plot()} returns a \code{ggplot2} object.
+invisibly. \code{plot()} returns a \code{ggplot2} object: one panel per metric, strips saying
+which direction is better, models ordered best on top by the first metric.
 }
 \description{
 These methods provide the standard \code{print()}, \code{summary()}, and \code{plot()}

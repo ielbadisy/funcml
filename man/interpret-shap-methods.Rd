@@ -11,7 +11,10 @@
   x,
   kind = c("auto", "waterfall", "force", "summary", "beeswarm", "importance", "bar",
     "dependence", "dependence2d", "interaction"),
-  ...
+  ...,
+  title = NULL,
+  subtitle = NULL,
+  caption = NULL
 )
 
 \method{print}{funcml_shap}(x, ...)
@@ -27,7 +30,11 @@
 
 \item{...}{Additional arguments passed to the underlying method. For
 \code{kind = "summary"}/\code{"beeswarm"}, \code{v} restricts the plot to a single
-feature (default: all interpreted features).}
+feature (default: all interpreted features). The waterfall (\code{row_id}
+picks the observation) runs from the baseline to the prediction, with the
+feature values in the labels; vermillion raises, blue lowers the prediction.}
+
+\item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 
 \item{object}{A \code{funcml_shap} object.}
 }

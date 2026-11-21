@@ -502,34 +502,48 @@ calibrationcurve <- function(truth, prob, bins = 10, strategy = c("quantile", "u
 #'
 #' Draws the observed event rate against the mean predicted probability in
 #' each non-empty bin of a [calibrationcurve()] result (point size
-#' proportional to the bin count), with the ideal diagonal.
+#' proportional to the bin count), with Wilson confidence intervals for the
+#' observed rate and the ideal diagonal.
 #'
 #' @param x A `funcml_calcurve` data frame returned by [calibrationcurve()].
-#' @param title Optional plot title.
+#' @param title,subtitle,caption Optional plot text; `NULL` (default) leaves it out.
 #' @param ... Unused.
-#' @return A `ggplot2` object.
+#' @param ci Draw Wilson confidence intervals of the observed event rate per bin.
+#' @param level Confidence level of the intervals.
+#' @return A `ggplot2` object. The axes run from 0 to 1 with a square panel;
+#'   no coordinate system is set, so `coord_cartesian()` can be added to zoom.
 #' @examples
 #' set.seed(1)
 #' p <- runif(300)
 #' y <- rbinom(300, 1, plogis(0.8 * qlogis(p)))
 #' plot(calibrationcurve(y, p))
 #' @export
-plot.funcml_calcurve <- function(x, title = NULL, ...) {
-  .calibration_plot(x, "Mean predicted probability", title = title)
+plot.funcml_calcurve <- function(x, title = NULL, ..., subtitle = NULL, caption = NULL, ci = TRUE, level = 0.95) {
+  .calibration_plot(x, "Mean predicted probability", ci = ci, level = level) + .ttl(title, subtitle, caption)
 }
 
-.calibration_plot <- function(curve, xlab, title = NULL, subtitle = NULL) {
+# Wilson score interval for k events out of n (as prop.test(correct = FALSE)).
+.wilson <- function(k, n, level = 0.95) {
+  z <- stats::qnorm(1 - (1 - level) / 2); p <- k / n
+  ctr <- (p + z^2 / (2 * n)) / (1 + z^2 / n)
+  hw <- z / (1 + z^2 / n) * sqrt(p * (1 - p) / n + z^2 / (4 * n^2))
+  cbind(lower = ctr - hw, upper = ctr + hw)
+}
+
+.calibration_plot <- function(curve, xlab, ci = TRUE, level = 0.95) {
   curve <- curve[curve$n > 0, , drop = FALSE]
-  ggplot2::ggplot(curve, ggplot2::aes(x = mean_pred, y = observed)) +
-    ggplot2::geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "grey55") +
-    ggplot2::geom_segment(ggplot2::aes(x = mean_pred, xend = mean_pred, y = 0, yend = observed),
-                          linewidth = 0.35, colour = "grey75") +
-    ggplot2::geom_line(colour = "black", linewidth = 0.7) +
+  w <- .wilson(round(curve$observed * curve$n), curve$n, level)
+  curve$cilo <- w[, "lower"]; curve$cihi <- w[, "upper"]
+  p <- ggplot2::ggplot(curve, ggplot2::aes(x = mean_pred, y = observed)) +
+    ggplot2::geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "grey55")
+  if (ci) p <- p + ggplot2::geom_linerange(ggplot2::aes(ymin = cilo, ymax = cihi), linewidth = 0.4, colour = "grey45")
+  p + ggplot2::geom_line(colour = "black", linewidth = 0.7) +
     ggplot2::geom_point(ggplot2::aes(size = n), colour = "black") +
-    ggplot2::scale_size_continuous(range = c(1.8, 5), guide = "none") +
-    ggplot2::coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
-    ggplot2::labs(x = xlab, y = "Observed event rate", title = title, subtitle = subtitle) +
-    .publication_theme()
+    ggplot2::scale_size_continuous(range = c(1.4, 3.5), guide = "none") +
+    ggplot2::expand_limits(x = c(0, 1), y = c(0, 1)) +
+    ggplot2::labs(x = xlab, y = if (ci) sprintf("Observed event rate (%g%% CI)", 100 * level) else "Observed event rate") +
+    .publication_theme() +
+    ggplot2::theme(aspect.ratio = 1)
 }
 
 #' Calibration intercept and slope.
@@ -549,9 +563,10 @@ plot.funcml_calcurve <- function(x, title = NULL, ...) {
 #' @param prob Predicted probability of the positive class.
 #' @param positive Positive class; defaults to the second level.
 #' @param level Confidence level.
-#' @return A data frame with one row per term (`intercept`, `slope`,
-#'   `recalintercept`) and columns `term`, `estimate`, `se`, `lower`,
-#'   `upper`.
+#' @return A data frame of class `funcml_calfit` with one row per term
+#'   (`intercept`, `slope`, `recalintercept`) and columns `term`, `estimate`,
+#'   `se`, `lower`, `upper`. The outcome and probabilities are kept as the
+#'   attribute `"data"` for [plot.funcml_calfit()].
 #' @references
 #' Van Calster B, McLernon DJ, van Smeden M, Wynants L, Steyerberg EW (2019).
 #' Calibration: the Achilles heel of predictive analytics. BMC Medicine 17, 230.
@@ -559,7 +574,9 @@ plot.funcml_calcurve <- function(x, title = NULL, ...) {
 #' set.seed(1)
 #' p <- runif(300)
 #' y <- rbinom(300, 1, plogis(0.8 * qlogis(p) - 0.3))
-#' calibrationfit(y, p)
+#' cf <- calibrationfit(y, p)
+#' cf
+#' plot(cf)
 #' @export
 calibrationfit <- function(truth, prob, positive = NULL, level = 0.95) {
   d <- .binary_truth_prob(truth, prob, positive = positive)
@@ -571,7 +588,46 @@ calibrationfit <- function(truth, prob, positive = NULL, level = 0.95) {
   }
   m0 <- stats::glm(y ~ 1, family = stats::binomial(), offset = lp)
   m1 <- stats::glm(y ~ lp, family = stats::binomial())
-  rbind(ci(m0, 1, "intercept"), ci(m1, 2, "slope"), ci(m1, 1, "recalintercept"))
+  out <- rbind(ci(m0, 1, "intercept"), ci(m1, 2, "slope"), ci(m1, 1, "recalintercept"))
+  structure(out, class = c("funcml_calfit", "data.frame"), data = data.frame(truth = y, prob = d$prob), level = level)
+}
+
+#' Plot a logistic calibration fit.
+#'
+#' Binned observed event rates with Wilson confidence intervals (as
+#' [plot.funcml_calcurve()]), the ideal diagonal and the logistic
+#' recalibration curve `plogis(recalintercept + slope * logit(p))` (blue),
+#' with the calibration intercept and slope and their intervals written in
+#' the top left corner.
+#'
+#' @param x A `funcml_calfit` data frame returned by [calibrationfit()].
+#' @param ... Unused.
+#' @param bins,strategy Binning of the observed rates, as in [calibrationcurve()].
+#' @param ci Draw Wilson confidence intervals per bin.
+#' @param stats Write the intercept and slope (with intervals) on the plot.
+#' @param title,subtitle,caption Optional plot text; `NULL` (default) leaves it out.
+#' @return A `ggplot2` object.
+#' @examples
+#' set.seed(1)
+#' p <- runif(300)
+#' y <- rbinom(300, 1, plogis(0.8 * qlogis(p) - 0.3))
+#' plot(calibrationfit(y, p))
+#' @export
+plot.funcml_calfit <- function(x, ..., bins = 10, strategy = c("quantile", "uniform"), ci = TRUE, stats = TRUE,
+                               title = NULL, subtitle = NULL, caption = NULL) {
+  d <- attr(x, "data"); lev <- attr(x, "level")
+  cc <- calibrationcurve(d$truth, d$prob, bins = bins, strategy = match.arg(strategy), positive = 1)
+  pg <- seq(min(d$prob), max(d$prob), length.out = 200)
+  e <- stats::setNames(x$estimate, x$term)
+  rc <- data.frame(mean_pred = pg, observed = stats::plogis(e[["recalintercept"]] + e[["slope"]] * stats::qlogis(pg)))
+  p <- .calibration_plot(cc, "Predicted probability", ci = ci, level = lev) +
+    ggplot2::geom_line(data = rc, colour = "#0072B2", linewidth = 0.8)
+  if (stats) {
+    f <- function(j) sprintf("%.2f (%.2f to %.2f)", x$estimate[j], x$lower[j], x$upper[j])
+    lab <- sprintf("Intercept %s\nSlope %s", f(1), f(2))
+    p <- p + ggplot2::annotate("text", x = 0, y = 1, label = lab, hjust = 0, vjust = 1, size = 3, lineheight = 0.95)
+  }
+  p + .ttl(title, subtitle, caption)
 }
 
 #' @rdname metrics

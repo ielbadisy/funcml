@@ -7,7 +7,15 @@
 \alias{summary.funcml_calibration}
 \title{Calibration result methods.}
 \usage{
-\method{plot}{funcml_calibration}(x, style = c("curve", "histogram"), ...)
+\method{plot}{funcml_calibration}(
+  x,
+  style = c("curve", "histogram"),
+  ...,
+  ci = TRUE,
+  title = NULL,
+  subtitle = NULL,
+  caption = NULL
+)
 
 \method{print}{funcml_calibration}(x, digits = 4L, ...)
 
@@ -19,6 +27,10 @@
 \item{style}{Plot style: \code{"curve"} or \code{"histogram"}.}
 
 \item{...}{Additional arguments passed to the underlying method.}
+
+\item{ci}{Draw Wilson confidence intervals of the observed rate per bin (\code{style = "curve"}).}
+
+\item{title, subtitle, caption}{Optional plot text for \code{plot()}; \code{NULL} (default) leaves it out.}
 
 \item{digits}{Number of digits numeric columns are rounded to when printed.}
 

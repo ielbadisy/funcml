@@ -11,7 +11,7 @@
 
 \method{summary}{funcml_eval}(object, digits = 4L, ...)
 
-\method{plot}{funcml_eval}(x, ...)
+\method{plot}{funcml_eval}(x, ..., scales = "free_x", title = NULL, subtitle = NULL, caption = NULL)
 }
 \arguments{
 \item{x}{A \code{funcml_eval} object.}
@@ -21,10 +21,17 @@
 \item{...}{Additional arguments passed to the underlying method.}
 
 \item{object}{A \code{funcml_eval} object.}
+
+\item{scales}{Facet scales for \code{plot()}: \code{"free_x"} (default) gives each metric its own value
+axis, \code{"fixed"} shares one.}
+
+\item{title, subtitle, caption}{Optional plot text; \code{NULL} (default) leaves it out.}
 }
 \value{
 \code{print()} and \code{summary()} return the input object or summary
-table invisibly. \code{plot()} returns a \code{ggplot2} object.
+table invisibly. \code{plot()} returns a \code{ggplot2} object: one panel per
+metric (fold values, box, mean and interval), strips saying which
+direction is better.
 }
 \description{
 These methods provide the standard \code{print()} and \code{summary()} interfaces for
