@@ -1,3 +1,8 @@
+# funcml 0.9.21
+
+* `plot(<shap>, kind = "force")`: labels are placed above or below the bar so that neighbouring
+  labels do not overlap; a very narrow segment stays unlabeled when both sides are crowded.
+
 # funcml 0.9.20
 
 * `plot(<shap>, kind = "force")` drew the contributions end to end on one bar, so later segments
