@@ -84,13 +84,23 @@ shap_plot_force <- function(df, row_id = NULL, max_display = 10L) {
   d <- rbind(pos, neg)
   d$mid <- (d$start + d$end) / 2
   d$lab <- sprintf("%s\n%+.3f", d$feature_label, d$shap)
-  d$ylab <- ifelse(seq_len(nrow(d)) %% 2 == 0, 1.45, 0.55)
+  # labels go above or below the bar, whichever side has the last label further away; a segment
+  # narrower than 3% of the bar is left unlabeled when both sides are still crowded
+  d <- d[order(d$mid), , drop = FALSE]
+  w <- diff(range(c(d$start, d$end))); gap <- 0.14 * w; last <- c(up = -Inf, down = -Inf)
+  d$ylab <- NA_real_
+  for (k in seq_len(nrow(d))) {
+    side <- if (d$mid[k] - last[["up"]] >= d$mid[k] - last[["down"]]) "up" else "down"
+    if (d$mid[k] - last[[side]] < gap && abs(d$shap[k]) < 0.03 * w) next
+    d$ylab[k] <- if (side == "up") 1.45 else 0.55; last[[side]] <- d$mid[k]
+  }
+  lab <- d[!is.na(d$ylab), , drop = FALSE]
   ggplot2::ggplot(d) +
     ggplot2::geom_rect(ggplot2::aes(xmin = pmin(start, end), xmax = pmax(start, end), ymin = 0.8, ymax = 1.2,
                                     fill = sign), colour = "white", linewidth = 0.3) +
-    ggplot2::geom_segment(ggplot2::aes(x = mid, xend = mid, y = ifelse(ylab > 1, 1.2, 0.8),
+    ggplot2::geom_segment(data = lab, ggplot2::aes(x = mid, xend = mid, y = ifelse(ylab > 1, 1.2, 0.8),
                                        yend = ifelse(ylab > 1, 1.32, 0.68)), colour = "grey50", linewidth = 0.3) +
-    ggplot2::geom_text(ggplot2::aes(x = mid, y = ylab, label = lab), size = 2.8, lineheight = 0.9,
+    ggplot2::geom_text(data = lab, ggplot2::aes(x = mid, y = ylab, label = lab), size = 2.8, lineheight = 0.9,
                        colour = "grey20") +
     ggplot2::geom_vline(xintercept = b$baseline, linetype = "dashed", colour = "grey50") +
     ggplot2::geom_vline(xintercept = f, colour = "black", linewidth = 0.4) +

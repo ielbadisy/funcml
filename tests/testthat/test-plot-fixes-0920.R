@@ -27,3 +27,11 @@ test_that("predict loads the engines of a fit and of ensemble base learners", {
   expect_setequal(.load_engines(f), c("rpart", "kknn"))
   expect_equal(.load_engines(fit(y ~ ., d, model = "ranger", seed = 1)), "ranger")
 })
+
+test_that("force plot labels on the same side are spaced apart", {
+  d <- heart_like(); f <- fit(y ~ ., d, model = "glm")
+  s <- interpret(f, d, method = "shap", newdata = d[1, ], nsim = 50, seed = 1)
+  t <- ggplot2::ggplot_build(plot(s, kind = "force"))$data[[3]]
+  w <- diff(range(ggplot2::ggplot_build(plot(s, kind = "force"))$data[[1]][c("xmin", "xmax")]))
+  for (side in split(t$x, t$y)) if (length(side) > 1) expect_true(all(diff(sort(side)) >= 0.14 * w - 1e-12))
+})
