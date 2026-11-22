@@ -1,3 +1,10 @@
+# funcml 0.9.19
+
+* A fold seed (`cv(seed = )`, and the default `cv(5, seed = 1)` of `superlearner`) now fixes the
+  splits without resetting the caller's random stream. Before, each `superlearner` fit reset the
+  global seed, so all bootstrap replicates in `estimate()` were identical and the standard error
+  was 0. Results of code that drew random numbers after a seeded `cv()` change.
+
 # funcml 0.9.18
 
 * Tree learners whose engines split on factors natively (`ranger`, `rpart`, `randomForest`, `gbm`,

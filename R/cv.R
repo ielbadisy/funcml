@@ -254,7 +254,14 @@ generate_folds <- function(n, y = NULL, resampling = cv(), data = NULL) {
   if (isTRUE(resampling$fixed) && !is.null(resampling$folds) && identical(resampling$n, n)) {
     return(resampling)
   }
-  if (!is.null(resampling$seed)) set.seed(resampling$seed)
+  # A fold seed fixes the splits without touching the caller's random stream: a fixed seed inside
+  # a learner (superlearner) would otherwise make every bootstrap replicate in estimate() identical.
+  if (!is.null(resampling$seed)) {
+    old <- if (exists(".Random.seed", globalenv(), inherits = FALSE)) get(".Random.seed", globalenv())
+    on.exit(if (is.null(old)) rm(".Random.seed", envir = globalenv()) else
+      assign(".Random.seed", old, globalenv()), add = TRUE)
+    set.seed(resampling$seed)
+  }
   idx <- seq_len(n)
   method <- resampling$method %||% "vfold"
 
