@@ -28,10 +28,14 @@ test_that("predict loads the engines of a fit and of ensemble base learners", {
   expect_equal(.load_engines(fit(y ~ ., d, model = "ranger", seed = 1)), "ranger")
 })
 
-test_that("force plot labels on the same side are spaced apart", {
+test_that("force plot labels in the same row do not overlap", {
   d <- heart_like(); f <- fit(y ~ ., d, model = "glm")
   s <- interpret(f, d, method = "shap", newdata = d[1, ], nsim = 50, seed = 1)
-  t <- ggplot2::ggplot_build(plot(s, kind = "force"))$data[[3]]
-  w <- diff(range(ggplot2::ggplot_build(plot(s, kind = "force"))$data[[1]][c("xmin", "xmax")]))
-  for (side in split(t$x, t$y)) if (length(side) > 1) expect_true(all(diff(sort(side)) >= 0.14 * w - 1e-12))
+  b <- ggplot2::ggplot_build(plot(s, kind = "force"))$data
+  cw <- diff(range(unlist(b[[1]][c("xmin", "xmax")]))) / 85
+  t <- b[[3]]; t$half <- nchar(sub("\n.*", "", t$label)) * cw / 2 + cw
+  for (r in split(t, t$y)) if (nrow(r) > 1) {
+    r <- r[order(r$x), ]
+    expect_true(all(head(r$x + r$half, -1) <= tail(r$x - r$half, -1) + 1e-12))
+  }
 })

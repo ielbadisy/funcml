@@ -84,28 +84,32 @@ shap_plot_force <- function(df, row_id = NULL, max_display = 10L) {
   d <- rbind(pos, neg)
   d$mid <- (d$start + d$end) / 2
   d$lab <- sprintf("%s\n%+.3f", d$feature_label, d$shap)
-  # labels go above or below the bar, whichever side has the last label further away; a segment
-  # narrower than 3% of the bar is left unlabeled when both sides are still crowded
+  # labels take the first free row (up to three above and three below the bar); a label's width is
+  # estimated from its text, taking a panel about 85 characters wide, and a label with no room is dropped
   d <- d[order(d$mid), , drop = FALSE]
-  w <- diff(range(c(d$start, d$end))); gap <- 0.14 * w; last <- c(up = -Inf, down = -Inf)
+  cw <- diff(range(c(d$start, d$end))) / 85
+  half <- nchar(d$feature_label) * cw / 2 + cw
+  rows <- c(1.45, 0.55, 1.85, 0.15, 2.25, -0.25); right <- rep(-Inf, length(rows))
   d$ylab <- NA_real_
   for (k in seq_len(nrow(d))) {
-    side <- if (d$mid[k] - last[["up"]] >= d$mid[k] - last[["down"]]) "up" else "down"
-    if (d$mid[k] - last[[side]] < gap && abs(d$shap[k]) < 0.03 * w) next
-    d$ylab[k] <- if (side == "up") 1.45 else 0.55; last[[side]] <- d$mid[k]
+    r <- which(d$mid[k] - half[k] >= right)[1]
+    if (is.na(r)) next
+    d$ylab[k] <- rows[r]; right[r] <- d$mid[k] + half[k]
   }
   lab <- d[!is.na(d$ylab), , drop = FALSE]
   ggplot2::ggplot(d) +
     ggplot2::geom_rect(ggplot2::aes(xmin = pmin(start, end), xmax = pmax(start, end), ymin = 0.8, ymax = 1.2,
                                     fill = sign), colour = "white", linewidth = 0.3) +
     ggplot2::geom_segment(data = lab, ggplot2::aes(x = mid, xend = mid, y = ifelse(ylab > 1, 1.2, 0.8),
-                                       yend = ifelse(ylab > 1, 1.32, 0.68)), colour = "grey50", linewidth = 0.3) +
+                                       yend = ifelse(ylab > 1, ylab - 0.13, ylab + 0.13)),
+                          colour = "grey50", linewidth = 0.3) +
     ggplot2::geom_text(data = lab, ggplot2::aes(x = mid, y = ylab, label = lab), size = 2.8, lineheight = 0.9,
                        colour = "grey20") +
     ggplot2::geom_vline(xintercept = b$baseline, linetype = "dashed", colour = "grey50") +
     ggplot2::geom_vline(xintercept = f, colour = "black", linewidth = 0.4) +
     .shap_signed_fill_scale() +
-    ggplot2::scale_y_continuous(limits = c(0.3, 1.7), breaks = NULL) +
+    ggplot2::scale_y_continuous(limits = range(c(0.3, 1.7, lab$ylab + c(-0.25, 0.25)[1 + (lab$ylab > 1)])),
+                                breaks = NULL) +
     ggplot2::labs(x = sprintf("Prediction (dashed: baseline E[f(x)] = %.3f; solid: f(x) = %.3f)",
                               b$baseline, f), y = NULL, fill = NULL) +
     themefuncml() +
