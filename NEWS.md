@@ -1,3 +1,8 @@
+# funcml 0.9.22
+
+* `plot(<shap>, kind = "force")`: each label takes the first free row (up to three above and three
+  below the bar), estimated from its text width, so labels no longer collide in narrow figures.
+
 # funcml 0.9.21
 
 * `plot(<shap>, kind = "force")`: labels are placed above or below the bar so that neighbouring
