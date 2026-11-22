@@ -1,3 +1,15 @@
+# funcml 0.9.20
+
+* `plot(<shap>, kind = "force")` drew the contributions end to end on one bar, so later segments
+  covered earlier ones and features were unlabeled. Positive contributions now stack up to f(x) and
+  negative ones run on from it, without overlap, each labeled with its feature and value.
+* The `vip` plot of engine importance (`importance_type = "model"`) was labeled as a drop in a
+  metric after permutation; it is now labeled "Model-based importance (engine measure)".
+* `predict()` on a fit read back with `readRDS()` failed with "no applicable method for 'predict'"
+  until the engine package was loaded (this also broke SHAP `kind = "dependence2d"` and
+  `"interaction"` plots of saved objects). The engines of the fit, and of ensemble base learners,
+  are now loaded first.
+
 # funcml 0.9.19
 
 * A fold seed (`cv(seed = )`, and the default `cv(5, seed = 1)` of `superlearner`) now fixes the

@@ -429,8 +429,20 @@ summary.funcml_fit <- function(object, ...) {
 #' @export
 predict.funcml_fit <- function(object, newdata, type = NULL, class_level = NULL,
                               pos_level = NULL, na_action = object$na_action, ...) {
+  .load_engines(object)
   object$predict(newdata = newdata, type = type, class_level = class_level,
                  pos_level = pos_level, na_action = na_action, ...)
+}
+
+# A fit read back with readRDS() predicts through S3 methods (e.g. predict.ranger) that are only
+# registered once the engine namespace is loaded; ensembles also need their base learners' engines.
+.load_engines <- function(object) {
+  reg <- funcml_registry()
+  ids <- c(object$model, object$state$learners)
+  pkgs <- unique(unlist(lapply(ids, function(i) reg[[i]]$package)))
+  pkgs <- setdiff(pkgs, c("stats", "funcml"))
+  for (p in pkgs) loadNamespace(p)
+  invisible(pkgs)
 }
 
 #' Extract the fitted engine model.
