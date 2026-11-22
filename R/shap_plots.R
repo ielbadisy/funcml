@@ -70,24 +70,36 @@ shap_plot_waterfall <- function(df, row_id = NULL, max_display = 10L) {
     ggplot2::theme(legend.position = "bottom", panel.grid.major.y = ggplot2::element_blank())
 }
 
-shap_plot_force <- function(df, row_id = NULL) {
+shap_plot_force <- function(df, row_id = NULL, max_display = 10L) {
   row_id <- row_id %||% min(df$observation)
-  built <- .shap_waterfall_data(df, row_id, max_display = nrow(df[df$observation == row_id, ]))
-  built$data$y <- "Force"
-  ggplot2::ggplot(built$data, ggplot2::aes(y = y)) +
-    ggplot2::geom_segment(
-      ggplot2::aes(x = start, xend = end, yend = y, colour = sign),
-      linewidth = 10, lineend = "butt"
-    ) +
-    ggplot2::geom_vline(xintercept = built$baseline, linetype = "dashed", colour = "grey50") +
-    ggplot2::geom_vline(xintercept = built$prediction, colour = "black", linewidth = 0.4) +
-    .shap_signed_scale() +
-    ggplot2::labs(
-      x = sprintf("Prediction (baseline = %.3f)", built$baseline),
-      y = NULL, colour = NULL
-    ) +
+  b <- .shap_waterfall_data(df, row_id, max_display = max_display)
+  d <- b$data; f <- b$prediction
+  # positive contributions end at f(x) and negative ones start there, so segments never overlap;
+  # larger contributions sit next to f(x), as in the force plot of Lundberg and Lee (2017)
+  pos <- d[d$shap >= 0, , drop = FALSE]; pos <- pos[order(pos$shap), , drop = FALSE]
+  pos$end <- f - sum(pos$shap) + cumsum(pos$shap); pos$start <- pos$end - pos$shap
+  neg <- d[d$shap < 0, , drop = FALSE]
+  neg <- neg[order(neg$shap), , drop = FALSE]  # most negative next to f(x)
+  neg$start <- f + c(0, cumsum(-neg$shap))[seq_len(nrow(neg))]; neg$end <- neg$start - neg$shap
+  d <- rbind(pos, neg)
+  d$mid <- (d$start + d$end) / 2
+  d$lab <- sprintf("%s\n%+.3f", d$feature_label, d$shap)
+  d$ylab <- ifelse(seq_len(nrow(d)) %% 2 == 0, 1.45, 0.55)
+  ggplot2::ggplot(d) +
+    ggplot2::geom_rect(ggplot2::aes(xmin = pmin(start, end), xmax = pmax(start, end), ymin = 0.8, ymax = 1.2,
+                                    fill = sign), colour = "white", linewidth = 0.3) +
+    ggplot2::geom_segment(ggplot2::aes(x = mid, xend = mid, y = ifelse(ylab > 1, 1.2, 0.8),
+                                       yend = ifelse(ylab > 1, 1.32, 0.68)), colour = "grey50", linewidth = 0.3) +
+    ggplot2::geom_text(ggplot2::aes(x = mid, y = ylab, label = lab), size = 2.8, lineheight = 0.9,
+                       colour = "grey20") +
+    ggplot2::geom_vline(xintercept = b$baseline, linetype = "dashed", colour = "grey50") +
+    ggplot2::geom_vline(xintercept = f, colour = "black", linewidth = 0.4) +
+    .shap_signed_fill_scale() +
+    ggplot2::scale_y_continuous(limits = c(0.3, 1.7), breaks = NULL) +
+    ggplot2::labs(x = sprintf("Prediction (dashed: baseline E[f(x)] = %.3f; solid: f(x) = %.3f)",
+                              b$baseline, f), y = NULL, fill = NULL) +
     themefuncml() +
-    ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
+    ggplot2::theme(legend.position = "bottom", panel.grid.major.y = ggplot2::element_blank())
 }
 
 shap_plot_importance <- function(df) {

@@ -262,6 +262,8 @@ listinterpretabilitymethods <- function(has_plot = NULL, columns = NULL) {
 }
 
 .permute_axis_label <- function(x) {
+  # engine importance (importance_type = "model") is the engine's own measure, not a permutation drop
+  if (identical(x$diagnostics$engine, "model")) return("Model-based importance (engine measure)")
   metric <- x$result$metric %||% x$metric %||% "metric"
   nm <- if (nchar(metric) <= 4) toupper(metric) else metric
   if ((x$result$comparison %||% "difference") != "difference") {
