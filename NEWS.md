@@ -1,3 +1,8 @@
+# funcml 0.9.23
+
+* `fit(model = "ranger")` forwards `spec$splitrule` to `ranger::ranger()` (for example
+  `"extratrees"` or `"hellinger"`); the engine default is kept when it is not set.
+
 # funcml 0.9.22
 
 * `plot(<shap>, kind = "force")`: each label takes the first free row (up to three above and three
