@@ -440,6 +440,8 @@ build_registry <- function() {
           num.trees = spec$num.trees,
           mtry = spec$mtry,
           min.node.size = spec$min.node.size,
+          # NULL keeps the engine default ("gini" or "variance"); "extratrees", "hellinger", ...
+          splitrule = spec$splitrule,
           classification = task == "classification",
           probability = task == "classification",
           importance = spec$importance %||% "impurity",
