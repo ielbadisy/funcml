@@ -276,7 +276,7 @@ listinterpretabilitymethods <- function(has_plot = NULL, columns = NULL) {
   rows <- lapply(features, function(feat) {
     x <- data_use[[feat]]
     if (is.numeric(x)) {
-      data.frame(feature = feat, value = x, stringsAsFactors = FALSE)
+      data.frame(feature = feat, value = as.numeric(x), stringsAsFactors = FALSE)
     } else {
       NULL
     }
@@ -799,14 +799,15 @@ interpret_vip <- function(fit, data, features, type, metric, class_level, pos_le
 # Curves of numeric and factor features share the `value` column; when
 # both kinds are requested the column is stored as character.
 .harmonise_curve_values <- function(curves) {
-  numeric_value <- vapply(curves, function(x) is.numeric(x$value), logical(1))
-  if (any(numeric_value) && !all(numeric_value)) {
-    curves <- lapply(curves, function(x) {
-      x$value <- as.character(x$value)
-      x
-    })
-  }
-  curves
+  # Mixed numeric/categorical features share a character column; integer and double grids share a
+  # double column (rbind refuses integer next to double).
+  num <- vapply(curves, function(x) is.numeric(x$value), logical(1))
+  if (!any(num)) return(curves)
+  to <- if (all(num)) as.numeric else as.character
+  lapply(curves, function(x) {
+    x$value <- to(x$value)
+    x
+  })
 }
 
 interpret_pdp <- function(fit, data, features, type, class_level, pos_level, grid, nsamples,
