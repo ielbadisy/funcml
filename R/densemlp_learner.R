@@ -9,7 +9,8 @@
 #   learning-rate schedules, internal ensembles).
 # * `mlp` is a plain multilayer perceptron preset on the same engine
 #   (Linear -> ReLU blocks, Adam, standardized inputs, no batch
-#   normalization by default). Arguments of the earlier `mlp`
+#   normalization by default). `weight_decay` (L2 penalty, densemlp >= 0.9.3)
+#   and `min_epochs` are forwarded by both. Arguments of the earlier `mlp`
 #   implementation that have no densemlp equivalent are accepted and
 #   ignored with a warning (see `.mlp_legacy_args()`).
 
@@ -19,7 +20,6 @@
   list(
     activation = "relu",
     optimizer = "adam",
-    weight_decay = 0,
     standardize = TRUE,
     device = c("auto", "cpu")
   )
@@ -69,7 +69,10 @@
     "binary"
   }
 
-  fit <- densemlp::densemlp(
+  # weight_decay only exists from densemlp 0.9.3: pass it only when used.
+  extra <- list(min_epochs = spec$min_epochs,
+                weight_decay = if (any((spec$weight_decay %||% 0) != 0)) spec$weight_decay)
+  fit <- do.call(densemlp::densemlp, c(list(
     x = X,
     y = y,
     task = densemlp_task,
@@ -94,7 +97,7 @@
     seed = .engine_seed(spec),
     verbose = isTRUE(spec$verbose %||% FALSE),
     ncores = spec$ncores %||% 1L
-  )
+  ), Filter(Negate(is.null), extra)))
 
   list(state = fit, task = task, levels = levels)
 }

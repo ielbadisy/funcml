@@ -200,7 +200,7 @@ test_that("mlp warns on arguments the densemlp engine does not support", {
   spec <- list(hidden_units = 4L, epochs = 5L, patience = 2L)
   expect_warning(
     fit(mpg ~ wt + hp, mtcars, "mlp", spec = c(spec, list(activation = "tanh", weight_decay = 1e-3))),
-    "ignores: activation = tanh; weight_decay"
+    "ignores: activation = tanh\\.$"
   )
   expect_no_warning(
     fit(mpg ~ wt + hp, mtcars, "mlp", spec = c(spec, list(activation = "relu", optimizer = "adam", device = "cpu")))
