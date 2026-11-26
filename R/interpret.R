@@ -401,7 +401,28 @@ listinterpretabilitymethods <- function(has_plot = NULL, columns = NULL) {
 #' in LIME. In both, a contribution is `beta * (x - mean(x))`, with the
 #' mean taken over `data` (categorical features are coded 1 when equal to
 #' the level of `newdata`), so the contributions sum to
-#' `local_prediction - baseline`, both returned in `result`.
+#' `local_prediction - baseline`, both returned in `result`. The surrogate
+#' is an unpenalised weighted least-squares fit ([stats::lm()] with weights)
+#' on all features; `k` only trims the reported contributions. It is not the
+#' K-Lasso feature selection of the original LIME.
+#'
+#' SHAP. `"shap"` uses the permutation Monte Carlo estimator: for each
+#' explained row and each of `nsim` draws, a background row and a feature
+#' order are sampled, and the features are switched one at a time from the
+#' background row to the explained row. The `baseline` of a row is the mean
+#' prediction at the background rows drawn for that row (so it varies
+#' slightly between rows and with `nsim`), not the mean prediction over the
+#' whole background; the SHAP values of a row sum to its prediction minus
+#' its baseline. The SHAP interaction values used by
+#' `plot(kind = "interaction")` and `"dependence2d"` take, for each pair
+#' (i, j), the coalition S of features preceding both i and j in a random
+#' order ("both-precede" sampling). S is then drawn with probability
+#' `2 |S|! (p - |S| - 1)! / p!`, which differs from the Shapley interaction
+#' index weight `|S|! (p - |S| - 2)! / (p - 1)!` by the factor
+#' `2 (p - |S| - 1) / p`; the values are therefore an approximation, not the
+#' exact Shapley interaction values. Each pair effect is split equally
+#' between the two off-diagonal cells, and the diagonal is the SHAP value
+#' minus the row sum of the off-diagonal cells.
 #' @param gower_power Exponent applied to native similarity weights when constructing the
 #'   local neighborhood.
 #' @param class_level Target class for classification explanations. For a

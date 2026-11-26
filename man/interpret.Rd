@@ -129,7 +129,28 @@ kernel on the scaled distance to \code{newdata} (width \code{0.75 * sqrt(p)}), a
 in LIME. In both, a contribution is \code{beta * (x - mean(x))}, with the
 mean taken over \code{data} (categorical features are coded 1 when equal to
 the level of \code{newdata}), so the contributions sum to
-\code{local_prediction - baseline}, both returned in \code{result}.
+\code{local_prediction - baseline}, both returned in \code{result}. The surrogate
+is an unpenalised weighted least-squares fit (\code{\link[stats:lm]{stats::lm()}} with weights)
+on all features; \code{k} only trims the reported contributions. It is not the
+K-Lasso feature selection of the original LIME.
+
+SHAP. \code{"shap"} uses the permutation Monte Carlo estimator: for each
+explained row and each of \code{nsim} draws, a background row and a feature
+order are sampled, and the features are switched one at a time from the
+background row to the explained row. The \code{baseline} of a row is the mean
+prediction at the background rows drawn for that row (so it varies
+slightly between rows and with \code{nsim}), not the mean prediction over the
+whole background; the SHAP values of a row sum to its prediction minus
+its baseline. The SHAP interaction values used by
+\code{plot(kind = "interaction")} and \code{"dependence2d"} take, for each pair
+(i, j), the coalition S of features preceding both i and j in a random
+order ("both-precede" sampling). S is then drawn with probability
+\verb{2 |S|! (p - |S| - 1)! / p!}, which differs from the Shapley interaction
+index weight \verb{|S|! (p - |S| - 2)! / (p - 1)!} by the factor
+\verb{2 (p - |S| - 1) / p}; the values are therefore an approximation, not the
+exact Shapley interaction values. Each pair effect is split equally
+between the two off-diagonal cells, and the diagonal is the SHAP value
+minus the row sum of the off-diagonal cells.
 }
 \examples{
 fit_obj <- fit(

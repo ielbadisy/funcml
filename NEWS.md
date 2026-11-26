@@ -32,6 +32,10 @@
 * `interpret()` with `method = "pdp"`, `"ice"`, `"ceteris_paribus"`, `"profile"` or `"ale"` no longer
   fails when the requested features mix double and integer columns ("Column `value` has conflicting
   types"); grid values are bound as doubles.
+* `interpret()` documentation now states that `"lime"` fits an unpenalised weighted linear model (not
+  K-Lasso), that the Monte Carlo SHAP baseline is the per-row mean prediction at the drawn background
+  rows, and that SHAP interaction values use "both-precede" coalition sampling, whose weights differ
+  from the Shapley interaction weights by `2 (p - |S| - 1) / p`. The algorithms are unchanged.
 
 # funcml 0.9.23
 
