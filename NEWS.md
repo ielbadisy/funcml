@@ -21,6 +21,14 @@
 * `plot(tune())` labels (and the nested-resampling `selected_config`) show hyperparameter values to 3
   significant digits, formatted per column without padding; configurations whose rounded labels
   coincide stay on separate rows.
+* Engine arguments now reach the engines: `ctree` and `cforest` forward any `partykit::ctree_control()`
+  argument (`maxdepth`, `minsplit`, `minbucket`, ...; only `mincriterion` before); `lightgbm` forwards
+  `max_bin`, `lambda_l1`, `lambda_l2` (alias `lambda`), `min_data_in_leaf`, `min_sum_hessian_in_leaf`,
+  `min_gain_to_split`, `extra_trees`, `max_delta_step` and `num_threads`; `xgboost` forwards `lambda`,
+  `alpha`, `gamma`, `min_child_weight`, `tree_method`, `max_bin`, `nthread` and related tree parameters.
+* `fastgbm` defaults to `OMP_NUM_THREADS` threads, or 1 when unset, instead of all cores
+  (`threads = 0`). Set `spec$threads` to choose; results can differ in the last digits from multithreaded
+  fits.
 
 # funcml 0.9.23
 

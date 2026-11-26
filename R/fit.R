@@ -68,6 +68,19 @@
 #' `theta`, ...) or of the method (`degree`, `nk`, `dfmax`, `lambda`, ...) are
 #' passed on. `type = "prob"` returns the posterior class probabilities.
 #'
+#' Engine arguments forwarded from `spec` when set: `ctree` and `cforest` pass
+#' any argument of [partykit::ctree_control()] (`maxdepth`, `minsplit`,
+#' `minbucket`, `mincriterion`, `alpha`, ...; `mtry` stays the `cforest`
+#' argument); `lightgbm` passes `max_bin`, `lambda_l1`, `lambda_l2` (or its
+#' alias `lambda`), `min_data_in_leaf`, `min_sum_hessian_in_leaf`,
+#' `min_gain_to_split`, `extra_trees`, `max_delta_step` and `num_threads`;
+#' `xgboost` passes `lambda`, `alpha`, `gamma`, `min_child_weight`,
+#' `tree_method`, `max_bin`, `nthread`, `max_delta_step`, `max_leaves`,
+#' `grow_policy`, `colsample_bylevel`, `colsample_bynode` and
+#' `scale_pos_weight`. `fastgbm` uses `spec$threads` threads; by default the
+#' value of the `OMP_NUM_THREADS` environment variable, or 1 when it is unset
+#' (`threads = 0` uses all cores).
+#'
 #' For regression, `xgboost` accepts `spec$objective`, any xgboost regression
 #' objective (default `"reg:squarederror"`), for example `"count:poisson"`
 #' for counts, `"reg:gamma"` or `"reg:tweedie"` (with

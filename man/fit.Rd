@@ -109,6 +109,19 @@ other \code{spec} entries matching arguments of \code{\link[mda:fda]{mda::fda()}
 \code{theta}, ...) or of the method (\code{degree}, \code{nk}, \code{dfmax}, \code{lambda}, ...) are
 passed on. \code{type = "prob"} returns the posterior class probabilities.
 
+Engine arguments forwarded from \code{spec} when set: \code{ctree} and \code{cforest} pass
+any argument of \code{\link[partykit:ctree_control]{partykit::ctree_control()}} (\code{maxdepth}, \code{minsplit},
+\code{minbucket}, \code{mincriterion}, \code{alpha}, ...; \code{mtry} stays the \code{cforest}
+argument); \code{lightgbm} passes \code{max_bin}, \code{lambda_l1}, \code{lambda_l2} (or its
+alias \code{lambda}), \code{min_data_in_leaf}, \code{min_sum_hessian_in_leaf},
+\code{min_gain_to_split}, \code{extra_trees}, \code{max_delta_step} and \code{num_threads};
+\code{xgboost} passes \code{lambda}, \code{alpha}, \code{gamma}, \code{min_child_weight},
+\code{tree_method}, \code{max_bin}, \code{nthread}, \code{max_delta_step}, \code{max_leaves},
+\code{grow_policy}, \code{colsample_bylevel}, \code{colsample_bynode} and
+\code{scale_pos_weight}. \code{fastgbm} uses \code{spec$threads} threads; by default the
+value of the \code{OMP_NUM_THREADS} environment variable, or 1 when it is unset
+(\code{threads = 0} uses all cores).
+
 For regression, \code{xgboost} accepts \code{spec$objective}, any xgboost regression
 objective (default \code{"reg:squarederror"}), for example \code{"count:poisson"}
 for counts, \code{"reg:gamma"} or \code{"reg:tweedie"} (with
