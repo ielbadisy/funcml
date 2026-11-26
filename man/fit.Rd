@@ -83,6 +83,13 @@ accepted by \code{\link[kknn:kknn]{kknn::kknn()}} (default \code{"optimal"}; for
 (default 0.1) is the width of the insensitive tube in support vector
 regression and is ignored for classification.
 
+\code{fda} takes \code{spec$method}, the regression method of \code{\link[mda:fda]{mda::fda()}} as a
+function or a name in mda (default \code{"polyreg"}, which gives linear
+discriminant analysis; for example \code{"mars"}, \code{"bruto"} or \code{"gen.ridge"});
+other \code{spec} entries matching arguments of \code{\link[mda:fda]{mda::fda()}} (\code{dimension},
+\code{theta}, ...) or of the method (\code{degree}, \code{nk}, \code{dfmax}, \code{lambda}, ...) are
+passed on. \code{type = "prob"} returns the posterior class probabilities.
+
 For regression, \code{xgboost} accepts \code{spec$objective}, any xgboost regression
 objective (default \code{"reg:squarederror"}), for example \code{"count:poisson"}
 for counts, \code{"reg:gamma"} or \code{"reg:tweedie"} (with
