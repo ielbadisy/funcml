@@ -295,9 +295,11 @@ listinterpretabilitymethods <- function(has_plot = NULL, columns = NULL) {
   if (!length(cols)) {
     return(rep("", nrow(df)))
   }
-  apply(df[, cols, drop = FALSE], 1, function(row) {
-    paste(sprintf("%s=%s", cols, unname(row)), collapse = ", ")
-  })
+  # Per column (apply() would pad to a common width); numbers to 3 significant digits.
+  fmt <- function(v) if (is.numeric(v)) as.character(signif(v, 3)) else as.character(v)
+  vals <- lapply(df[cols], function(v) if (is.list(v)) vapply(v, function(e) paste(fmt(e), collapse = "/"), "")
+                                       else fmt(v))
+  do.call(paste, c(Map(function(nm, v) paste0(nm, "=", v), cols, vals), sep = ", "))
 }
 
 .recode_local_features <- function(dat, x_interest) {

@@ -201,8 +201,10 @@ plot.funcml_tune <- function(x, ..., title = NULL, subtitle = NULL, caption = NU
   df$config_label <- .format_tune_config(df)
   ord <- if (x$direction == "max") order(df$mean, decreasing = TRUE) else order(df$mean, decreasing = FALSE)
   df <- df[ord, , drop = FALSE]
+  # Rounded labels of distinct configurations can coincide; keep one row each.
+  df$config_label <- make.unique(df$config_label, sep = " #")
   df$config_label <- factor(df$config_label, levels = rev(df$config_label))
-  best_label <- .format_tune_config(x$best)[1]
+  best_label <- df$config_label[1]
   ggplot2::ggplot(df, ggplot2::aes(x = mean, y = config_label)) +
     ggplot2::geom_segment(ggplot2::aes(x = conf_low, xend = conf_high, yend = config_label), linewidth = 0.45, colour = "grey45") +
     ggplot2::geom_point(size = 2.2, colour = "black") +
