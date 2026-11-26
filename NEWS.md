@@ -27,8 +27,7 @@
   `min_gain_to_split`, `extra_trees`, `max_delta_step` and `num_threads`; `xgboost` forwards `lambda`,
   `alpha`, `gamma`, `min_child_weight`, `tree_method`, `max_bin`, `nthread` and related tree parameters.
 * `fastgbm` defaults to `OMP_NUM_THREADS` threads, or 1 when unset, instead of all cores
-  (`threads = 0`). Set `spec$threads` to choose; results can differ in the last digits from multithreaded
-  fits.
+  (`threads = 0`). Set `spec$threads` to choose. This changes speed, not the fitted model.
 * `interpret()` with `method = "pdp"`, `"ice"`, `"ceteris_paribus"`, `"profile"` or `"ale"` no longer
   fails when the requested features mix double and integer columns ("Column `value` has conflicting
   types"); grid values are bound as doubles.
@@ -36,6 +35,8 @@
   K-Lasso), that the Monte Carlo SHAP baseline is the per-row mean prediction at the drawn background
   rows, and that SHAP interaction values use "both-precede" coalition sampling, whose weights differ
   from the Shapley interaction weights by `2 (p - |S| - 1) / p`. The algorithms are unchanged.
+* Package check: declare `mid` and `ylab` (force plot) as global variables; the convex super learner
+  test checks the KKT conditions instead of calling quadprog.
 
 # funcml 0.9.23
 
