@@ -365,6 +365,25 @@
   as.numeric(pred)
 }
 
+# Engine parameters forwarded from `spec` when set.
+LGB_PARAMS <- c("max_bin", "min_data_in_leaf", "min_sum_hessian_in_leaf", "min_gain_to_split",
+                "num_threads", "extra_trees", "max_delta_step", "lambda_l1", "lambda_l2")
+XGB_PARAMS <- c("lambda", "alpha", "gamma", "min_child_weight", "tree_method", "max_bin", "nthread",
+                "max_delta_step", "max_leaves", "grow_policy", "colsample_bylevel", "colsample_bynode",
+                "scale_pos_weight")
+
+# partykit::ctree_control() from the matching `spec` entries.
+.ctree_control <- function(spec, ...) {
+  do.call(partykit::ctree_control, c(spec[intersect(names(spec), names(formals(partykit::ctree_control)))],
+                                     list(...)))
+}
+
+# Default thread count for engines that would otherwise use every core: OMP_NUM_THREADS if set, else 1.
+.default_threads <- function() {
+  n <- suppressWarnings(as.integer(Sys.getenv("OMP_NUM_THREADS")))
+  if (is.na(n) || n < 1L) 1L else n
+}
+
 build_registry <- function() {
   list(
     glm = list(
@@ -1035,8 +1054,7 @@ build_registry <- function() {
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("partykit", "ctree")
         df <- data.frame(y = y, X, check.names = FALSE)
-        ctrl <- partykit::ctree_control(mincriterion = spec$mincriterion)
-        fit <- partykit::ctree(y ~ ., data = df, control = ctrl)
+        fit <- partykit::ctree(y ~ ., data = df, control = .ctree_control(spec))
         list(state = fit)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
@@ -1064,7 +1082,7 @@ build_registry <- function() {
         assert_package("partykit", "cforest")
         mtry <- spec$mtry %||% max(1L, floor(sqrt(ncol(X))))
         df <- data.frame(y = y, X, check.names = FALSE)
-        ctrl <- partykit::ctree_control(mincriterion = spec$mincriterion, saveinfo = FALSE)
+        ctrl <- .ctree_control(spec[names(spec) != "mtry"], saveinfo = FALSE)
         fit <- partykit::cforest(y ~ ., data = df, control = ctrl, ntree = spec$ntree, mtry = mtry)
         list(state = fit)
       },
@@ -1147,7 +1165,9 @@ build_registry <- function() {
           num_class <- NULL
         }
         dtrain <- lightgbm::lgb.Dataset(data = X, label = label)
-        params <- list(
+        extra <- spec[intersect(names(spec), LGB_PARAMS)]
+        extra$lambda_l2 <- spec$lambda_l2 %||% spec$lambda  # `lambda` as in xgboost and fastgbm
+        params <- c(extra, list(
           objective = objective,
           num_leaves = spec$num_leaves,
           learning_rate = spec$learning_rate,
@@ -1156,7 +1176,7 @@ build_registry <- function() {
           bagging_freq = spec$bagging_freq,
           max_depth = spec$max_depth,
           num_class = num_class
-        )
+        ))
         params <- params[!vapply(params, is.null, logical(1))]
         fit <- lightgbm::lgb.train(params = params, data = dtrain, nrounds = spec$nrounds, verbose = -1)
         list(state = fit, objective = objective, levels = levels, num_class = num_class, feature_names = colnames(X))
@@ -1247,6 +1267,7 @@ build_registry <- function() {
           colsample_bytree = spec$colsample_bytree,
           objective = if (task == "regression") spec$objective %||% "reg:squarederror" else if (length(levels(y)) > 2) "multi:softprob" else "binary:logistic"
         )
+        params <- c(params, spec[intersect(names(spec), XGB_PARAMS)])
         if (task == "regression" && !is.null(spec$tweedie_variance_power)) {
           params$tweedie_variance_power <- spec$tweedie_variance_power
         }
@@ -1308,7 +1329,6 @@ build_registry <- function() {
         lambda = 1,
         gamma = 0,
         min_child_weight = 1,
-        threads = 0L,
         verbose = FALSE
       ),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE, na = TRUE),
