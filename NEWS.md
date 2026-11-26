@@ -1,3 +1,9 @@
+# funcml 0.9.24
+
+* `fit(model = "densemlp")` and `fit(model = "mlp")` forward `spec$weight_decay` (L2 penalty, needs
+  densemlp >= 0.9.3) and `spec$min_epochs` to `densemlp::densemlp()`; `weight_decay` was silently
+  ignored. `mlp` no longer warns about `weight_decay`.
+
 # funcml 0.9.23
 
 * `fit(model = "ranger")` forwards `spec$splitrule` to `ranger::ranger()` (for example
