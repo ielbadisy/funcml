@@ -18,6 +18,9 @@
   deviations (stored in the fit, applied at prediction); on raw inputs the logistic hidden units
   saturated (AUC 0.5 on Pima without decay). `spec$standardize = FALSE` restores the raw inputs.
   This changes `nnet` predictions, including inside `stacking` and `superlearner`.
+* `plot(tune())` labels (and the nested-resampling `selected_config`) show hyperparameter values to 3
+  significant digits, formatted per column without padding; configurations whose rounded labels
+  coincide stay on separate rows.
 
 # funcml 0.9.23
 
