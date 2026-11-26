@@ -1,10 +1,13 @@
 test_that("convex meta-learner solves the simplex-constrained least squares problem", {
-  skip_if_not_installed("quadprog")
   set.seed(1); n <- 300
   Z <- cbind(a = rnorm(n), b = rnorm(n), c = rnorm(n)); y <- drop(Z %*% c(.7, .3, -.5)) + rnorm(n)
   w <- funcml:::.ensemble_fit_meta(Z, y, "regression", meta_model = "convex")$weights
-  qp <- quadprog::solve.QP(crossprod(Z), crossprod(Z, y), cbind(1, diag(3)), c(1, 0, 0, 0), meq = 1)$solution
-  expect_equal(unname(w), qp, tolerance = 1e-6)
+  # KKT on the simplex: equal gradients on the support, larger ones off it.
+  g <- -2 * drop(crossprod(Z, y - Z %*% w)) / n
+  expect_true(all(w >= 0)); expect_equal(sum(w), 1)
+  expect_equal(unname(w[3]), 0)
+  expect_equal(unname(g[1]), unname(g[2]), tolerance = 1e-6)
+  expect_gt(g[3], g[1])
 })
 
 test_that("superlearner uses non-negative weights summing to one by default", {
