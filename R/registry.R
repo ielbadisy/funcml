@@ -119,10 +119,70 @@
   out
 }
 
+# Euclidean projection onto the probability simplex (Duchi et al. 2008).
+.proj_simplex <- function(v) {
+  u <- sort(v, decreasing = TRUE); css <- cumsum(u)
+  rho <- max(which(u - (css - 1) / seq_along(u) > 0))
+  pmax(v - (css[rho] - 1) / rho, 0)
+}
+
+# Minimise a smooth convex loss over the simplex (w >= 0, sum(w) = 1) by projected gradient
+# descent with backtracking.
+.simplex_min <- function(f, grad, k, iter = 5000L, tol = 1e-10) {
+  w <- rep(1 / k, k); step <- 1
+  for (i in seq_len(iter)) {
+    g <- grad(w); fw <- f(w)
+    repeat {
+      wn <- .proj_simplex(w - step * g); d <- wn - w
+      if (f(wn) <= fw + sum(g * d) + sum(d^2) / (2 * step) || step < 1e-14) break
+      step <- step / 2
+    }
+    w <- wn; step <- step * 2
+    if (max(abs(d)) < tol) break
+  }
+  w
+}
+
+# Convex super learner (van der Laan, Polley and Hubbard 2007): non-negative weights summing to
+# one on the out-of-fold base predictions. Regression minimises the squared error of the weighted
+# predictions (SuperLearner's method.NNLS solved exactly under the sum constraint); binary outcomes
+# minimise the log loss of the weighted logits (method.CC_nloglik); multiclass outcomes minimise the
+# log loss of the weighted class-probability matrices.
+.ensemble_fit_convex <- function(meta_x, y, task, levels, learners) {
+  k <- length(learners); n <- nrow(meta_x)
+  if (task == "regression") {
+    y <- as.numeric(y)
+    f <- function(w) mean((y - meta_x %*% w)^2)
+    g <- function(w) -2 * drop(crossprod(meta_x, y - meta_x %*% w)) / n
+  } else if (length(levels) == 2L) {
+    z <- stats::qlogis(meta_x); yb <- as.numeric(y == levels[2L])
+    f <- function(w) {
+      eta <- drop(z %*% w)
+      mean(log1p(exp(-abs(eta))) + pmax(eta, 0) - yb * eta)
+    }
+    g <- function(w) drop(crossprod(z, stats::plogis(drop(z %*% w)) - yb)) / n
+  } else {
+    # Probability each learner gave to the observed class.
+    obs <- matrix(vapply(learners, function(id) meta_x[cbind(seq_len(n), match(paste(id, y, sep = "__"),
+                                                                                  colnames(meta_x)))],
+                         numeric(n)), nrow = n)
+    f <- function(w) -mean(log(drop(obs %*% w)))
+    g <- function(w) -colMeans(obs / drop(obs %*% w))
+  }
+  w <- stats::setNames(.simplex_min(f, g, k), learners)
+  list(task = task, levels = levels, engine = "convex", weights = w)
+}
+
 .ensemble_fit_meta <- function(meta_x, y, task, levels = NULL, meta_model = "native") {
   meta_x <- as.matrix(meta_x)
   if (task == "classification") {
     meta_x <- pmin(pmax(meta_x, 1e-6), 1 - 1e-6)
+  }
+  if (identical(meta_model, "convex")) {
+    learners <- if (task == "classification" && length(levels) > 2L) {
+      unique(sub("__.*$", "", colnames(meta_x)))
+    } else colnames(meta_x)
+    return(.ensemble_fit_convex(meta_x, y, task, levels, learners))
   }
   if (identical(task, "classification") && length(levels) > 2L && identical(meta_model, "native")) {
     meta_model <- "glmnet"
@@ -194,6 +254,20 @@
   meta_x <- as.matrix(meta_x)
   if (meta_fit$task == "classification") {
     meta_x <- pmin(pmax(meta_x, 1e-6), 1 - 1e-6)
+  }
+  if (identical(meta_fit$engine, "convex")) {
+    w <- meta_fit$weights
+    if (meta_fit$task == "regression") return(drop(meta_x %*% w))
+    lv <- meta_fit$levels
+    if (length(lv) == 2L) {
+      prob <- stats::plogis(drop(stats::qlogis(meta_x) %*% w))
+      out <- cbind(1 - prob, prob); colnames(out) <- lv
+      return(out)
+    }
+    prob <- Reduce(`+`, lapply(names(w), function(id) w[[id]] * meta_x[, paste(id, lv, sep = "__"),
+                                                                        drop = FALSE]))
+    colnames(prob) <- lv
+    return(prob)
   }
   if (identical(meta_fit$engine, "glmnet_gaussian")) {
     pred <- stats::predict(meta_fit$fit, newx = meta_x, s = meta_fit$lambda, type = "response")
@@ -1290,7 +1364,7 @@ build_registry <- function() {
     superlearner = list(
       package = "stats",
       tasks = c("regression", "classification"),
-      defaults = list(learners = NULL, learner_specs = list(), meta_model = "glmnet", resampling = cv(5, seed = 1)),
+      defaults = list(learners = NULL, learner_specs = list(), meta_model = "convex", resampling = cv(5, seed = 1)),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, levels, ...) {
         learners <- spec$learners %||% .ensemble_default_learners(task, levels)
@@ -1298,7 +1372,7 @@ build_registry <- function() {
         learner_specs <- .ensemble_prepare_specs(learners, spec$learner_specs %||% list())
         resampling <- spec$resampling %||% cv(5, seed = 1)
         meta_x <- .ensemble_oof_meta_matrix(X, y, learners, learner_specs, task, levels, resampling)
-        meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels, meta_model = spec$meta_model %||% "glmnet")
+        meta_fit <- .ensemble_fit_meta(meta_x, y, task, levels, meta_model = spec$meta_model %||% "convex")
         base_models <- .ensemble_fit_base_models(X, y, learners, learner_specs, task, levels)
         list(
           ensemble = "superlearner",
@@ -1309,6 +1383,7 @@ build_registry <- function() {
           levels = levels,
           task = task,
           meta_features = colnames(meta_x),
+          meta_x = meta_x,
           resampling = resampling
         )
       },

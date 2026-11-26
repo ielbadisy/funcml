@@ -34,6 +34,20 @@
 #' meta-features are stored at `$state$meta_x`. `superlearner` works the same
 #' way with a `resampling` object instead of `folds`.
 #'
+#' `meta_model` selects the meta-learner. `"convex"` (the `superlearner`
+#' default) is the convex super learner of van der Laan, Polley and Hubbard
+#' (2007): one weight per base learner, non-negative and summing to one,
+#' chosen to minimise the out-of-fold loss. For regression it minimises the
+#' squared error of the weighted predictions (as `method.NNLS` in the
+#' SuperLearner package, but solved under the sum constraint); for a binary
+#' outcome it minimises the log loss of the weighted logits (as
+#' `method.CC_nloglik`); for a multiclass outcome it minimises the log loss of
+#' the weighted class-probability vectors. The weights are stored at
+#' `$state$meta_fit$weights`. `"glmnet"` (the `stacking` default) is a ridge
+#' regression (logistic or multinomial for classification) with an intercept
+#' and penalty 0.001 on the meta-features; its coefficients are unconstrained
+#' and may be negative. `"native"` is the same model without penalty.
+#'
 #' `kknn` takes `spec = list(k, distance, kernel)`: `k` is the exact number
 #' of neighbours, `distance` the Minkowski power and `kernel` any kernel
 #' accepted by [kknn::kknn()] (default `"optimal"`; for example
