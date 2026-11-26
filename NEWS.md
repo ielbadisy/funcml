@@ -7,6 +7,13 @@
   `"gen.ridge"`; default `"polyreg"`, the previous linear fit) and any argument of `mda::fda()` or of the
   method (`degree`, `nk`, `dfmax`, ...); it always fitted linear FDA before. `fda` now supports
   `type = "prob"` (posterior class probabilities).
+* `superlearner` now defaults to the convex super learner, `meta_model = "convex"`: non-negative
+  weights summing to one that minimise the out-of-fold squared error (regression), log loss of the
+  weighted logits (binary) or log loss of the weighted class probabilities (multiclass). The previous
+  unconstrained ridge meta-learner, which could give negative weights, stays available with
+  `meta_model = "glmnet"` and remains the `stacking` default; `stacking` also accepts
+  `meta_model = "convex"`. Weights are at `$state$meta_fit$weights`; `superlearner` now stores
+  `$state$meta_x` as `stacking` does. This changes `superlearner` predictions.
 
 # funcml 0.9.23
 

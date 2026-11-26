@@ -75,6 +75,20 @@ learners are then refitted on all rows for prediction. The out-of-fold
 meta-features are stored at \verb{$state$meta_x}. \code{superlearner} works the same
 way with a \code{resampling} object instead of \code{folds}.
 
+\code{meta_model} selects the meta-learner. \code{"convex"} (the \code{superlearner}
+default) is the convex super learner of van der Laan, Polley and Hubbard
+(2007): one weight per base learner, non-negative and summing to one,
+chosen to minimise the out-of-fold loss. For regression it minimises the
+squared error of the weighted predictions (as \code{method.NNLS} in the
+SuperLearner package, but solved under the sum constraint); for a binary
+outcome it minimises the log loss of the weighted logits (as
+\code{method.CC_nloglik}); for a multiclass outcome it minimises the log loss of
+the weighted class-probability vectors. The weights are stored at
+\verb{$state$meta_fit$weights}. \code{"glmnet"} (the \code{stacking} default) is a ridge
+regression (logistic or multinomial for classification) with an intercept
+and penalty 0.001 on the meta-features; its coefficients are unconstrained
+and may be negative. \code{"native"} is the same model without penalty.
+
 \code{kknn} takes \code{spec = list(k, distance, kernel)}: \code{k} is the exact number
 of neighbours, \code{distance} the Minkowski power and \code{kernel} any kernel
 accepted by \code{\link[kknn:kknn]{kknn::kknn()}} (default \code{"optimal"}; for example
