@@ -42,6 +42,13 @@
 #' (default 0.1) is the width of the insensitive tube in support vector
 #' regression and is ignored for classification.
 #'
+#' `fda` takes `spec$method`, the regression method of [mda::fda()] as a
+#' function or a name in mda (default `"polyreg"`, which gives linear
+#' discriminant analysis; for example `"mars"`, `"bruto"` or `"gen.ridge"`);
+#' other `spec` entries matching arguments of [mda::fda()] (`dimension`,
+#' `theta`, ...) or of the method (`degree`, `nk`, `dfmax`, `lambda`, ...) are
+#' passed on. `type = "prob"` returns the posterior class probabilities.
+#'
 #' For regression, `xgboost` accepts `spec$objective`, any xgboost regression
 #' objective (default `"reg:squarederror"`), for example `"count:poisson"`
 #' for counts, `"reg:gamma"` or `"reg:tweedie"` (with

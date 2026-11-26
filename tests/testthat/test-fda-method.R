@@ -1,0 +1,13 @@
+test_that("fda forwards its method and arguments and returns posterior probabilities", {
+  skip_if_not_installed("mda")
+  ref <- function(...) predict(mda::fda(Species ~ ., data = iris, ...), iris, type = "posterior")
+  p <- function(...) predict(fit(Species ~ ., iris, "fda", spec = list(...)), iris, type = "prob")
+  expect_equal(unname(p()), unname(ref()))
+  expect_equal(unname(p(method = "mars", degree = 2)), unname(ref(method = mda::mars, degree = 2)))
+  expect_equal(unname(p(method = mda::bruto)), unname(ref(method = mda::bruto)))
+  pr <- p(method = "mars")
+  expect_equal(colnames(pr), levels(iris$Species))
+  expect_equal(rowSums(pr), rep(1, 150), tolerance = 1e-8)
+  expect_true(funcml:::funcml_registry("fda")$supports$prob)
+  expect_equal(levels(predict(fit(Species ~ ., iris, "fda"), iris[1:3, ])), levels(iris$Species))
+})

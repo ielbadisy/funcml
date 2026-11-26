@@ -857,23 +857,26 @@ build_registry <- function() {
     fda = list(
       package = "mda",
       tasks = c("classification"),
-      defaults = list(),
-      supports = list(prob = FALSE, multiclass = TRUE, importance = FALSE),
+      defaults = list(method = "polyreg"),
+      supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("mda", "fda")
         df <- data.frame(y = y, X, check.names = FALSE)
-        fit <- mda::fda(y ~ ., data = df)
+        m <- spec$method %||% "polyreg"
+        if (is.character(m)) m <- getExportedValue("mda", m)
+        # Arguments of fda() itself and of the regression method (for example degree, nk, dfmax).
+        keep <- setdiff(intersect(names(spec), c(names(formals(mda::fda)), names(formals(m)))),
+                        c("formula", "data", "method", "x", "y", "w", "..."))
+        fit <- do.call(mda::fda, c(list(formula = y ~ ., data = df, method = m), spec[keep]))
         list(state = fit)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
-        pred <- stats::predict(state$state, newdata = data.frame(Xnew, check.names = FALSE))
+        new_df <- data.frame(Xnew, check.names = FALSE)
         if (type == "prob") {
-          prob <- if (is.list(pred) && !is.null(pred$posterior)) pred$posterior else pred
-          prob <- as.matrix(prob)[, levels, drop = FALSE]
-          return(prob)
+          prob <- stats::predict(state$state, newdata = new_df, type = "posterior")
+          return(as.matrix(prob)[, levels, drop = FALSE])
         }
-        cls <- if (is.list(pred) && !is.null(pred$class)) pred$class else pred
-        factor(cls, levels = levels)
+        factor(stats::predict(state$state, newdata = new_df, type = "class"), levels = levels)
       }
     ),
     adaboost = list(

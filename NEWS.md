@@ -3,6 +3,10 @@
 * `fit(model = "densemlp")` and `fit(model = "mlp")` forward `spec$weight_decay` (L2 penalty, needs
   densemlp >= 0.9.3) and `spec$min_epochs` to `densemlp::densemlp()`; `weight_decay` was silently
   ignored. `mlp` no longer warns about `weight_decay`.
+* `fit(model = "fda")` forwards `spec$method` (a function or an mda name such as `"mars"`, `"bruto"`,
+  `"gen.ridge"`; default `"polyreg"`, the previous linear fit) and any argument of `mda::fda()` or of the
+  method (`degree`, `nk`, `dfmax`, ...); it always fitted linear FDA before. `fda` now supports
+  `type = "prob"` (posterior class probabilities).
 
 # funcml 0.9.23
 
