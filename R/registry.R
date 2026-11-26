@@ -546,10 +546,16 @@ build_registry <- function() {
     nnet = list(
       package = "nnet",
       tasks = c("regression", "classification"),
-      defaults = list(size = 5, decay = 0.01, maxit = 200),
+      defaults = list(size = 5, decay = 0.01, maxit = 200, standardize = TRUE),
       supports = list(prob = TRUE, multiclass = TRUE, importance = FALSE),
       fit_xy = function(X, y, spec, task, ...) {
         assert_package("nnet", "nnet")
+        # Logistic hidden units saturate on raw-scale inputs: centre and scale with training moments.
+        ctr <- scl <- NULL
+        if (isTRUE(spec$standardize %||% TRUE)) {
+          ctr <- colMeans(X); scl <- apply(X, 2, stats::sd); scl[!is.finite(scl) | scl == 0] <- 1
+          X <- scale(X, ctr, scl)
+        }
         if (task == "regression") {
           fit <- nnet::nnet(x = X, y = y, size = spec$size, decay = spec$decay,
                             maxit = spec$maxit, linout = TRUE, trace = FALSE)
@@ -559,9 +565,10 @@ build_registry <- function() {
                             maxit = spec$maxit, softmax = length(levels(y)) > 2,
                             linout = FALSE, trace = FALSE)
         }
-        list(state = fit)
+        list(state = fit, center = ctr, scale = scl)
       },
       predict_xy = function(state, Xnew, type, levels, spec, ...) {
+        if (!is.null(state$center)) Xnew <- scale(as.matrix(Xnew), state$center, state$scale)
         p <- stats::predict(state$state, newdata = Xnew, type = "raw")
         if (is.null(levels)) return(as.numeric(p))
         if (is.null(dim(p))) {

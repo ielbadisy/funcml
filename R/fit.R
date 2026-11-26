@@ -56,6 +56,11 @@
 #' (default 0.1) is the width of the insensitive tube in support vector
 #' regression and is ignored for classification.
 #'
+#' `nnet` takes `spec = list(size, decay, maxit, standardize)`. With
+#' `standardize = TRUE` (the default) each predictor column is centred and
+#' scaled by its training mean and standard deviation, stored in the fit and
+#' applied again at prediction; `standardize = FALSE` gives the raw inputs.
+#'
 #' `fda` takes `spec$method`, the regression method of [mda::fda()] as a
 #' function or a name in mda (default `"polyreg"`, which gives linear
 #' discriminant analysis; for example `"mars"`, `"bruto"` or `"gen.ridge"`);
