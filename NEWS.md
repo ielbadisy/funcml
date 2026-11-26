@@ -29,6 +29,9 @@
 * `fastgbm` defaults to `OMP_NUM_THREADS` threads, or 1 when unset, instead of all cores
   (`threads = 0`). Set `spec$threads` to choose; results can differ in the last digits from multithreaded
   fits.
+* `interpret()` with `method = "pdp"`, `"ice"`, `"ceteris_paribus"`, `"profile"` or `"ale"` no longer
+  fails when the requested features mix double and integer columns ("Column `value` has conflicting
+  types"); grid values are bound as doubles.
 
 # funcml 0.9.23
 
