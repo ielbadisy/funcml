@@ -97,6 +97,11 @@ accepted by \code{\link[kknn:kknn]{kknn::kknn()}} (default \code{"optimal"}; for
 (default 0.1) is the width of the insensitive tube in support vector
 regression and is ignored for classification.
 
+\code{nnet} takes \code{spec = list(size, decay, maxit, standardize)}. With
+\code{standardize = TRUE} (the default) each predictor column is centred and
+scaled by its training mean and standard deviation, stored in the fit and
+applied again at prediction; \code{standardize = FALSE} gives the raw inputs.
+
 \code{fda} takes \code{spec$method}, the regression method of \code{\link[mda:fda]{mda::fda()}} as a
 function or a name in mda (default \code{"polyreg"}, which gives linear
 discriminant analysis; for example \code{"mars"}, \code{"bruto"} or \code{"gen.ridge"});

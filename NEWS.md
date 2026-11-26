@@ -14,6 +14,10 @@
   `meta_model = "glmnet"` and remains the `stacking` default; `stacking` also accepts
   `meta_model = "convex"`. Weights are at `$state$meta_fit$weights`; `superlearner` now stores
   `$state$meta_x` as `stacking` does. This changes `superlearner` predictions.
+* `fit(model = "nnet")` centres and scales the predictors with the training means and standard
+  deviations (stored in the fit, applied at prediction); on raw inputs the logistic hidden units
+  saturated (AUC 0.5 on Pima without decay). `spec$standardize = FALSE` restores the raw inputs.
+  This changes `nnet` predictions, including inside `stacking` and `superlearner`.
 
 # funcml 0.9.23
 
